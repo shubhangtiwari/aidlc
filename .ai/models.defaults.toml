@@ -3,8 +3,6 @@
 # Use exact strings from each IDE's model picker if these differ in your account.
 
 # Cursor: composer-2.5 for all personas — other Cursor models billed at 2x for this org.
-# To pin personas to a Gemini model in Cursor, replace these values with the exact model string
-# from Cursor's model picker, for example "gemini-3.1-pro".
 
 [cursor.architect]
 model = "composer-2.5"

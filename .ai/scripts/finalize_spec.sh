@@ -306,7 +306,7 @@ push_if_requested() {
 }
 
 parse_args() {
-  REPO="$(cd "$(dirname "$0")/.." && pwd)"
+  REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 
   if [ "${CI:-}" = "true" ] || [ "${CI:-}" = "1" ]; then
     DO_PUSH=1

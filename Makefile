@@ -38,7 +38,8 @@ help:
 
 # Generate per-IDE entrypoint files from .ai/ guidance.
 # Reads .ai/personas/, .ai/skills/, .ai/README.md (INIT block), and .ai/models.defaults.toml,
-# and writes IDE-native files (CLAUDE.md, AGENTS.md, .agents/skills/, .codex/agents/, .cursor/rules/, ...).
+# and writes IDE-native files (CLAUDE.md, AGENTS.md, .claude/skills/, .codex/agents/,
+# .codex/skills/, .cursor/rules/, .cursor/skills/, ...).
 # Generated files are gitignored and must not be hand-edited; re-run after changing .ai/.
 init:
 	@if [ -z "$(INIT_ARG)" ]; then \

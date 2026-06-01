@@ -24,7 +24,8 @@ governance only; re-run after adding a language/runtime manifest to refresh tool
   - `architect.md` — plans, work packages, DAG; never edits without instruction.
   - `implementer.md` — WP-scoped edits within layer rules.
   - `reviewer.md` — validates layer purity, spec, and WP `done_when`.
-- `skills/` — task playbooks.
+- `skills/` — task playbooks (projected per IDE by `make init <ide>`).
+  - `classify-change.md` — mandatory tier triage in the main session before governed implementation.
   - `init-architecture.md` — analyze repo and write `docs/ARCHITECTURE.md`.
   - `orchestrate-spec.md` — parallel implementer waves from spec work packages.
 - `templates/` — spec drafting template; approval brief template (chat-only, for architect).
@@ -40,7 +41,8 @@ Edit `.ai/models.defaults.toml` to change which model each IDE uses for each per
 
 - **Personas define authority:** who plans, who changes files, who reviews, what each role must
   refuse, when work escalates, and which quality bar applies before handoff.
-- **Skills define procedure:** reusable task playbooks. Skills do not define authority.
+- **Skills define procedure:** reusable task playbooks in `.ai/skills/`. Skills do not define
+  authority — personas and Hard Rules do.
 - **Docs define truth:** architecture, specs, ADRs, blueprints, and manifests hold project facts.
 
 <!-- INIT:BEGIN -->
@@ -69,35 +71,40 @@ verbs do **not** waive the spec gate.
 
 ### Before any state-changing tool call
 
-1. **Classify** the request: trivial / small / medium / large / uncertain (see
-   `docs/spec/README.md`).
-2. **Choose the path:**
+1. **Choose the path:**
    - **Configuration / tooling / Q&A** (`Makefile` when not a contract, `.ai/`, IDE
-     config, dependencies, exploration) → main agent may proceed.
+     config, dependencies, exploration) → main agent may proceed (no triage).
    - **Governed code or contracts** (project source tree, `tests/`, `docs/blueprints/`,
-     `docs/adr/`, `docs/spec/`, `docs/ARCHITECTURE.md`, `docs/architecture/`) → follow the persona
-     chain below. The main session **must not** patch governed source or tests — only
-     `implementer` (or a delegated WP implementer) applies those edits.
-3. **When in doubt, delegate.**
+     `docs/adr/`, `docs/spec/`, `docs/ARCHITECTURE.md`, `docs/architecture/`) → **triage first**
+     (below), then the persona chain. The main session **must not** patch governed source or tests —
+     only `implementer` (or a delegated WP implementer) applies those edits.
+2. **Triage (governed only):** main session applies skill **`classify-change`** (read the playbook;
+   post a **Triage record** in chat) before inline intent, spec drafting, or `implementer`. Do not
+   delegate triage to `architect`. Route from `next`: `inline-intent` | `draft-spec` | `ask-user`.
+   When `next` is `draft-spec`, **delegate `architect`** automatically for planning. See Hard Rule 7.
+3. **When in doubt,** assign tier **uncertain** or **medium**, not small.
 
 ### Persona chain
 
 | Step | Persona | When |
 | --- | --- | --- |
-| 1 | `architect` | Planning, tiering, drafting or updating `docs/spec/<epoch>-<slug>.md` |
+| 1 | `architect` | **Planning only** — after main-session triage with `next: draft-spec` (medium / large / uncertain) |
 | 2 | `implementer` | After spec `status: approved`, or after trivial/small intent confirmed with user |
-| 3 | `reviewer` | Finished diff ready for merge; input is diff + governing spec (or inline intent for trivial/small) |
+| 3 | `reviewer` | **Medium / large / uncertain (after approved spec) only** — finished diff vs governing spec; **not** used for trivial / small |
 
-**Medium / large / uncertain:** delegate to `architect`. The architect writes the spec to disk and
+**Medium / large / uncertain:** main session runs `classify-change`; when `next: draft-spec`,
+**delegate `architect`** for planning. The architect writes the spec to disk and
 posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path
 and brief summary to the user, then **stop** until they explicitly approve. Do not call
 `implementer` in the same turn. Do not paste the full spec into chat — the brief is the human gate;
-the spec file is the machine gate.
+the spec file is the machine gate. After all implementer work (including `orchestrate-spec` waves),
+the main session **must** delegate `reviewer` before reporting implementation complete or opening a
+PR — see **Review** and Hard Rule 6.
 
-**Trivial / small:** No spec file. Main agent states intent inline (short summary: what, which
-files, expected outcome). User confirms. Delegate **`implementer`** — do not apply governed edits
-from the main session. Optional: invoke `architect` only when the user asks for planning or tier is
-unclear.
+**Trivial / small:** After triage (`next: inline-intent`). No spec file. Main agent states intent
+inline (short summary: what, which files, expected outcome) informed by the Triage record. User
+confirms. Delegate **`implementer`** — do not apply governed edits from the main session. **Do not**
+delegate `reviewer` unless the user explicitly asks for a review.
 
 **Blueprint sanity (all tiers):** Every `implementer` run ends with a blueprint check. If the
 change touches anything blueprints document (contracts, owned state, read-only paths, integrations,
@@ -108,13 +115,14 @@ trivial/small rely on this check instead of a spec file.
 ### Workflow
 
 ```text
-Medium/large:
-  architect → spec (file) + approval brief (chat)
+Governed (all tiers):
+  main session + skill classify-change → Triage record (chat)
+       ↓
+  next: ask-user → main asks → classify-change again
+  next: inline-intent → main inline intent → user confirms → implementer → done
+  next: draft-spec → delegate architect → spec (file) + approval brief (chat)
        ↓ user approves
-  main agent → implementer (per WP / orchestrate-spec) → reviewer → merge
-
-Trivial/small:
-  main agent → inline intent → user confirms → implementer (+ blueprint sanity) → reviewer
+       main → implementer (per WP / orchestrate-spec) → reviewer → merge
 ```
 
 **Human gate:** approval brief in chat for medium/large (~250–500 words); short inline intent for
@@ -154,9 +162,16 @@ the spec body in chat.
 
 ### Review
 
-Before merge, run `reviewer` against the diff. Medium/large: diff + governing spec.
-Trivial/small: diff + inline intent from chat; verify blueprint sanity when module contracts may
-have changed.
+| Tier | Reviewer |
+| --- | --- |
+| **Trivial / small** | **Skip** — implementer + blueprint sanity is sufficient. Invoke `reviewer` only when the user explicitly asks (e.g. “review this diff”). |
+| **Medium / large / uncertain** (approved spec) | **Required** — delegate `reviewer` on the branch diff vs the governing spec after implementer finishes. |
+
+For medium and large work, the main session must not tell the user implementation is complete,
+open a PR, or end the governed workflow until `reviewer` has run (same session or next turn is
+fine; skipping is not). Input to `reviewer`: diff + spec path + `status: approved` frontmatter.
+
+Trivial/small: verify blueprint sanity during implementer; no mandatory `reviewer` pass.
 
 ## Hard Rules
 
@@ -165,6 +180,14 @@ have changed.
 3. Cross-cutting decisions require an ADR in `docs/adr/` before implementation.
 4. Medium and large changes require an approved spec before code is written.
 5. The main agent must enforce the spec gate before any state-changing action.
+6. For **medium and large** governed changes (approved spec on disk), the main agent must delegate
+   `reviewer` after implementer completes and before reporting implementation complete or merge.
+   **Trivial and small** changes must **not** use `reviewer` unless the user explicitly requests it.
+7. For **governed** implementation requests, the main session must apply skill **`classify-change`**
+   (triage playbook + Triage record in chat) before inline intent, spec drafting, or `implementer`.
+   Triage stays in the main session — **do not** delegate it to `architect`. When triage yields
+   **medium, large, or uncertain** (`next: draft-spec`), the main session **must** delegate
+   **`architect`** for the spec and approval brief before `implementer`.
 
 ## IDE hints (optional)
 

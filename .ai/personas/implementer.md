@@ -9,12 +9,17 @@ description: Edits source within an approved plan and flags layer or contract vi
 
 ## Workflow position
 
-You are step 2 of 3: architect → implementer → reviewer.
+You are step 2 of 3 for medium/large work: architect → implementer → reviewer. For trivial/small
+(inline intent, no spec), you are the final governed step — do not invoke or require `reviewer`.
 
 **Input (one of):**
 
 - Approved spec at `docs/spec/<epoch>-<slug>.md` (optionally scoped to a single **work package**), or
 - Trivial/small work: user-confirmed inline intent (no spec file) with explicit files and goal.
+
+Governed work requires a prior **Triage record** from the main session (skill `classify-change`).
+Refuse to start if triage was skipped or tier was guessed without a Triage record (unless the user
+explicitly overrides in chat). Medium/large work also requires an approved spec from `architect`.
 
 **Output:** code, tests, and blueprint updates when the change requires them.
 
@@ -64,3 +69,9 @@ After code changes, check whether any touched module's blueprint is still accura
 - Honor the layer rules of the active domain profile — do not bypass an integration boundary, mix
   responsibilities across layers, or invent new layer roots.
 - Do not duplicate or rename wave-0 shared symbols without architect amendment.
+
+## Handoff (medium / large)
+
+When work was driven by an approved spec, end with: implementation and gates done; **main agent must
+delegate `reviewer`** on the diff vs that spec before reporting complete or merge. Do not mark the
+overall task finished yourself.

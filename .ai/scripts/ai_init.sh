@@ -734,12 +734,13 @@ write_codex_agent() {
   announce_written "$path"
 }
 
-write_codex_skill() {
-  local index="$1"
+write_project_skill() {
+  local skills_root="$1"
+  local index="$2"
   local name="${SKILL_NAMES[$index]}"
   local description="${SKILL_DESCRIPTIONS[$index]}"
   local body="${SKILL_BODIES[$index]}"
-  local path="$REPO/.agents/skills/$name/SKILL.md"
+  local path="$REPO/$skills_root/$name/SKILL.md"
 
   ensure_parent_dir "$path"
   {
@@ -761,7 +762,7 @@ gen_codex() {
   done
 
   for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-    write_codex_skill "$i"
+    write_project_skill ".codex/skills" "$i"
   done
 
   path="$REPO/AGENTS.md"
@@ -774,10 +775,10 @@ gen_codex() {
     for ((i = 0; i < ${#PERSONA_NAMES[@]}; i++)); do
       printf '%s\n' "- \`${PERSONA_NAMES[$i]}\` — \`.codex/agents/${PERSONA_NAMES[$i]}.toml\`"
     done
-    printf '\n## Skills\n\n'
-    printf 'Codex skills live under `.agents/skills/`.\n\n'
+    printf '\n## Codex Skills\n\n'
+    printf 'Agent Skills under `.codex/skills/<name>/SKILL.md` (from `.ai/skills/` via `make init codex`).\n\n'
     for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-      printf '%s\n' "- \`${SKILL_NAMES[$i]}\` — \`.agents/skills/${SKILL_NAMES[$i]}/SKILL.md\` — ${SKILL_DESCRIPTIONS[$i]}"
+      printf '%s\n' "- \`${SKILL_NAMES[$i]}\` — \`.codex/skills/${SKILL_NAMES[$i]}/SKILL.md\` — ${SKILL_DESCRIPTIONS[$i]}"
     done
     printf '\n## Persona Reference\n\n'
     for ((i = 0; i < ${#PERSONA_NAMES[@]}; i++)); do
@@ -841,16 +842,7 @@ gen_claude() {
   done
 
   for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-    path="$REPO/.claude/skills/${SKILL_NAMES[$i]}/SKILL.md"
-    ensure_parent_dir "$path"
-    {
-      printf -- '---\n'
-      printf 'name: %s\n' "${SKILL_NAMES[$i]}"
-      printf 'description: %s\n' "$(json_string "${SKILL_DESCRIPTIONS[$i]}")"
-      printf -- '---\n\n'
-      printf '%s\n' "${SKILL_BODIES[$i]}"
-    } >"$path"
-    announce_written "$path"
+    write_project_skill ".claude/skills" "$i"
   done
 
   path="$REPO/CLAUDE.md"
@@ -919,6 +911,44 @@ write_cursor_mdc() {
   announce_written "$path"
 }
 
+# Cursor Agent Skills: copy .ai/skills/*.md → .cursor/skills/<name>/SKILL.md
+sync_cursor_project_skills() {
+  local ai_skills="$REPO/.ai/skills"
+  local cursor_skills="$REPO/.cursor/skills"
+  local path=""
+  local name=""
+
+  [ -d "$ai_skills" ] || die "$ai_skills: skills directory missing"
+
+  rm -rf "$cursor_skills"
+  mkdir -p "$cursor_skills"
+
+  for path in "$ai_skills"/*.md; do
+    [ -f "$path" ] || continue
+    name="$(basename "$path" .md)"
+    ensure_parent_dir "$cursor_skills/$name/SKILL.md"
+    cp "$path" "$cursor_skills/$name/SKILL.md"
+    announce_written "$cursor_skills/$name/SKILL.md"
+  done
+}
+
+remove_legacy_cursor_skill_rules() {
+  local path=""
+  for path in "$REPO/.cursor/rules/skill-"*.mdc; do
+    [ -f "$path" ] || continue
+    rm -f "$path"
+    announce_written "$path (removed — use .cursor/skills/ instead)"
+  done
+}
+
+remove_legacy_agents_skills_dir() {
+  local legacy="$REPO/.agents/skills"
+  if [ -d "$legacy" ]; then
+    rm -rf "$REPO/.agents"
+    announce_written "$REPO/.agents (removed — skills live under .cursor/skills/)"
+  fi
+}
+
 gen_cursor() {
   local path=""
   local description=""
@@ -940,27 +970,6 @@ gen_cursor() {
   write_cursor_mdc "$path" "Core architecture, spec gate, and main-agent delegation" true "" "$(<"${path}.body")"
   rm -f "${path}.body"
 
-  path="$REPO/.cursor/rules/00-ai-dlc-discovery.mdc"
-  ensure_parent_dir "$path"
-  {
-    printf '# AI DLC discovery\n\n'
-    printf 'This rule is always applied so every Cursor Agent model, including Gemini models, can discover the generated AI DLC personas and skills.\n\n'
-    printf '## Personas\n\n'
-    printf 'Native Cursor agent files live under `.cursor/agents/`. If native delegation is unavailable, apply the matching persona instructions from the corresponding `persona-*.mdc` rule before working.\n\n'
-    for ((i = 0; i < ${#PERSONA_NAMES[@]}; i++)); do
-      printf '%s\n' "- \`${PERSONA_NAMES[$i]}\` — \`.cursor/agents/${PERSONA_NAMES[$i]}.md\` and \`.cursor/rules/persona-${PERSONA_NAMES[$i]}.mdc\` — ${PERSONA_DESCRIPTIONS[$i]}"
-    done
-    printf '\n## Skills\n\n'
-    printf 'Skill rules live under `.cursor/rules/skill-*.mdc`. Before claiming a skill is unavailable, inspect the matching rule and follow it.\n\n'
-    for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-      printf '%s\n' "- \`${SKILL_NAMES[$i]}\` — \`.cursor/rules/skill-${SKILL_NAMES[$i]}.mdc\` — ${SKILL_DESCRIPTIONS[$i]}"
-    done
-    printf '\n## Model compatibility\n\n'
-    printf 'Do not assume the selected model has native knowledge of Cursor custom agents or agent-requested rules. Use this index as the routing table for Composer, Claude, Gemini, and other Cursor Agent models.\n'
-  } >"${path}.body"
-  write_cursor_mdc "$path" "Always-applied AI DLC persona and skill discovery for all Cursor models, including Gemini" true "" "$(<"${path}.body")"
-  rm -f "${path}.body"
-
   write_cursor_mdc \
     "$REPO/.cursor/rules/governance-spec-gate.mdc" \
     "Spec gate when editing source, tests, or contract docs — delegate before patching" \
@@ -978,14 +987,22 @@ Portable rules: \`.ai/README.md\`. Parallel waves: skill \`orchestrate-spec\`.
 
 - **Do not** edit governed paths when tier is medium, large, or uncertain without delegating.
 - **Do** launch \`architect\` to draft \`docs/spec/<epoch>-<slug>.md\`, then stop for approval.
+- **Do** apply skill \`classify-change\` in the main session before inline intent, spec, or
+  implementer on governed paths (Hard Rule 7). Do not delegate triage to \`architect\`. When triage
+  is medium/large/uncertain (\`next: draft-spec\`), delegate \`architect\` for planning.
 - **Do** launch \`implementer\` for all governed edits: after \`status: approved\`, or after
-  trivial/small intent is confirmed (no spec). Main session does not patch governed source.
+  trivial/small intent is confirmed following triage (no spec). Main session does not patch governed source.
 - **Do** expect implementer blueprint sanity on every run (update \`docs/blueprints/\` when needed).
 - Check \`docs/spec/.in-flight.yaml\` for specs tied to the current branch.
 
 ## Review
 
-Before merge, run \`reviewer\` against the diff and governing spec.
+| Tier | Reviewer |
+| --- | --- |
+| Trivial / small | Skip unless the user explicitly asks for a review |
+| Medium / large (approved spec) | **Required** after implementer — diff vs spec; do not report complete or open a PR until \`reviewer\` runs |
+
+Portable rules: Hard Rule 6 in \`.ai/README.md\`.
 EOF
 )"
 
@@ -999,15 +1016,9 @@ EOF
       "${PERSONA_BODIES[$i]}"
   done
 
-  for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-    description="Skill - ${SKILL_NAMES[$i]}: ${SKILL_DESCRIPTIONS[$i]}"
-    write_cursor_mdc \
-      "$REPO/.cursor/rules/skill-${SKILL_NAMES[$i]}.mdc" \
-      "$description" \
-      false \
-      "" \
-      "${SKILL_BODIES[$i]}"
-  done
+  sync_cursor_project_skills
+  remove_legacy_cursor_skill_rules
+  remove_legacy_agents_skills_dir
 
   path="$REPO/AGENTS.md"
   ensure_parent_dir "$path"
@@ -1021,13 +1032,15 @@ EOF
     done
     printf '\n## Cursor rules\n\n'
     printf '%s\n' '- `core.mdc` — always applied (routing, spec gate, delegation)'
-    printf '%s\n' '- `00-ai-dlc-discovery.mdc` — always applied (persona and skill discovery for all Cursor models)'
     printf '%s\n' "- \`governance-spec-gate.mdc\` — globs: \`${globs}\`"
     for ((i = 0; i < ${#PERSONA_NAMES[@]}; i++)); do
       printf '%s\n' "- \`persona-${PERSONA_NAMES[$i]}.mdc\` — same globs as governance rule"
     done
+    printf '\n## Cursor skills\n\n'
+    printf 'Agent Skills under `.cursor/skills/<name>/SKILL.md` (from `.ai/skills/` via `make init cursor`).\n'
+    printf 'Invoke with `/` + skill name or let Agent decide from the skill description.\n\n'
     for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-      printf '%s\n' "- \`skill-${SKILL_NAMES[$i]}.mdc\` — ${SKILL_DESCRIPTIONS[$i]}"
+      printf '%s\n' "- \`${SKILL_NAMES[$i]}\` — \`.cursor/skills/${SKILL_NAMES[$i]}/SKILL.md\` — ${SKILL_DESCRIPTIONS[$i]}"
     done
     printf '\nRegenerate after changing `.ai/`: `make init cursor`.\n'
   } >"$path"

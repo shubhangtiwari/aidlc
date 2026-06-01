@@ -28,7 +28,9 @@ the governing spec.
      - `done_when` criteria
    - Cap concurrent implementers at 3–6; queue excess WPs in the same wave.
    - Wait for all WPs in the wave to report done or escalated before the next wave.
-4. **After final wave:** run `reviewer` on the full diff vs spec.
+4. **After final wave (mandatory):** main session delegates `reviewer` on the full branch diff vs
+   spec. Do not report implementation complete, open a PR, or close the governed workflow until
+   `reviewer` returns. Skipping this step violates Hard Rule 6 in `.ai/README.md`.
 5. **Escalation:** material discovery → stop WP, note in spec `Implementation notes`, architect
    amends spec before continuing.
 
@@ -46,4 +48,5 @@ complete. It owns cross-cutting edits: integration tests, blueprint sync, shared
 
 - All WPs marked done with gates passed.
 - Spec `Implementation notes` updated for any in-scope discoveries.
-- Ready for `reviewer` and then post-merge finalize via `make finalize-spec`.
+- `reviewer` has run on the full diff vs spec (required before merge or “done” for medium/large).
+- Then post-merge finalize via `make finalize-spec`.
