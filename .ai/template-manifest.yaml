@@ -1,0 +1,42 @@
+schema_version: 1
+payload:
+  include:
+    - .ai/README.md
+    - .ai/models.defaults.toml
+    - .ai/personas/architect.md
+    - .ai/personas/implementer.md
+    - .ai/personas/reviewer.md
+    - .ai/references/architecture-template.md
+    - .ai/references/ci/github-finalize-spec.yml
+    - .ai/references/ci/gitlab-finalize-spec.yml
+    - .ai/scripts/ai_init.sh
+    - .ai/scripts/ai_update.sh
+    - .ai/scripts/finalize_spec.sh
+    - .ai/skills/classify-change.md
+    - .ai/skills/init-architecture.md
+    - .ai/skills/orchestrate-spec.md
+    - .ai/templates/approval-brief.md
+    - .ai/templates/spec.md
+    - docs/adr/README.md
+    - docs/blueprints/README.md
+    - docs/spec/README.md
+    - LICENSE
+  exclude:
+    - docs/spec/[0-9]*-*.md
+    - docs/adr/[0-9]*-*.md
+    - docs/blueprints/aidlc.md
+    - docs/blueprints/template-payload.md
+    - docs/ARCHITECTURE.md
+    - docs/architecture/**
+    - aidlc/**
+    - .github/**
+    - release/**
+    - dist/**
+    - build/**
+    - aidlc/.goreleaser.yaml
+    - aidlc/scripts/**
+policy:
+  allow_broad_directories: false
+  public_docs_must_be_explicit: true
+  reject_absolute_paths: true
+  reject_parent_traversal: true

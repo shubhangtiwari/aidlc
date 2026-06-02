@@ -12,7 +12,7 @@ htmlcov/
 AGENTS.md
 CLAUDE.md
 .windsurfrules
-.github/
+.github/copilot-instructions.md
 .cursor/
 .codex/
 .claude/

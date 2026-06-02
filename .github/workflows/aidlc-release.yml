@@ -1,0 +1,35 @@
+name: aidlc Release
+
+on:
+  push:
+    tags:
+      - "aidlc/v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: aidlc/go.mod
+          cache-dependency-path: aidlc/go.sum
+      - name: Run aidlc tests
+        run: make aidlc-test
+      - name: Run aidlc release checks
+        run: make aidlc-release-check
+      - name: Release aidlc
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+          workdir: aidlc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

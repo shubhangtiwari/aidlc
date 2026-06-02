@@ -18,9 +18,10 @@
 # manifest and chosen reference profile.
 
 .PHONY: help init update finalize-spec install run test validate-governance \
-        claude codex cursor copilot windsurf all
+        aidlc-test aidlc-release-check claude codex cursor copilot windsurf all
 
 BASH ?= bash
+AIDLC_GOTOOLCHAIN ?= go1.25.5
 INIT_ARG := $(word 2,$(MAKECMDGOALS))
 FINALIZE_ARGS := $(filter-out finalize-spec,$(MAKECMDGOALS))
 
@@ -30,9 +31,12 @@ help:
 	@echo "  make update [ARGS=\"--ref REF|--dry-run|--yes|--url URL\"]  # sync .ai/ from upstream template"
 	@echo "  make finalize-spec [ARGS=\"--dry-run|--spec PATH|--branch NAME|--push\"]  # post-merge spec cleanup"
 	@echo ""
+	@echo "  make aidlc-test          # run Go tests for the isolated aidlc module"
+	@echo "  make aidlc-release-check # validate aidlc release packaging prerequisites"
+	@echo "  make validate-governance # validate governance docs and public payload manifest"
 	@echo "  make install   # install project dependencies (filled in by init-architecture)"
 	@echo "  make run       # run the project locally (filled in by init-architecture)"
-	@echo "  make test      # run the project's test suite (filled in by init-architecture)"
+	@echo "  make test      # run the repository governance and aidlc gates"
 
 # --- Governance targets ------------------------------------------------------
 
@@ -82,9 +86,32 @@ run:
 	@echo "with the real local-run command for your stack."
 
 test:
-	@echo "make test — placeholder."
-	@echo "Run 'make init <ide>' and the init-architecture skill to populate this target"
-	@echo "with the real test command(s) for your stack."
+	@$(MAKE) validate-governance
+	@$(MAKE) aidlc-test
+
+aidlc-test:
+	@cd aidlc && go test ./...
+
+aidlc-release-check:
+	@GOTOOLCHAIN=$(AIDLC_GOTOOLCHAIN) aidlc/scripts/verify-release.sh
+
+validate-governance:
+	@test -f docs/ARCHITECTURE.md
+	@test -f docs/architecture/software.md
+	@test -f docs/adr/1780346463-aidlc-cli-distribution-and-sync.md
+	@test -f docs/blueprints/aidlc.md
+	@test -f docs/blueprints/template-payload.md
+	@test -f .ai/template-manifest.yaml
+	@grep -q "docs/spec/\\[0-9\\]\\*-\\*.md" .ai/template-manifest.yaml
+	@grep -q "docs/adr/\\[0-9\\]\\*-\\*.md" .ai/template-manifest.yaml
+	@grep -q "docs/ARCHITECTURE.md" .ai/template-manifest.yaml
+	@grep -q "docs/architecture/\\*\\*" .ai/template-manifest.yaml
+	@grep -q "aidlc/\\*\\*" .ai/template-manifest.yaml
+	@grep -q ".github/\\*\\*" .ai/template-manifest.yaml
+	@grep -q "release/\\*\\*" .ai/template-manifest.yaml
+	@test -f aidlc/go.mod
+	@test ! -f go.mod
+	@test ! -f go.sum
 
 # Sentinel rule so 'make init <name>' doesn't try to build <name> as a separate target.
 claude codex cursor copilot windsurf all:

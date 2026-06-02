@@ -596,6 +596,95 @@ json_string() {
   printf '"%s"' "$value"
 }
 
+selected_ides_json() {
+  case "$IDE" in
+    all)
+      printf '["claude","codex","cursor","copilot","windsurf"]'
+      ;;
+    claude|codex|cursor|copilot|windsurf)
+      printf '['
+      json_string "$IDE"
+      printf ']'
+      ;;
+    *)
+      die "unknown IDE '$IDE'. Choose from: claude, codex, cursor, copilot, windsurf, all"
+      ;;
+  esac
+}
+
+record_workspace_lock() {
+  local lock_path="$REPO/aidlc.lock.json"
+  local legacy_path="$REPO/.aidlc/manifest.json"
+  local source_path=""
+  local temp_path=""
+  local python_bin=""
+  local status=0
+
+  if [ -f "$lock_path" ]; then
+    source_path="$lock_path"
+  elif [ -f "$legacy_path" ]; then
+    source_path="$legacy_path"
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python_bin="python3"
+  elif command -v python >/dev/null 2>&1; then
+    python_bin="python"
+  else
+    die "python3 is required to record aidlc.lock.json"
+  fi
+
+  temp_path="$(mktemp "$REPO/.aidlc-lock.XXXXXX")"
+  set +e
+  AIDLC_LOCK_SOURCE="$source_path" \
+    AIDLC_LOCK_TARGET="$lock_path" \
+    AIDLC_LOCK_TEMP="$temp_path" \
+    AIDLC_LOCK_IDES="$(selected_ides_json)" \
+    "$python_bin" - <<'PY'
+import json
+import os
+import sys
+
+source = os.environ.get("AIDLC_LOCK_SOURCE", "")
+target = os.environ["AIDLC_LOCK_TARGET"]
+temp = os.environ["AIDLC_LOCK_TEMP"]
+ides = json.loads(os.environ["AIDLC_LOCK_IDES"])
+
+data = {}
+if source:
+    with open(source, "r") as handle:
+        loaded = json.load(handle)
+    if not isinstance(loaded, dict):
+        sys.stderr.write("error: target lock must contain a JSON object\n")
+        sys.exit(1)
+    data = loaded
+
+if not data.get("schema_version"):
+    data["schema_version"] = 1
+
+workspace = data.get("workspace")
+if not isinstance(workspace, dict):
+    workspace = {}
+workspace["ides"] = ides
+data["workspace"] = workspace
+
+with open(temp, "w") as handle:
+    json.dump(data, handle, indent=2, sort_keys=False)
+    handle.write("\n")
+if hasattr(os, "replace"):
+    os.replace(temp, target)
+else:
+    os.rename(temp, target)
+PY
+  status="$?"
+  set -e
+  if [ "$status" -ne 0 ]; then
+    rm -f "$temp_path"
+    exit "$status"
+  fi
+  announce_written "$lock_path"
+}
+
 toml_basic_string() {
   local value="$1"
 
@@ -1115,6 +1204,7 @@ main() {
   else
     run_generator "$IDE"
   fi
+  record_workspace_lock
 }
 
 main "$@"

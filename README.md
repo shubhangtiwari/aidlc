@@ -43,6 +43,84 @@ Generated assistant files do not infer project, dependency, or toolchain facts. 
 should document those facts explicitly in their own architecture, blueprint, ADR, and spec files when
 they become relevant.
 
+## Install `aidlc`
+
+`aidlc` is the native CLI for initializing and updating AIDLC governance files without depending on
+the template `Makefile` or shell-only sync scripts.
+
+Install from the latest GitHub release on macOS or Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/aidlc/ai-dlc-template/main/aidlc/scripts/install.sh | sh
+```
+
+Install on Windows from PowerShell:
+
+```powershell
+iwr https://raw.githubusercontent.com/aidlc/ai-dlc-template/main/aidlc/scripts/install.ps1 -UseB | iex
+```
+
+Install with Go:
+
+```sh
+go install github.com/aidlc/ai-dlc-template/aidlc/cmd/aidlc@latest
+```
+
+For local development from this repository:
+
+```sh
+cd aidlc
+go install ./cmd/aidlc
+```
+
+Make sure the install directory is on your `PATH`, then verify:
+
+```sh
+aidlc version
+```
+
+## Use `aidlc`
+
+Initialize a repository for one IDE or all supported IDEs:
+
+```sh
+aidlc init codex
+aidlc init claude
+aidlc init cursor
+aidlc init copilot
+aidlc init windsurf
+aidlc init all
+```
+
+`aidlc init <ide>` copies the public AIDLC payload into the current repository and generates the
+selected IDE files. Successful runs write `aidlc.lock.json` at the repository root. The lock records
+the selected concrete IDEs in `workspace.ides`, so `aidlc init all` stores every supported IDE
+instead of the literal `all` value.
+
+Update an initialized repository from the recorded upstream source and regenerate the IDE files
+stored in `workspace.ides`:
+
+```sh
+aidlc update
+```
+
+Preview changes without writing files:
+
+```sh
+aidlc init codex --dry-run
+aidlc update --dry-run
+```
+
+Use a local template checkout while developing or testing AIDLC changes:
+
+```sh
+aidlc init codex --source local --path /path/to/ai-dlc-template
+aidlc update --source local --path /path/to/ai-dlc-template --ref main
+```
+
+Divergent local files are reported as conflicts and are not overwritten. See
+[`aidlc/README.md`](aidlc/README.md) for the full command reference and exit codes.
+
 ## Customize Architecture
 
 Use the `init-architecture` skill in `.ai/skills/` after forking. It analyzes the repo and creates
