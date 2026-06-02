@@ -114,7 +114,7 @@ func RunUpdate(ctx context.Context, opts contract.UpdateOptions) (CommandResult,
 		result.Generated = append(result.Generated, generatedFiles.Written...)
 	}
 
-	generated := contract.GenerationRecord{IDE: contract.IDEAll, Version: Version}
+	generated := contract.GenerationRecord{IDE: contract.IDEAll, Version: CurrentVersion()}
 	if previous != nil {
 		generated = previous.Generated
 	}

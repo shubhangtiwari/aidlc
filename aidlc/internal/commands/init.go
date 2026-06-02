@@ -19,8 +19,9 @@ import (
 const (
 	DefaultGitHubURL = "https://github.com/shubhangtiwari/aidlc"
 	DefaultRef       = "main"
-	Version          = "dev"
 )
+
+var Version = "dev"
 
 func RunInitCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if isHelpArg(args) {
@@ -222,7 +223,7 @@ func parseGitHubRepo(raw string) (string, string, error) {
 func generationRecord(ide contract.IDE) contract.GenerationRecord {
 	return contract.GenerationRecord{
 		IDE:       ide,
-		Version:   Version,
+		Version:   CurrentVersion(),
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 }

@@ -28,4 +28,25 @@ test -f "$tmp_dir/dist/aidlc_windows_x86_64.zip"
 test -f "$tmp_dir/dist/aidlc_windows_arm64.zip"
 test -f "$tmp_dir/dist/checksums.txt"
 
+os="$(uname -s)"
+arch="$(uname -m)"
+case "$os" in
+  Darwin) os="darwin" ;;
+  Linux) os="linux" ;;
+  *) echo "aidlc release check: unsupported OS: $os" >&2; exit 2 ;;
+esac
+case "$arch" in
+  x86_64|amd64) arch="x86_64" ;;
+  arm64|aarch64) arch="arm64" ;;
+  *) echo "aidlc release check: unsupported architecture: $arch" >&2; exit 2 ;;
+esac
+
+mkdir -p "$tmp_dir/run"
+tar -xzf "$tmp_dir/dist/aidlc_${os}_${arch}.tar.gz" -C "$tmp_dir/run" aidlc
+if [ "$("$tmp_dir/run/aidlc" version)" != "aidlc release-check" ]; then
+  echo "aidlc release check: generated binary did not report release-check version" >&2
+  "$tmp_dir/run/aidlc" version >&2
+  exit 2
+fi
+
 echo "aidlc release check passed"

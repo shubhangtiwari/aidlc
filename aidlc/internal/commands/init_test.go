@@ -121,6 +121,22 @@ func TestInitCLIUsageAndVersionOutput(t *testing.T) {
 	}
 }
 
+func TestVersionOutputUsesInjectedVersion(t *testing.T) {
+	previous := Version
+	t.Cleanup(func() {
+		Version = previous
+	})
+	Version = "v9.8.7"
+
+	var stdout, stderr bytes.Buffer
+	if code := RunVersionCLI(nil, &stdout, &stderr); code != contract.ExitOK {
+		t.Fatalf("version code = %d", code)
+	}
+	if got := strings.TrimSpace(stdout.String()); got != "aidlc v9.8.7" {
+		t.Fatalf("version output = %q", got)
+	}
+}
+
 func TestInitCLIAcceptsFlagsAfterIDE(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
