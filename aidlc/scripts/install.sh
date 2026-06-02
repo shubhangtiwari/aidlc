@@ -24,8 +24,8 @@ need tar
 os="$(uname -s)"
 arch="$(uname -m)"
 case "$os" in
-  Darwin) os="Darwin" ;;
-  Linux) os="Linux" ;;
+  Darwin) os="darwin" ;;
+  Linux) os="linux" ;;
   *) echo "aidlc install: unsupported OS: $os" >&2; exit 2 ;;
 esac
 case "$arch" in

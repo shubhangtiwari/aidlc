@@ -67,12 +67,12 @@ build_target() {
   fi
 }
 
-build_target darwin amd64 Darwin x86_64
-build_target darwin arm64 Darwin arm64
-build_target linux amd64 Linux x86_64
-build_target linux arm64 Linux arm64
-build_target windows amd64 Windows x86_64
-build_target windows arm64 Windows arm64
+build_target darwin amd64 darwin x86_64
+build_target darwin arm64 darwin arm64
+build_target linux amd64 linux x86_64
+build_target linux arm64 linux arm64
+build_target windows amd64 windows x86_64
+build_target windows arm64 windows arm64
 
 (
   cd "$dist_abs"

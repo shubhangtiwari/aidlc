@@ -40,7 +40,7 @@ try {
         $BaseUrl = "https://github.com/$Repo/releases/download/$Version"
     }
 
-    $Archive = "aidlc_Windows_$Arch.zip"
+    $Archive = "aidlc_windows_$Arch.zip"
     $Checksums = "checksums.txt"
     $ArchivePath = Join-Path $TempDir $Archive
     $ChecksumsPath = Join-Path $TempDir $Checksums

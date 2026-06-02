@@ -20,12 +20,12 @@ trap cleanup EXIT INT TERM
 
 AIDLC_VERSION=release-check AIDLC_DIST_DIR="$tmp_dir/dist" scripts/build-release-assets.sh
 
-test -f "$tmp_dir/dist/aidlc_Darwin_x86_64.tar.gz"
-test -f "$tmp_dir/dist/aidlc_Darwin_arm64.tar.gz"
-test -f "$tmp_dir/dist/aidlc_Linux_x86_64.tar.gz"
-test -f "$tmp_dir/dist/aidlc_Linux_arm64.tar.gz"
-test -f "$tmp_dir/dist/aidlc_Windows_x86_64.zip"
-test -f "$tmp_dir/dist/aidlc_Windows_arm64.zip"
+test -f "$tmp_dir/dist/aidlc_darwin_x86_64.tar.gz"
+test -f "$tmp_dir/dist/aidlc_darwin_arm64.tar.gz"
+test -f "$tmp_dir/dist/aidlc_linux_x86_64.tar.gz"
+test -f "$tmp_dir/dist/aidlc_linux_arm64.tar.gz"
+test -f "$tmp_dir/dist/aidlc_windows_x86_64.zip"
+test -f "$tmp_dir/dist/aidlc_windows_arm64.zip"
 test -f "$tmp_dir/dist/checksums.txt"
 
 echo "aidlc release check passed"
