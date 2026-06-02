@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-repo="${AIDLC_REPO:-aidlc/ai-dlc-template}"
+repo="${AIDLC_REPO:-shubhangtiwari/aidlc}"
 version="${AIDLC_VERSION:-latest}"
 install_dir="${AIDLC_INSTALL_DIR:-$HOME/.local/bin}"
 tmp_dir="$(mktemp -d)"

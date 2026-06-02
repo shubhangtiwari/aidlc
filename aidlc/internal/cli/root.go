@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/commands"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/commands"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {

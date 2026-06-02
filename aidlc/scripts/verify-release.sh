@@ -27,7 +27,7 @@ for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 wi
   fi
   CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build \
     -trimpath \
-    -ldflags "-s -w -X github.com/aidlc/ai-dlc-template/aidlc/internal/commands.Version=release-check" \
+    -ldflags "-s -w -X github.com/shubhangtiwari/aidlc/aidlc/internal/commands.Version=release-check" \
     -o "$out" \
     ./cmd/aidlc
 done

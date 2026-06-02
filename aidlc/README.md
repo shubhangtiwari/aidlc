@@ -33,7 +33,7 @@ deleted from the target repository.
 --source github|local   Template source kind. Defaults to github for init and to
                         the target manifest source for update.
 --url URL               GitHub repository URL. Default:
-                        https://github.com/aidlc/ai-dlc-template
+                        https://github.com/shubhangtiwari/aidlc
 --ref REF               GitHub ref or local source label. Default: main.
 --path PATH             Local source path for --source local.
 --dry-run               Print planned changes without writing files.
@@ -42,8 +42,8 @@ deleted from the target repository.
 Local source mode is intended for development and tests:
 
 ```text
-aidlc init codex --source local --path /path/to/ai-dlc-template
-aidlc update --source local --path /path/to/ai-dlc-template --ref main
+aidlc init codex --source local --path /path/to/aidlc
+aidlc update --source local --path /path/to/aidlc --ref main
 ```
 
 ## Exit Codes

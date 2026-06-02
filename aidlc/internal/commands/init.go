@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/generator"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/source"
-	templatesync "github.com/aidlc/ai-dlc-template/aidlc/internal/sync"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/generator"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/source"
+	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
 )
 
 const (
-	DefaultGitHubURL = "https://github.com/aidlc/ai-dlc-template"
+	DefaultGitHubURL = "https://github.com/shubhangtiwari/aidlc"
 	DefaultRef       = "main"
 	Version          = "dev"
 )

@@ -3,10 +3,10 @@ package sync_test
 import (
 	"testing"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/source"
-	templatesync "github.com/aidlc/ai-dlc-template/aidlc/internal/sync"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/testutil"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/source"
+	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
 func TestInitPlanningIsAdditive(t *testing.T) {

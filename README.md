@@ -1,8 +1,8 @@
-# AI DLC Template
+# AIDLC
 
 MIT License - Copyright (c) 2026 [Shubhang Tiwari](mailto:shubh.bitsmith@gmail.com).
 
-This repository is a forkable governance template for AI-assisted repositories. It contains
+This repository hosts the AIDLC governance template and native CLI for AI-assisted repositories. It contains
 project-neutral operating rules, personas, skills, documentation templates, and initialization
 tooling for common coding assistants.
 
@@ -17,7 +17,7 @@ the real project structure as it takes shape.
 - `docs/adr/` - architecture decision record guidance.
 - `docs/blueprints/` - module blueprint guidance and template.
 - `.ai/scripts/ai_init.sh` - shell generator for assistant-specific files.
-- `.ai/scripts/ai_update.sh` - syncs `.ai/` from the upstream template repo.
+- `.ai/scripts/ai_update.sh` - syncs `.ai/` from the upstream AIDLC repository.
 - `.ai/scripts/finalize_spec.sh` - post-merge spec finalization helper.
 
 ## Initialize
@@ -51,19 +51,19 @@ the template `Makefile` or shell-only sync scripts.
 Install from the latest GitHub release on macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/aidlc/ai-dlc-template/main/aidlc/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sh
 ```
 
 Install on Windows from PowerShell:
 
 ```powershell
-iwr https://raw.githubusercontent.com/aidlc/ai-dlc-template/main/aidlc/scripts/install.ps1 -UseB | iex
+iwr https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.ps1 -UseB | iex
 ```
 
 Install with Go:
 
 ```sh
-go install github.com/aidlc/ai-dlc-template/aidlc/cmd/aidlc@latest
+go install github.com/shubhangtiwari/aidlc/aidlc/cmd/aidlc@latest
 ```
 
 For local development from this repository:
@@ -114,8 +114,8 @@ aidlc update --dry-run
 Use a local template checkout while developing or testing AIDLC changes:
 
 ```sh
-aidlc init codex --source local --path /path/to/ai-dlc-template
-aidlc update --source local --path /path/to/ai-dlc-template --ref main
+aidlc init codex --source local --path /path/to/aidlc
+aidlc update --source local --path /path/to/aidlc --ref main
 ```
 
 Divergent local files are reported as conflicts and are not overwritten. See

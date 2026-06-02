@@ -1,6 +1,6 @@
 package generator
 
-import "github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+import "github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 
 const readmeInitMarker = "<!-- INIT:BEGIN -->"
 

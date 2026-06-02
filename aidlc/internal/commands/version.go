@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 func RunVersionCLI(args []string, stdout, stderr io.Writer) int {

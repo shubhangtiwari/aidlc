@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/testutil"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
 func TestGenerateMinimalAllIDEs(t *testing.T) {

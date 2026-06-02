@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/payload"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/payload"
 )
 
 type ApplyResult struct {

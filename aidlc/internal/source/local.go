@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 type Local struct {

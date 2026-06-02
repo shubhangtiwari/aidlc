@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 func Generate(options Options) (Result, error) {

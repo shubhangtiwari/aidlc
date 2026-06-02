@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$Repo = if ($env:AIDLC_REPO) { $env:AIDLC_REPO } else { "aidlc/ai-dlc-template" }
+$Repo = if ($env:AIDLC_REPO) { $env:AIDLC_REPO } else { "shubhangtiwari/aidlc" }
 $Version = if ($env:AIDLC_VERSION) { $env:AIDLC_VERSION } else { "latest" }
 $InstallDir = if ($env:AIDLC_INSTALL_DIR) { $env:AIDLC_INSTALL_DIR } else { Join-Path $HOME "bin" }
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("aidlc-install-" + [System.Guid]::NewGuid())

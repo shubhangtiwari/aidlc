@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/cli"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/cli"
 )
 
 func main() {

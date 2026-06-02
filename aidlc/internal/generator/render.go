@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 func renderIntro(ide contract.IDE, data sourceData) string {

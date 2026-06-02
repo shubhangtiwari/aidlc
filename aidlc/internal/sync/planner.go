@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/payload"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/source"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/payload"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/source"
 )
 
 type PlanRequest struct {

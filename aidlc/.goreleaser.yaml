@@ -22,7 +22,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X github.com/aidlc/ai-dlc-template/aidlc/internal/commands.Version={{ .Version }}
+      - -s -w -X github.com/shubhangtiwari/aidlc/aidlc/internal/commands.Version={{ .Version }}
 
 archives:
   - id: aidlc
@@ -50,9 +50,9 @@ checksum:
 brews:
   - name: aidlc
     repository:
-      owner: aidlc
+      owner: shubhangtiwari
       name: homebrew-tap
-    homepage: https://github.com/aidlc/ai-dlc-template
+    homepage: https://github.com/shubhangtiwari/aidlc
     description: Native CLI for initializing and updating AIDLC governance payloads.
     license: MIT
     install: |
@@ -62,8 +62,8 @@ brews:
 
 release:
   github:
-    owner: aidlc
-    name: ai-dlc-template
+    owner: shubhangtiwari
+    name: aidlc
 
 changelog:
   use: github

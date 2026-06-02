@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/generator"
-	templatesync "github.com/aidlc/ai-dlc-template/aidlc/internal/sync"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/generator"
+	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
 )
 
 func RunUpdateCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int {

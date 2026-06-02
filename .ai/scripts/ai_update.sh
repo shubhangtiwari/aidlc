@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Pulls the upstream ai-dlc-template and overwrites the local `.ai/` folder
+# Pulls the upstream AIDLC repository and overwrites the local `.ai/` folder
 # with the upstream copy. Use --dry-run to preview changes.
 
 set -euo pipefail
 
-UPSTREAM_URL="${AI_DLC_UPSTREAM:-https://github.com/shubhangtiwari/ai-dlc-template.git}"
+UPSTREAM_URL="${AI_DLC_UPSTREAM:-https://github.com/shubhangtiwari/aidlc.git}"
 REF="main"
 DRY_RUN=0
 ASSUME_YES=0
@@ -13,7 +13,7 @@ usage() {
   cat <<EOF
 usage: $(basename "$0") [--ref <branch|tag|sha>] [--dry-run] [--yes]
 
-Updates the local .ai/ directory from the upstream template repo.
+Updates the local .ai/ directory from the upstream AIDLC repository.
 
 Options:
   --ref REF    Upstream ref to pull (default: main)

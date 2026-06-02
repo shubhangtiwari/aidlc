@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 )
 
 func selectedIDEs(options Options) ([]contract.IDE, error) {

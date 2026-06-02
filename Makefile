@@ -1,9 +1,9 @@
-# ai-dlc-template Makefile
+# aidlc Makefile
 #
 # Governance targets (template-managed):
 #   init           Generate IDE-specific entrypoints (CLAUDE.md, AGENTS.md, .agents/, .codex/, .cursor/, ...)
 #                  from .ai/ guidance. Re-run after editing anything under .ai/.
-#   update         Pull the latest .ai/ from the upstream template repo (overwrites local .ai/).
+#   update         Pull the latest .ai/ from the upstream AIDLC repository (overwrites local .ai/).
 #                  Use ARGS="--dry-run" to preview, "--ref REF" to pin a branch/tag.
 #   finalize-spec  Post-merge spec cleanup: marks spec status: implemented, removes in-flight
 #                  artifacts, commits, optionally pushes. Wired into CI by init-architecture.
@@ -28,7 +28,7 @@ FINALIZE_ARGS := $(filter-out finalize-spec,$(MAKECMDGOALS))
 help:
 	@echo "usage:"
 	@echo "  make init <claude|codex|cursor|copilot|windsurf|all>   # generate IDE entrypoints from .ai/"
-	@echo "  make update [ARGS=\"--ref REF|--dry-run|--yes|--url URL\"]  # sync .ai/ from upstream template"
+	@echo "  make update [ARGS=\"--ref REF|--dry-run|--yes|--url URL\"]  # sync .ai/ from upstream AIDLC repository"
 	@echo "  make finalize-spec [ARGS=\"--dry-run|--spec PATH|--branch NAME|--push\"]  # post-merge spec cleanup"
 	@echo ""
 	@echo "  make aidlc-test          # run Go tests for the isolated aidlc module"
@@ -57,7 +57,7 @@ init:
 		   echo "usage: make init <claude|codex|cursor|copilot|windsurf|all>"; exit 2 ;; \
 	esac
 
-# Pull the latest .ai/ from the upstream template repo and overwrite the local copy.
+# Pull the latest .ai/ from the upstream AIDLC repository and overwrite the local copy.
 # Shallow-clones upstream, rsyncs .ai/ with --delete, prompts before applying.
 # Useful so consumers can pick up new personas, skills, scripts, and references without re-forking.
 update:

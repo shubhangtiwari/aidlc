@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/cli"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/cli"
 )
 
 func TestBashInitAndNativeInitGenerateMatchingCodexOutputs(t *testing.T) {
@@ -186,7 +186,7 @@ func TestBashUpdateAndNativeUpdateSurfacesRemainAvailable(t *testing.T) {
 	if !strings.Contains(output, "usage: ai_update.sh") {
 		t.Fatalf("bash update help missing usage:\n%s", output)
 	}
-	if !strings.Contains(output, "Updates the local .ai/ directory from the upstream template repo.") {
+	if !strings.Contains(output, "Updates the local .ai/ directory from the upstream AIDLC repository.") {
 		t.Fatalf("bash update help changed user-facing contract:\n%s", output)
 	}
 

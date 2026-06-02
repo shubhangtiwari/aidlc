@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/testutil"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
 func TestDetectProjectFactsMinimal(t *testing.T) {

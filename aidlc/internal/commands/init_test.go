@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/contract"
-	templatesync "github.com/aidlc/ai-dlc-template/aidlc/internal/sync"
-	"github.com/aidlc/ai-dlc-template/aidlc/internal/testutil"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
 func TestInitCopiesOnlyPublicManifestPathsAndGeneratesIDE(t *testing.T) {

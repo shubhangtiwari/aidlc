@@ -1,3 +1,3 @@
-module github.com/aidlc/ai-dlc-template/aidlc
+module github.com/shubhangtiwari/aidlc/aidlc
 
 go 1.22
