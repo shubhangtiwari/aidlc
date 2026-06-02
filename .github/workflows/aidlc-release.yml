@@ -5,6 +5,11 @@ on:
     tags:
       - "aidlc/v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, for example aidlc/v0.1.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,20 +21,42 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-go@v5
         with:
           go-version-file: aidlc/go.mod
           cache-dependency-path: aidlc/go.sum
+      - name: Resolve release version
+        id: release
+        shell: bash
+        env:
+          REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          tag="$REQUESTED_TAG"
+          case "$tag" in
+            aidlc/v*) ;;
+            *) echo "release tag must match aidlc/v*, got: $tag" >&2; exit 2 ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#aidlc/}" >> "$GITHUB_OUTPUT"
       - name: Run aidlc tests
         run: make aidlc-test
       - name: Run aidlc release checks
         run: make aidlc-release-check
-      - name: Release aidlc
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
-          workdir: aidlc
+      - name: Build release assets
+        run: AIDLC_VERSION="${{ steps.release.outputs.version }}" AIDLC_DIST_DIR="$GITHUB_WORKSPACE/dist" aidlc/scripts/build-release-assets.sh
+      - name: Publish GitHub release
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "aidlc $RELEASE_VERSION" \
+              --notes "aidlc $RELEASE_VERSION"
+          fi

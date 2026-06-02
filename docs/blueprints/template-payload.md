@@ -39,7 +39,7 @@ explicitly narrows a starter exception:
 - `aidlc/**`
 - `.github/**`
 - `release/**`, `dist/**`, `build/**`
-- release and implementation files, including `aidlc/.goreleaser.yaml` and `aidlc/scripts/**`
+- release and implementation files, including `.github/**`, `aidlc/**`, and `aidlc/scripts/**`
 
 ## Update Semantics
 

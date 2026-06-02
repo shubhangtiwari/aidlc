@@ -78,7 +78,8 @@ target.
 
 - GitHub archive access is used to fetch template payload snapshots for normal init/update flows.
 - GitHub release artifacts and checksum files are consumed by shell and PowerShell installers.
-- GoReleaser owns cross-platform static binary packaging and Homebrew formula generation.
+- `.github/workflows/aidlc-release.yml` and `aidlc/scripts/build-release-assets.sh` own
+  cross-platform static binary packaging, checksums, and GitHub release asset upload.
 - Local-source mode is allowed for tests and development fixtures.
 - Normal init/update flows must not call Bash, Make, rsync, or git.
 - `aidlc update` regenerates IDE files selected by `aidlc.lock.json` after a conflict-free

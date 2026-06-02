@@ -79,6 +79,19 @@ Make sure the install directory is on your `PATH`, then verify:
 aidlc version
 ```
 
+## Release `aidlc`
+
+The release workflow builds native archives for macOS, Linux, and Windows, writes `checksums.txt`,
+and publishes them to the GitHub release for an existing `aidlc/v*` tag.
+
+```sh
+make aidlc-release-check
+git tag -a aidlc/v0.1.0 -m "aidlc v0.1.0"
+git push origin aidlc/v0.1.0
+```
+
+The tag prefix is intentional because the Go module lives under `aidlc/`.
+
 ## Use `aidlc`
 
 Initialize a repository for one IDE or all supported IDEs:

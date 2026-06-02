@@ -22,7 +22,6 @@ var privatePathPatterns = []string{
 	"release/**",
 	"dist/**",
 	"build/**",
-	"aidlc/.goreleaser.yaml",
 	"aidlc/scripts/**",
 }
 

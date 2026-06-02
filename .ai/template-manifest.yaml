@@ -33,7 +33,6 @@ payload:
     - release/**
     - dist/**
     - build/**
-    - aidlc/.goreleaser.yaml
     - aidlc/scripts/**
 policy:
   allow_broad_directories: false
