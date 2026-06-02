@@ -5,6 +5,23 @@ $Version = if ($env:AIDLC_VERSION) { $env:AIDLC_VERSION } else { "latest" }
 $InstallDir = if ($env:AIDLC_INSTALL_DIR) { $env:AIDLC_INSTALL_DIR } else { Join-Path $HOME "bin" }
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("aidlc-install-" + [System.Guid]::NewGuid())
 
+function Invoke-AidlcDownload {
+    param(
+        [string]$Uri,
+        [string]$OutFile,
+        [string]$Label
+    )
+
+    try {
+        Invoke-WebRequest -Uri $Uri -OutFile $OutFile
+    } catch {
+        [Console]::Error.WriteLine("aidlc install: failed to download $Label from $Uri")
+        [Console]::Error.WriteLine("aidlc install: release assets are required; check AIDLC_REPO=$Repo and AIDLC_VERSION=$Version")
+        [Console]::Error.WriteLine("aidlc install: for unreleased source checkouts, run: cd aidlc; go install ./cmd/aidlc")
+        throw
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $TempDir | Out-Null
 try {
     $Arch = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) {
@@ -28,8 +45,8 @@ try {
     $ArchivePath = Join-Path $TempDir $Archive
     $ChecksumsPath = Join-Path $TempDir $Checksums
 
-    Invoke-WebRequest -Uri "$BaseUrl/$Archive" -OutFile $ArchivePath
-    Invoke-WebRequest -Uri "$BaseUrl/$Checksums" -OutFile $ChecksumsPath
+    Invoke-AidlcDownload -Uri "$BaseUrl/$Archive" -OutFile $ArchivePath -Label $Archive
+    Invoke-AidlcDownload -Uri "$BaseUrl/$Checksums" -OutFile $ChecksumsPath -Label $Checksums
 
     $Expected = Get-Content $ChecksumsPath |
         ForEach-Object { $_.Trim() } |

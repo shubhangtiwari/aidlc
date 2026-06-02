@@ -48,22 +48,22 @@ they become relevant.
 `aidlc` is the native CLI for initializing and updating AIDLC governance files without depending on
 the template `Makefile` or shell-only sync scripts.
 
-Install from the latest GitHub release on macOS or Linux:
+Install with Go:
+
+```sh
+go install github.com/shubhangtiwari/aidlc/aidlc/cmd/aidlc@latest
+```
+
+Install from the latest GitHub release on macOS or Linux after release assets are published:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sh
 ```
 
-Install on Windows from PowerShell:
+Install from the latest GitHub release on Windows after release assets are published:
 
 ```powershell
 iwr https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.ps1 -UseB | iex
-```
-
-Install with Go:
-
-```sh
-go install github.com/shubhangtiwari/aidlc/aidlc/cmd/aidlc@latest
 ```
 
 For local development from this repository:

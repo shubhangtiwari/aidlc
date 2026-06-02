@@ -43,8 +43,20 @@ fi
 archive="aidlc_${os}_${arch}.tar.gz"
 checksums="checksums.txt"
 
-curl -fsSL "$base_url/$archive" -o "$tmp_dir/$archive"
-curl -fsSL "$base_url/$checksums" -o "$tmp_dir/$checksums"
+download() {
+  url="$1"
+  output="$2"
+  label="$3"
+  if ! curl -fsSL "$url" -o "$output"; then
+    echo "aidlc install: failed to download $label from $url" >&2
+    echo "aidlc install: release assets are required; check AIDLC_REPO=$repo and AIDLC_VERSION=$version" >&2
+    echo "aidlc install: for unreleased source checkouts, run: cd aidlc && go install ./cmd/aidlc" >&2
+    exit 2
+  fi
+}
+
+download "$base_url/$archive" "$tmp_dir/$archive" "$archive"
+download "$base_url/$checksums" "$tmp_dir/$checksums" "$checksums"
 
 expected="$(awk -v file="$archive" '$2 == file || $2 == "*" file { print $1 }' "$tmp_dir/$checksums" | head -n 1)"
 if [ -z "$expected" ]; then
