@@ -20,9 +20,13 @@ aidlc version
 `aidlc init <ide>` copies only paths listed in `.ai/template-manifest.yaml` from
 the configured source into the current directory, then runs native IDE generation.
 Existing identical files are skipped. Divergent files are reported as conflicts
-and are not overwritten. Successful runs write `aidlc.lock.json` at the target
-repository root with the selected concrete IDEs in `workspace.ides`; `init all`
-stores every concrete IDE rather than the aggregate `all` value.
+and are not overwritten. When conflicts exist, init still writes non-conflicting
+payload files, generates the requested IDE files, writes `aidlc.lock.json`, and
+exits `1`. The partial lock records only accepted upstream payload files; it
+does not mark conflicted paths as clean. Successful and partial runs write
+`aidlc.lock.json` at the target repository root with the selected concrete IDEs
+in `workspace.ides`; `init all` stores every concrete IDE rather than the
+aggregate `all` value.
 
 `aidlc update` reads `aidlc.lock.json`, falling back to legacy
 `.aidlc/manifest.json` when the root lock is absent, fetches or reads the
@@ -31,6 +35,18 @@ After a clean non-dry-run update, it regenerates the IDE files listed in
 `workspace.ides` and writes the root lock. Divergent local files are reported as
 conflicts and are not overwritten. Files removed upstream are reported but not
 deleted from the target repository.
+
+Mutating init and update output is grouped into deterministic plain-text
+sections:
+
+```text
+◆ plan
+<decision-state> <path> <reason>
+✓ written
+write <path> <comment>
+✦ generated
+generate <path> <comment>
+```
 
 ## Flags
 

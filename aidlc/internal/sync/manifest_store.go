@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/source"
 )
 
 func ReadManifest(targetDir string) (*contract.TargetManifest, error) {
@@ -103,8 +104,42 @@ func normalizeManifestWorkspace(manifest *contract.TargetManifest, allowGenerate
 }
 
 func ManifestFromPlan(plan Plan, generated contract.GenerationRecord, metadata map[string]string) contract.TargetManifest {
-	files := make([]contract.ManifestFile, 0, len(plan.Files))
-	for path, file := range plan.Files {
+	return manifestFromFiles(plan.Upstream, plan.Files, generated, metadata)
+}
+
+func ManifestFromAcceptedPlan(plan Plan, generated contract.GenerationRecord, metadata map[string]string) contract.TargetManifest {
+	files := make(map[string]source.File)
+	for _, decision := range plan.Decisions {
+		if !acceptedUpstreamDecision(decision) {
+			continue
+		}
+		file, ok := plan.Files[decision.Path]
+		if !ok {
+			continue
+		}
+		files[decision.Path] = file
+	}
+	return manifestFromFiles(plan.Upstream, files, generated, metadata)
+}
+
+func acceptedUpstreamDecision(decision Decision) bool {
+	if decision.State == StateConflict || decision.State == StateRemovedUpstream {
+		return false
+	}
+	if decision.IsWritable() {
+		return true
+	}
+	return decision.UpstreamChecksum != "" && decision.LocalChecksum == decision.UpstreamChecksum
+}
+
+func manifestFromFiles(
+	upstream contract.UpstreamRef,
+	sourceFiles map[string]source.File,
+	generated contract.GenerationRecord,
+	metadata map[string]string,
+) contract.TargetManifest {
+	files := make([]contract.ManifestFile, 0, len(sourceFiles))
+	for path, file := range sourceFiles {
 		files = append(files, contract.ManifestFile{
 			Path:     path,
 			Checksum: BytesChecksum(file.Content),
@@ -116,7 +151,7 @@ func ManifestFromPlan(plan Plan, generated contract.GenerationRecord, metadata m
 	})
 	return contract.TargetManifest{
 		SchemaVersion: contract.TargetManifestVersion,
-		Upstream:      plan.Upstream,
+		Upstream:      upstream,
 		Workspace: contract.WorkspaceRecord{
 			IDEs: mustNormalizeIDESelection([]contract.IDE{generated.IDE}),
 		},

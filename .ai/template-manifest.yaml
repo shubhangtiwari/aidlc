@@ -7,6 +7,15 @@ payload:
     - .ai/personas/implementer.md
     - .ai/personas/reviewer.md
     - .ai/references/architecture-template.md
+    - .ai/references/architectures/data-engineering/architecture.md
+    - .ai/references/architectures/data-engineering/blueprint-template.md
+    - .ai/references/architectures/data-science/architecture.md
+    - .ai/references/architectures/data-science/blueprint-template.md
+    - .ai/references/architectures/minimal-tooling/architecture.md
+    - .ai/references/architectures/polyglot-monorepo/architecture.md
+    - .ai/references/architectures/polyglot-monorepo/blueprint-template.md
+    - .ai/references/architectures/tiered-service/architecture.md
+    - .ai/references/architectures/tiered-service/blueprint-template.md
     - .ai/references/ci/github-finalize-spec.yml
     - .ai/references/ci/gitlab-finalize-spec.yml
     - .ai/scripts/finalize_spec.sh

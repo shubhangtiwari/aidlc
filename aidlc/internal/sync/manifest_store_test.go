@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -212,6 +213,99 @@ func TestManifestFromPlanPersistsSourceChecksums(t *testing.T) {
 	assertIDESelection(t, manifest.Workspace.IDEs, contract.ConcreteIDEs())
 }
 
+func TestManifestFromAcceptedPlanExcludesConflictedPayloads(t *testing.T) {
+	files := map[string]source.File{
+		".ai/created.md":    {Path: ".ai/created.md", Content: []byte("created"), Mode: 0o644},
+		".ai/skipped.md":    {Path: ".ai/skipped.md", Content: []byte("skipped"), Mode: 0o644},
+		".ai/updated.md":    {Path: ".ai/updated.md", Content: []byte("updated"), Mode: 0o600},
+		".ai/conflict.md":   {Path: ".ai/conflict.md", Content: []byte("upstream conflict"), Mode: 0o644},
+		".ai/unmatched.md":  {Path: ".ai/unmatched.md", Content: []byte("unmatched"), Mode: 0o644},
+		".ai/undecided.md":  {Path: ".ai/undecided.md", Content: []byte("undecided"), Mode: 0o644},
+	}
+	plan := templatesync.Plan{
+		Upstream: contract.UpstreamRef{Source: "local", Ref: "main", Commit: "abc123"},
+		Files:    files,
+		Decisions: []templatesync.Decision{
+			{
+				Path:             ".ai/created.md",
+				State:            templatesync.StateCreate,
+				UpstreamChecksum: templatesync.BytesChecksum(files[".ai/created.md"].Content),
+				Mode:             "0644",
+			},
+			{
+				Path:             ".ai/skipped.md",
+				State:            templatesync.StateSkip,
+				LocalChecksum:    templatesync.BytesChecksum(files[".ai/skipped.md"].Content),
+				UpstreamChecksum: templatesync.BytesChecksum(files[".ai/skipped.md"].Content),
+				Mode:             "0644",
+			},
+			{
+				Path:             ".ai/updated.md",
+				State:            templatesync.StateUpdateClean,
+				UpstreamChecksum: templatesync.BytesChecksum(files[".ai/updated.md"].Content),
+				Mode:             "0600",
+			},
+			{
+				Path:             ".ai/conflict.md",
+				State:            templatesync.StateConflict,
+				LocalChecksum:    templatesync.BytesChecksum([]byte("local conflict")),
+				UpstreamChecksum: templatesync.BytesChecksum(files[".ai/conflict.md"].Content),
+				Mode:             "0644",
+			},
+			{
+				Path:             ".ai/unmatched.md",
+				State:            templatesync.StateSkip,
+				LocalChecksum:    templatesync.BytesChecksum([]byte("different")),
+				UpstreamChecksum: templatesync.BytesChecksum(files[".ai/unmatched.md"].Content),
+				Mode:             "0644",
+			},
+			{
+				Path:             ".ai/removed.md",
+				State:            templatesync.StateRemovedUpstream,
+				LocalChecksum:    templatesync.BytesChecksum([]byte("local removed")),
+				PreviousChecksum: templatesync.BytesChecksum([]byte("previous removed")),
+			},
+		},
+	}
+
+	manifest := templatesync.ManifestFromAcceptedPlan(
+		plan,
+		contract.GenerationRecord{IDE: contract.IDECodex, Version: "test"},
+		map[string]string{"command": "init"},
+	)
+
+	if manifest.Upstream.Commit != "abc123" {
+		t.Fatalf("commit = %q", manifest.Upstream.Commit)
+	}
+	if manifest.Metadata["command"] != "init" {
+		t.Fatalf("metadata = %#v", manifest.Metadata)
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
+	assertManifestFiles(t, manifest.Files, map[string]source.File{
+		".ai/created.md": files[".ai/created.md"],
+		".ai/skipped.md": files[".ai/skipped.md"],
+		".ai/updated.md": files[".ai/updated.md"],
+	})
+}
+
+func TestManifestFromPlanStillPersistsFullUpstreamFileSet(t *testing.T) {
+	plan := templatesync.Plan{
+		Upstream: contract.UpstreamRef{Source: "local", Ref: "main"},
+		Files: map[string]source.File{
+			".ai/conflict.md": {Path: ".ai/conflict.md", Content: []byte("conflict"), Mode: 0o644},
+			".ai/removed.md":  {Path: ".ai/removed.md", Content: []byte("removed"), Mode: 0o644},
+		},
+		Decisions: []templatesync.Decision{
+			{Path: ".ai/conflict.md", State: templatesync.StateConflict},
+			{Path: ".ai/removed.md", State: templatesync.StateRemovedUpstream},
+		},
+	}
+
+	manifest := templatesync.ManifestFromPlan(plan, contract.GenerationRecord{IDE: contract.IDECodex}, nil)
+
+	assertManifestFiles(t, manifest.Files, plan.Files)
+}
+
 func writeManifestJSON(t *testing.T, target, relativePath string, manifest contract.TargetManifest) {
 	t.Helper()
 	content, err := json.Marshal(manifest)
@@ -237,6 +331,32 @@ func assertIDESelection(t *testing.T, got, want []contract.IDE) {
 			t.Fatalf("workspace IDEs = %#v, want %#v", got, want)
 		}
 	}
+}
+
+func assertManifestFiles(t *testing.T, got []contract.ManifestFile, want map[string]source.File) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("manifest files = %#v, want %d files", got, len(want))
+	}
+	for _, file := range got {
+		sourceFile, ok := want[file.Path]
+		if !ok {
+			t.Fatalf("unexpected manifest file %q in %#v", file.Path, got)
+		}
+		if file.Checksum != templatesync.BytesChecksum(sourceFile.Content) {
+			t.Fatalf("%s checksum = %q", file.Path, file.Checksum)
+		}
+		if file.Mode != formatMode(sourceFile.Mode) {
+			t.Fatalf("%s mode = %q", file.Path, file.Mode)
+		}
+	}
+}
+
+func formatMode(mode os.FileMode) string {
+	if mode == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%#o", mode.Perm())
 }
 
 func assertExists(t *testing.T, target, relativePath string) {

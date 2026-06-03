@@ -42,7 +42,9 @@ It does not own root template source files except by reading the public template
 - Commands: `init`, `update`, and `version`.
 - `aidlc init <claude|codex|cursor|copilot|windsurf|all> [--source github|local] [--url URL]
   [--ref REF] [--path PATH] [--dry-run]` copies the public template payload and then generates the
-  requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`.
+  requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`. Init conflicts exit
+  `1` but do not block safe create/skip payload decisions, requested IDE generation, or root lock
+  writing. Divergent local files remain untouched.
 - `aidlc update [--source github|local] [--url URL] [--ref REF] [--path PATH] [--dry-run]` reads
   `aidlc.lock.json`, or legacy `.aidlc/manifest.json` when the root lock is absent, fetches the
   configured or overridden source, applies clean manifest-aware updates, and regenerates the
@@ -68,6 +70,9 @@ It does not own root template source files except by reading the public template
 - Repository `make init <ide>` and `make update` targets are thin wrappers around the native CLI.
   They do not define a separate Bash compatibility contract.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
+- Human CLI result output is deterministic plain text with sections headed exactly `◆ plan`,
+  `✓ written`, and `✦ generated`. Plan rows use `<decision-state> <path> <reason>`, written rows
+  use `write <path> <comment>`, and generated rows use `generate <path> <comment>`.
 
 ## Owned State
 
@@ -78,7 +83,9 @@ receive `aidlc.lock.json`, public template payload files, and generated IDE file
 `.github/copilot-instructions.md`, and `.windsurfrules`. The root lock owns workspace IDE
 selections, tracked payload checksums, generation metadata, and update source metadata. Legacy
 `.aidlc/manifest.json` may still be read for compatibility but is no longer the authoritative write
-target.
+target. During conflicted init, the partial root lock records only accepted upstream payload files
+plus generation/workspace metadata; conflicted payload paths are excluded from tracked clean file
+entries.
 
 ## Integration Boundaries
 
@@ -90,6 +97,8 @@ target.
 - Normal init/update flows must not call Bash, Make, rsync, or git.
 - Root Makefile init/update targets may invoke the native CLI for repository developer workflows,
   but they must not call retired `.ai/scripts/ai_init.sh` or `.ai/scripts/ai_update.sh` paths.
+- `aidlc init` applies non-conflicting payload decisions, generates requested IDE files, and writes
+  an honest partial root lock even when other payload paths conflict.
 - `aidlc update` regenerates IDE files selected by `aidlc.lock.json` after a conflict-free
   mutating update. When the root lock is absent, update can fall back to legacy
   `.aidlc/manifest.json` and writes `aidlc.lock.json` only after a clean non-dry-run mutation.
@@ -101,8 +110,10 @@ target.
 - `make test`
 - `make validate-governance`
 
-Coverage must include root `aidlc.lock.json` workspace IDE persistence, legacy manifest fallback and
-migration timing, update regeneration of only selected IDE surfaces, Makefile wrapper invocation of
-the native CLI, normalized tracked payload paths, and rendered governance guidance parity where
-hardcoded spec-gate text exists. Cursor guidance tests must cover native Go generation for
-scope-aware spec ownership invariants.
+Coverage must include partial init conflicts that still write safe payload files, generated IDE
+files, and an honest root lock; root `aidlc.lock.json` workspace IDE persistence; legacy manifest
+fallback and migration timing; update regeneration of only selected IDE surfaces; unchanged update
+conflict behavior; formatted CLI result output; Makefile wrapper invocation of the native CLI;
+normalized tracked payload paths; and rendered governance guidance parity where hardcoded spec-gate
+text exists. Cursor guidance tests must cover native Go generation for scope-aware spec ownership
+invariants.

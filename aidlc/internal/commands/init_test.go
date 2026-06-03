@@ -79,7 +79,7 @@ func TestInitDryRunDoesNotWritePayloadOrGeneratedFiles(t *testing.T) {
 func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
-	testutil.WriteFile(t, target, ".ai/README.md", "local edits")
+	testutil.WriteFile(t, target, "LICENSE", "local license edits")
 
 	result, err := RunInit(context.Background(), contract.InitOptions{
 		IDE:       contract.IDECodex,
@@ -92,10 +92,117 @@ func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
 	if !hasConflict(result.Plan) {
 		t.Fatal("expected conflict")
 	}
-	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "local edits" {
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
 		t.Fatalf("divergent file overwritten: %q", got)
 	}
+	assertExists(t, target, ".ai/README.md")
+	assertExists(t, target, ".ai/models.defaults.toml")
+	assertExists(t, target, "AGENTS.md")
+	assertExists(t, target, ".codex/agents/architect.toml")
+	assertExists(t, target, contract.TargetManifestPath)
+	assertGenerated(t, result.Generated, "AGENTS.md")
+
+	manifest := readTargetManifest(t, target)
+	if manifestHasFile(manifest, "LICENSE") {
+		t.Fatal("partial init lock recorded conflicted payload path")
+	}
+	if !manifestHasFile(manifest, ".ai/README.md") || !manifestHasFile(manifest, ".ai/models.defaults.toml") {
+		t.Fatal("partial init lock omitted accepted payload path")
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
+}
+
+func TestInitDryRunWithConflictDoesNotWritePayloadGeneratedOrLock(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+
+	result, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: source},
+		DryRun:    true,
+	})
+	if err != nil {
+		t.Fatalf("init dry run conflict: %v", err)
+	}
+	if !hasConflict(result.Plan) {
+		t.Fatal("expected conflict")
+	}
+	if len(result.Written) != 0 || len(result.Generated) != 0 {
+		t.Fatalf("dry run wrote files: %#v", result)
+	}
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
+		t.Fatalf("dry run changed divergent file: %q", got)
+	}
+	assertMissing(t, target, ".ai/README.md")
+	assertMissing(t, target, ".ai/models.defaults.toml")
 	assertMissing(t, target, "AGENTS.md")
+	assertMissing(t, target, contract.TargetManifestPath)
+}
+
+func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+	chdirForTest(t, target)
+
+	var stdout, stderr bytes.Buffer
+	code := RunInitCLI(context.Background(), []string{"codex", "--source", "local", "--path", source, "--ref", "test"}, &stdout, &stderr)
+	if code != contract.ExitConflict {
+		t.Fatalf("init cli code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	output := stdout.String()
+	for _, want := range []string{
+		"◆ plan\n",
+		"conflict LICENSE init never overwrites divergent local files\n",
+		"✓ written\n",
+		"write .ai/README.md payload\n",
+		"write .ai/models.defaults.toml payload\n",
+		"write aidlc.lock.json lock\n",
+		"✦ generated\n",
+		"generate AGENTS.md ide\n",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("output missing %q:\n%s", want, output)
+		}
+	}
+	for _, unwanted := range []string{"init plan:", "init dry run:", "  create", "    init never"} {
+		if strings.Contains(output, unwanted) {
+			t.Fatalf("output contains retired formatting %q:\n%s", unwanted, output)
+		}
+	}
+
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
+		t.Fatalf("divergent file overwritten: %q", got)
+	}
+	assertExists(t, target, ".ai/README.md")
+	assertExists(t, target, ".ai/models.defaults.toml")
+	assertExists(t, target, "AGENTS.md")
+	assertExists(t, target, contract.TargetManifestPath)
+}
+
+func TestInitCLIConflictWithPostPlanErrorReturnsUsage(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+	if err := os.Mkdir(filepath.Join(target, "AGENTS.md"), 0o755); err != nil {
+		t.Fatalf("mkdir AGENTS.md: %v", err)
+	}
+	chdirForTest(t, target)
+
+	var stdout, stderr bytes.Buffer
+	code := RunInitCLI(context.Background(), []string{"codex", "--source", "local", "--path", source, "--ref", "test"}, &stdout, &stderr)
+	if code != contract.ExitUsage {
+		t.Fatalf("init cli code = %d, want usage; stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "conflict LICENSE init never overwrites divergent local files\n") {
+		t.Fatalf("stdout missing conflict plan:\n%s", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "aidlc init:") {
+		t.Fatalf("stderr missing init error: %q", stderr.String())
+	}
+	assertExists(t, target, ".ai/README.md")
 	assertMissing(t, target, contract.TargetManifestPath)
 }
 
@@ -363,4 +470,13 @@ func assertIDESelection(t testing.TB, got, want []contract.IDE) {
 			t.Fatalf("workspace IDEs = %#v, want %#v", got, want)
 		}
 	}
+}
+
+func manifestHasFile(manifest *contract.TargetManifest, name string) bool {
+	for _, file := range manifest.Files {
+		if file.Path == name {
+			return true
+		}
+	}
+	return false
 }

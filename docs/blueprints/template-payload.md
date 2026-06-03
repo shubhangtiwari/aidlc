@@ -18,6 +18,9 @@ copied to initialized or updated consumer repositories.
 The public payload is a strict allowlist:
 
 - `.ai/**` files intentionally listed in `.ai/template-manifest.yaml`.
+- Reference architecture profiles under `.ai/references/architectures/**`, intentionally listed
+  file-by-file in `.ai/template-manifest.yaml`, because `init-architecture` depends on them in
+  initialized repositories.
 - Starter docs or templates intentionally listed in `.ai/template-manifest.yaml`.
 - License files intentionally listed in `.ai/template-manifest.yaml`.
 
@@ -55,7 +58,8 @@ explicitly narrows a starter exception:
 ## Update Semantics
 
 - Init is additive: create missing files, skip identical files, and report divergent existing files
-  as conflicts.
+  as conflicts. When some payload paths conflict, init still applies non-conflicting payload
+  decisions without overwriting divergent local files.
 - Update is checksum-aware: compare prior manifest checksums, local checksums, and upstream
   checksums before writing.
 - Unknown local project files are not deleted.

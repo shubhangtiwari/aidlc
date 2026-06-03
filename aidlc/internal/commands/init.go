@@ -58,9 +58,6 @@ func RunInitCLI(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	printCommandResult(stdout, result)
 	if err != nil {
 		fmt.Fprintf(stderr, "aidlc init: %v\n", err)
-		if hasConflict(result.Plan) {
-			return contract.ExitConflict
-		}
 		return contract.ExitUsage
 	}
 	if hasConflict(result.Plan) {
@@ -127,7 +124,7 @@ func RunInit(ctx context.Context, opts contract.InitOptions) (CommandResult, err
 		return CommandResult{}, err
 	}
 	result := CommandResult{Mode: templatesync.ModeInit, DryRun: opts.DryRun, Plan: plan}
-	if opts.DryRun || hasConflict(plan) {
+	if opts.DryRun {
 		return result, nil
 	}
 
@@ -143,7 +140,7 @@ func RunInit(ctx context.Context, opts contract.InitOptions) (CommandResult, err
 	}
 	result.Generated = append(result.Generated, generated.Written...)
 
-	manifest := templatesync.ManifestFromPlan(plan, generationRecord(opts.IDE), commandMetadata(contract.CommandInit, opts.Source))
+	manifest := templatesync.ManifestFromAcceptedPlan(plan, generationRecord(opts.IDE), commandMetadata(contract.CommandInit, opts.Source))
 	selection, err := initWorkspaceIDEs(previous, opts.IDE)
 	if err != nil {
 		return result, err
@@ -240,29 +237,29 @@ func printCommandResult(w io.Writer, result CommandResult) {
 	if result.Mode == "" {
 		return
 	}
-	if result.DryRun {
-		fmt.Fprintf(w, "%s dry run:\n", result.Mode)
-	} else {
-		fmt.Fprintf(w, "%s plan:\n", result.Mode)
-	}
+	fmt.Fprintln(w, "◆ plan")
 	for _, decision := range result.Plan.Decisions {
-		fmt.Fprintf(w, "  %-16s %s\n", decision.State, decision.Path)
-		if decision.Reason != "" {
-			fmt.Fprintf(w, "    %s\n", decision.Reason)
-		}
+		fmt.Fprintf(w, "%s %s %s\n", decision.State, decision.Path, decision.Reason)
 	}
 	if len(result.Written) > 0 {
-		fmt.Fprintln(w, "written:")
+		fmt.Fprintln(w, "✓ written")
 		for _, name := range result.Written {
-			fmt.Fprintf(w, "  %s\n", name)
+			fmt.Fprintf(w, "write %s %s\n", name, writtenComment(name))
 		}
 	}
 	if len(result.Generated) > 0 {
-		fmt.Fprintln(w, "generated:")
+		fmt.Fprintln(w, "✦ generated")
 		for _, name := range result.Generated {
-			fmt.Fprintf(w, "  %s\n", name)
+			fmt.Fprintf(w, "generate %s ide\n", name)
 		}
 	}
+}
+
+func writtenComment(name string) string {
+	if name == contract.TargetManifestPath {
+		return "lock"
+	}
+	return "payload"
 }
 
 func hasConflict(plan templatesync.Plan) bool {

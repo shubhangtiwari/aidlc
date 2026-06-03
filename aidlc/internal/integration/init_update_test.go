@@ -195,6 +195,53 @@ func TestCLIUpdateReportsConflictWithoutOverwritingOrLeakingPrivateFiles(t *test
 	assertPrivatePathsMissing(t, target)
 }
 
+func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *testing.T) {
+	source := createIntegrationSource(t, "v1")
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "local project edits\n")
+
+	stdout, stderr, code := runCLIInDir(t, target, contract.ExitConflict, "init", "codex", "--source", "local", "--path", source, "--ref", "v1")
+	if code != contract.ExitConflict {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "◆ plan") || !strings.Contains(stdout, "✓ written") || !strings.Contains(stdout, "✦ generated") {
+		t.Fatalf("stdout missing formatted sections:\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "conflict LICENSE") {
+		t.Fatalf("stdout missing conflicted payload path:\n%s", stdout)
+	}
+
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local project edits\n" {
+		t.Fatalf("conflicted file overwritten: %q", got)
+	}
+	assertExists(t, target, ".ai/README.md")
+	assertExists(t, target, ".ai/models.defaults.toml")
+	assertExists(t, target, ".ai/references/architectures/tiered-service/architecture.md")
+	assertExists(t, target, ".ai/references/architectures/data-engineering/blueprint-template.md")
+	assertExists(t, target, ".codex/agents/architect.toml")
+	assertExists(t, target, "AGENTS.md")
+	assertExists(t, target, contract.TargetManifestPath)
+	assertPrivatePathsMissing(t, target)
+
+	manifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
+	for _, file := range manifest.Files {
+		if file.Path == "LICENSE" {
+			t.Fatalf("manifest recorded conflicted payload path: %#v", manifest.Files)
+		}
+		assertPublicManifestPath(t, file.Path)
+		if strings.Contains(file.Path, source) || filepath.IsAbs(file.Path) {
+			t.Fatalf("manifest leaked private source path %q", file.Path)
+		}
+	}
+	assertManifestIncludes(t, manifest, ".ai/README.md")
+	assertManifestIncludes(t, manifest, ".ai/models.defaults.toml")
+	assertManifestIncludes(t, manifest, ".ai/references/architectures/tiered-service/architecture.md")
+}
+
 func runCLIInDir(t *testing.T, dir string, wantCode int, args ...string) (string, string, int) {
 	t.Helper()
 
@@ -240,7 +287,24 @@ payload:
     - .ai/personas/architect.md
     - .ai/personas/implementer.md
     - .ai/personas/reviewer.md
+    - .ai/references/architecture-template.md
+    - .ai/references/architectures/data-engineering/architecture.md
+    - .ai/references/architectures/data-engineering/blueprint-template.md
+    - .ai/references/architectures/data-science/architecture.md
+    - .ai/references/architectures/data-science/blueprint-template.md
+    - .ai/references/architectures/minimal-tooling/architecture.md
+    - .ai/references/architectures/polyglot-monorepo/architecture.md
+    - .ai/references/architectures/polyglot-monorepo/blueprint-template.md
+    - .ai/references/architectures/tiered-service/architecture.md
+    - .ai/references/architectures/tiered-service/blueprint-template.md
+    - .ai/references/ci/github-finalize-spec.yml
+    - .ai/references/ci/gitlab-finalize-spec.yml
+    - .ai/scripts/finalize_spec.sh
     - .ai/skills/classify-change.md
+    - .ai/skills/init-architecture.md
+    - .ai/skills/orchestrate-spec.md
+    - .ai/templates/approval-brief.md
+    - .ai/templates/spec.md
     - docs/spec/README.md
     - docs/adr/README.md
     - docs/blueprints/README.md
@@ -274,7 +338,24 @@ func publicPayloadPaths() []string {
 		".ai/personas/architect.md",
 		".ai/personas/implementer.md",
 		".ai/personas/reviewer.md",
+		".ai/references/architecture-template.md",
+		".ai/references/architectures/data-engineering/architecture.md",
+		".ai/references/architectures/data-engineering/blueprint-template.md",
+		".ai/references/architectures/data-science/architecture.md",
+		".ai/references/architectures/data-science/blueprint-template.md",
+		".ai/references/architectures/minimal-tooling/architecture.md",
+		".ai/references/architectures/polyglot-monorepo/architecture.md",
+		".ai/references/architectures/polyglot-monorepo/blueprint-template.md",
+		".ai/references/architectures/tiered-service/architecture.md",
+		".ai/references/architectures/tiered-service/blueprint-template.md",
+		".ai/references/ci/github-finalize-spec.yml",
+		".ai/references/ci/gitlab-finalize-spec.yml",
+		".ai/scripts/finalize_spec.sh",
 		".ai/skills/classify-change.md",
+		".ai/skills/init-architecture.md",
+		".ai/skills/orchestrate-spec.md",
+		".ai/templates/approval-brief.md",
+		".ai/templates/spec.md",
 		"docs/spec/README.md",
 		"docs/adr/README.md",
 		"docs/blueprints/README.md",
@@ -352,6 +433,29 @@ model = "composer-2.5"
 		testutil.WriteFile(t, root, path, personaDoc("reviewer", "Reviews governed diffs.", "Review governed diffs."))
 	case ".ai/skills/classify-change.md":
 		testutil.WriteFile(t, root, path, skillDoc("classify-change", "Classifies governed changes.", "Classify before implementation."))
+	case ".ai/skills/init-architecture.md":
+		testutil.WriteFile(t, root, path, skillDoc("init-architecture", "Initializes architecture docs.", "Initialize architecture docs."))
+	case ".ai/skills/orchestrate-spec.md":
+		testutil.WriteFile(t, root, path, skillDoc("orchestrate-spec", "Runs approved spec work packages.", "Run spec work packages."))
+	case ".ai/references/architecture-template.md":
+		testutil.WriteFile(t, root, path, "# Architecture Template\n\nstarter "+label+"\n")
+	case ".ai/references/architectures/data-engineering/architecture.md",
+		".ai/references/architectures/data-science/architecture.md",
+		".ai/references/architectures/minimal-tooling/architecture.md",
+		".ai/references/architectures/polyglot-monorepo/architecture.md",
+		".ai/references/architectures/tiered-service/architecture.md":
+		testutil.WriteFile(t, root, path, "# "+filepath.Base(filepath.Dir(path))+" Architecture\n\nstarter "+label+"\n")
+	case ".ai/references/architectures/data-engineering/blueprint-template.md",
+		".ai/references/architectures/data-science/blueprint-template.md",
+		".ai/references/architectures/polyglot-monorepo/blueprint-template.md",
+		".ai/references/architectures/tiered-service/blueprint-template.md":
+		testutil.WriteFile(t, root, path, "# "+filepath.Base(filepath.Dir(path))+" Blueprint Template\n\nstarter "+label+"\n")
+	case ".ai/references/ci/github-finalize-spec.yml", ".ai/references/ci/gitlab-finalize-spec.yml":
+		testutil.WriteFile(t, root, path, "name: finalize spec "+label+"\n")
+	case ".ai/scripts/finalize_spec.sh":
+		testutil.WriteFile(t, root, path, "#!/bin/sh\n# finalize spec "+label+"\n")
+	case ".ai/templates/approval-brief.md", ".ai/templates/spec.md":
+		testutil.WriteFile(t, root, path, "template "+label+"\n")
 	case "docs/spec/README.md", "docs/adr/README.md", "docs/blueprints/README.md":
 		testutil.WriteFile(t, root, path, "starter "+label+"\n")
 	case "LICENSE":
@@ -398,6 +502,17 @@ func assertPublicManifestPath(t testing.TB, path string) {
 		}
 	}
 	t.Fatalf("manifest contains non-public path %s", path)
+}
+
+func assertManifestIncludes(t testing.TB, manifest *contract.TargetManifest, path string) {
+	t.Helper()
+
+	for _, file := range manifest.Files {
+		if file.Path == path {
+			return
+		}
+	}
+	t.Fatalf("manifest missing %s: %#v", path, manifest.Files)
 }
 
 func assertIDESelection(t testing.TB, got, want []contract.IDE) {

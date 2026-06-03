@@ -421,6 +421,39 @@ func TestUpdateCLIHelpOutput(t *testing.T) {
 	}
 }
 
+func TestUpdateResultOutputUsesSharedOneLineFormatting(t *testing.T) {
+	result := CommandResult{
+		Mode: templatesync.ModeUpdate,
+		Plan: templatesync.Plan{Decisions: []templatesync.Decision{
+			{State: templatesync.StateUpdateClean, Path: ".ai/README.md", Reason: "local file matches previous manifest and upstream changed"},
+		}},
+		Written:   []string{".ai/README.md", contract.TargetManifestPath},
+		Generated: []string{"AGENTS.md"},
+	}
+
+	var stdout bytes.Buffer
+	printCommandResult(&stdout, result)
+	output := stdout.String()
+	for _, want := range []string{
+		"◆ plan\n",
+		"update-clean .ai/README.md local file matches previous manifest and upstream changed\n",
+		"✓ written\n",
+		"write .ai/README.md payload\n",
+		"write aidlc.lock.json lock\n",
+		"✦ generated\n",
+		"generate AGENTS.md ide\n",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("output missing %q:\n%s", want, output)
+		}
+	}
+	for _, unwanted := range []string{"update plan:", "update dry run:", "  update-clean", "    local file"} {
+		if strings.Contains(output, unwanted) {
+			t.Fatalf("output contains retired formatting %q:\n%s", unwanted, output)
+		}
+	}
+}
+
 func assertGenerated(t testing.TB, generated []string, name string) {
 	t.Helper()
 	for _, got := range generated {
