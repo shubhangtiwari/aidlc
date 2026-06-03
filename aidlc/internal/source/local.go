@@ -32,29 +32,29 @@ func (l Local) Snapshot(ctx context.Context) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 
-	includePaths, err := ManifestIncludes(manifest)
+	includeEntries, err := ManifestIncludeEntries(manifest)
 	if err != nil {
 		return Snapshot{}, err
 	}
 
-	files := make([]File, 0, len(includePaths))
-	for _, name := range includePaths {
+	files := make([]File, 0, len(includeEntries))
+	for _, entry := range includeEntries {
 		if err := ctx.Err(); err != nil {
 			return Snapshot{}, err
 		}
-		fullPath := filepath.Join(root, filepath.FromSlash(name))
+		fullPath := filepath.Join(root, filepath.FromSlash(entry.SourcePath))
 		info, err := os.Stat(fullPath)
 		if err != nil {
-			return Snapshot{}, fmt.Errorf("stat payload file %s: %w", name, err)
+			return Snapshot{}, fmt.Errorf("stat payload file %s: %w", entry.SourcePath, err)
 		}
 		if info.IsDir() {
-			return Snapshot{}, fmt.Errorf("payload include %s is a directory", name)
+			return Snapshot{}, fmt.Errorf("payload include %s is a directory", entry.SourcePath)
 		}
 		content, err := os.ReadFile(fullPath)
 		if err != nil {
-			return Snapshot{}, fmt.Errorf("read payload file %s: %w", name, err)
+			return Snapshot{}, fmt.Errorf("read payload file %s: %w", entry.SourcePath, err)
 		}
-		files = append(files, File{Path: name, Content: content, Mode: info.Mode().Perm()})
+		files = append(files, File{Path: entry.TargetPath, Content: content, Mode: info.Mode().Perm()})
 	}
 
 	snapshot := Snapshot{

@@ -27,7 +27,8 @@ payload:
     - docs/adr/README.md
     - docs/blueprints/README.md
     - docs/spec/README.md
-    - LICENSE
+    - source: LICENSE
+      target: licenses/aidlc.md
   exclude:
     - docs/spec/[0-9]*-*.md
     - docs/adr/[0-9]*-*.md

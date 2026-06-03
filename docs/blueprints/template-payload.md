@@ -24,19 +24,28 @@ The public payload is a strict allowlist:
 - Starter docs or templates intentionally listed in `.ai/template-manifest.yaml`.
 - License files intentionally listed in `.ai/template-manifest.yaml`.
 
+Manifest includes may be same-path entries, where the source repository path and target repository
+path match, or explicit single-file source-to-target entries. The public AIDLC license uses the
+mapped form: it reads the repository root `LICENSE` and installs that content to target
+`licenses/aidlc.md`. The manifest must not broaden this into a `licenses/**` or root-license
+directory copy.
+
 `.ai/scripts/ai_init.sh` and `.ai/scripts/ai_update.sh` are not public payload entries. Native
 `aidlc init` and `aidlc update` own supported init/update behavior. `.ai/scripts/finalize_spec.sh`
 remains public because spec finalization is a separate governance maintenance flow.
 
 Broad directory copying is forbidden. In particular, `docs/**` is never public by directory; each
-public starter document must be listed explicitly. Manifest includes are normalized relative paths;
-absolute paths, parent traversal, Windows drive paths, and broad globs are rejected by the CLI
-payload policy.
+public starter document must be listed explicitly. Manifest source and target paths are normalized
+relative paths; absolute paths, parent traversal, Windows drive paths, private target paths,
+duplicate target paths, and broad globs are rejected by the CLI payload policy.
 
 Public governance guidance in `.ai/**` and the starter `docs/spec/README.md` defines scope-aware
-spec ownership: medium and large specs are local to the resolved AIDLC scope root that owns the
-affected paths. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are implementation
-artifacts for this repository and must remain excluded from payload copying.
+spec ownership and tier classification by semantic risk, contract impact, target state, topology,
+integration changes, and coordination cost. File count and line count are evidence to inspect, not
+automatic tier gates: multi-file low-risk mechanical edits may remain small, while one-file changes
+that alter public behavior, schemas, owned state, contracts, integrations, or workflow topology can
+be medium or large. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are
+implementation artifacts for this repository and must remain excluded from payload copying.
 
 ## Read-only Paths
 
@@ -63,13 +72,16 @@ explicitly narrows a starter exception:
 - Update is checksum-aware: compare prior manifest checksums, local checksums, and upstream
   checksums before writing.
 - Unknown local project files are not deleted.
-- Files removed upstream are reported through planning state and are not blindly deleted from target
-  repositories.
+- Payload planning, checksum comparison, write decisions, filesystem writes, and target manifest
+  tracking use destination paths. For mapped entries, source bytes and modes come from the source
+  repository path, while target conflict detection and lock entries use the mapped destination path.
+- Historical tracked paths that are no longer present in the destination path set are reported
+  through planning state as removed upstream and are not deleted from target repositories.
 - `.aidlc/manifest.json` records tracked public payload files, upstream source/ref/commit,
   checksums, modes, generation metadata, and command metadata. Update decisions use that manifest
   instead of scanning broad repository directories.
-- Payload updates may refresh scope-resolution guidance in initialized roots, including
-  `.ai/**` guidance and the public starter `docs/spec/README.md`.
+- Payload updates may refresh scope-resolution and tier-classification guidance in initialized
+  roots, including `.ai/**` guidance and the public starter `docs/spec/README.md`.
 - Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
   `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
 
@@ -81,3 +93,6 @@ explicitly narrows a starter exception:
 
 Validation must preserve the explicit `docs/spec/README.md` manifest include, the numbered
 `docs/spec/[0-9]*-*.md` exclusions, and the prohibition on broad `docs/**` payload copying.
+Coverage must include mapped manifest entries, path normalization for both source and target paths,
+private path rejection for target paths, duplicate target rejection, destination-path lock tracking,
+and the prohibition on broad license directory copying.

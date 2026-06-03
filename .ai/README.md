@@ -103,7 +103,10 @@ treat each approved scoped spec as its own governing artifact.
    post a **Triage record** in chat) before inline intent, spec drafting, or `implementer`. Do not
    delegate triage to `architect`. Route from `next`: `inline-intent` | `draft-spec` | `ask-user`.
    When `next` is `draft-spec`, **delegate `architect`** automatically for planning. See Hard Rule 7.
-3. **When in doubt,** assign tier **uncertain** or **medium**, not small.
+3. **Classify by semantic risk,** not raw file count alone. File count, line count, and directory
+   spread are signals to inspect for coordination cost, but the tier is driven by contract impact,
+   public behavior, owned state, topology, integrations, and rollback risk.
+4. **When in doubt,** assign tier **uncertain** or **medium**, not small.
 
 ### Persona chain
 
@@ -125,7 +128,9 @@ opening a PR — see **Review** and Hard Rule 6.
 **Trivial / small:** After triage (`next: inline-intent`). No spec file. Main agent states intent
 inline (short summary: what, which files, expected outcome) informed by the Triage record. User
 confirms. Delegate **`implementer`** — do not apply governed edits from the main session. **Do not**
-delegate `reviewer` unless the user explicitly asks for a review.
+delegate `reviewer` unless the user explicitly asks for a review. Small work can span a few files
+when the change is mechanical, uses a bounded helper, or adjusts one localized flow without changing
+module contracts, owned state, integration boundaries, or topology.
 
 **Blueprint sanity (all tiers):** Every `implementer` run ends with a blueprint check. If the
 change touches anything blueprints document (contracts, owned state, read-only paths, integrations,

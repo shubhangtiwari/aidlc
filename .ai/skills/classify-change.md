@@ -43,22 +43,28 @@ main session.
 
 ## Classification rules
 
-Apply `docs/spec/README.md` literally. In particular:
+Apply `docs/spec/README.md` literally. Tier by semantic and coordination risk. File count, line
+count, and directory spread are evidence to inspect; they are not automatic gates by themselves.
+In particular:
 
 | Tier | Typical signals |
 | --- | --- |
-| **Trivial** | Typo, rename, comment, single-line fix; no contract or topology change |
-| **Small** | Single-file fix, single test, dep bump; no multi-module contract or graph change |
-| **Medium** | More than one file **or** touches module contracts / graph topology / integrations |
-| **Large** | Cross-cutting, many modules, new integration, or ADR-level decision |
+| **Trivial** | Typo, rename, comment, or obvious one-line fix; no behavior, contract, state, integration, or topology change |
+| **Small** | Low-risk localized fix, single test, dependency bump, bounded helper use, or mechanical multi-file edit; no public behavior/schema change, module contract change, owned-state change, integration boundary change, or topology change |
+| **Medium** | Public behavior change, schema/contract change, target-state semantics change, workflow or graph topology change, integration boundary change, or coordination across modules that needs a plan |
+| **Large** | Cross-cutting architectural change, many coordinated modules, new external integration, durable state migration, ADR-level decision, or high rollback/user-impact risk |
 | **Uncertain** | Scope or tier unclear after reading docs; would change path if wrong |
 
-When **any** medium trigger might apply, prefer **medium** or **uncertain** over small. Do not
-down-tier to avoid a spec.
+Multi-file work can remain **small** when each touched file is part of the same bounded, low-risk
+change and the blueprint-owned concerns above do not move. A one-file change can still be
+**medium** or **large** when it changes public behavior, schemas, contracts, target state,
+integrations, or workflow topology. When **any** medium trigger might apply, prefer **medium** or
+**uncertain** over small. Do not down-tier to avoid a spec.
 
 ## Method
 
-1. List concrete triggers you checked (files/areas, blueprint concerns, graph, integrations).
+1. List concrete triggers you checked (files/areas, file/line count signals, blueprint concerns,
+   public behavior, state, graph/topology, integrations, and coordination cost).
 2. Assign **one** tier: `trivial` | `small` | `medium` | `large` | `uncertain`.
 3. Set **`next`**:
    - `inline-intent` — trivial or small → main posts intent → user confirms → `implementer`.

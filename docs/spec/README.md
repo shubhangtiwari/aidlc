@@ -33,12 +33,20 @@ approved spec file as a separate governing artifact.
 
 ## When to write a spec
 
-- **Trivial** changes: typo, rename, comment, or single-line fix. No spec.
-- **Small** changes: single-file fix, single test, or dependency bump. No spec file; the main agent
-  states intent inline, the user confirms, then **`implementer`** applies the change.
-- **Medium / Large** changes: more than one file, contract or topology changes, integration
-  additions, or cross-cutting behavior. A full spec file is required and approved before code is
-  written.
+- **Trivial** changes: typo, rename, comment, or obvious one-line fix with no behavior, contract,
+  state, integration, or topology change. No spec.
+- **Small** changes: low-risk localized fix, single test, dependency bump, bounded helper use, or
+  mechanical multi-file edit. No spec file when the change does not alter public behavior, schemas,
+  module contracts, owned state, integration boundaries, workflow topology, or graph topology; the
+  main agent states intent inline, the user confirms, then **`implementer`** applies the change.
+- **Medium / Large** changes: public behavior changes, schemas or contracts, target state semantics,
+  workflow or graph topology, integration boundaries, durable state, or coordination across modules
+  that needs a plan. A full spec file is required and approved before code is written. A one-file
+  change can still be medium or large when it carries these risks.
+
+File count, line count, and directory spread are triage signals to inspect for coordination cost,
+not automatic tier gates. Multi-file work can remain small when it is mechanical or tightly bounded
+and leaves contracts, state, integrations, and topology unchanged.
 
 No spec does **not** skip governance: trivial and small work still delegate **`implementer`** for
 governed paths. The implementer runs a **blueprint sanity** check and updates `docs/blueprints/` when

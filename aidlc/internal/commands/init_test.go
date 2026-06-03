@@ -40,8 +40,10 @@ func TestInitCopiesOnlyPublicManifestPathsAndGeneratesIDE(t *testing.T) {
 	assertExists(t, target, "docs/spec/README.md")
 	assertExists(t, target, "AGENTS.md")
 	assertExists(t, target, ".codex/agents/architect.toml")
+	assertExists(t, target, "licenses/aidlc.md")
 	assertExists(t, target, contract.TargetManifestPath)
 
+	assertMissing(t, target, "LICENSE")
 	assertMissing(t, target, "docs/spec/1780346463-add-aidlc-cli.md")
 	assertMissing(t, target, "docs/adr/1780346463-aidlc-cli-distribution-and-sync.md")
 	assertMissing(t, target, "docs/blueprints/aidlc.md")
@@ -76,7 +78,7 @@ func TestInitDryRunDoesNotWritePayloadOrGeneratedFiles(t *testing.T) {
 	assertMissing(t, target, contract.TargetManifestPath)
 }
 
-func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
+func TestInitAllowsConsumerRootLicenseAndTracksAIDLCLicense(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
 	testutil.WriteFile(t, target, "LICENSE", "local license edits")
@@ -87,13 +89,16 @@ func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
 		Source:    contract.SourceOptions{Kind: "local", Path: source},
 	})
 	if err != nil {
-		t.Fatalf("init conflict should be reported in plan, not as error: %v", err)
+		t.Fatalf("init: %v", err)
 	}
-	if !hasConflict(result.Plan) {
-		t.Fatal("expected conflict")
+	if hasConflict(result.Plan) {
+		t.Fatal("unexpected conflict")
 	}
 	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
 		t.Fatalf("divergent file overwritten: %q", got)
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "license\n" {
+		t.Fatalf("mapped license payload = %q", got)
 	}
 	assertExists(t, target, ".ai/README.md")
 	assertExists(t, target, ".ai/models.defaults.toml")
@@ -104,10 +109,13 @@ func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
 
 	manifest := readTargetManifest(t, target)
 	if manifestHasFile(manifest, "LICENSE") {
-		t.Fatal("partial init lock recorded conflicted payload path")
+		t.Fatal("init lock recorded consumer root LICENSE")
+	}
+	if !manifestHasFile(manifest, "licenses/aidlc.md") {
+		t.Fatal("init lock omitted mapped AIDLC license payload path")
 	}
 	if !manifestHasFile(manifest, ".ai/README.md") || !manifestHasFile(manifest, ".ai/models.defaults.toml") {
-		t.Fatal("partial init lock omitted accepted payload path")
+		t.Fatal("init lock omitted accepted payload path")
 	}
 	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
 }
@@ -115,7 +123,7 @@ func TestInitReportsConflictWithoutOverwriting(t *testing.T) {
 func TestInitDryRunWithConflictDoesNotWritePayloadGeneratedOrLock(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
-	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
 
 	result, err := RunInit(context.Background(), contract.InitOptions{
 		IDE:       contract.IDECodex,
@@ -132,9 +140,10 @@ func TestInitDryRunWithConflictDoesNotWritePayloadGeneratedOrLock(t *testing.T) 
 	if len(result.Written) != 0 || len(result.Generated) != 0 {
 		t.Fatalf("dry run wrote files: %#v", result)
 	}
-	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
-		t.Fatalf("dry run changed divergent file: %q", got)
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "local license edits" {
+		t.Fatalf("dry run changed divergent mapped license: %q", got)
 	}
+	assertMissing(t, target, "LICENSE")
 	assertMissing(t, target, ".ai/README.md")
 	assertMissing(t, target, ".ai/models.defaults.toml")
 	assertMissing(t, target, "AGENTS.md")
@@ -144,7 +153,7 @@ func TestInitDryRunWithConflictDoesNotWritePayloadGeneratedOrLock(t *testing.T) 
 func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
-	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
 	chdirForTest(t, target)
 
 	var stdout, stderr bytes.Buffer
@@ -155,7 +164,7 @@ func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 	output := stdout.String()
 	for _, want := range []string{
 		"◆ plan\n",
-		"conflict LICENSE init never overwrites divergent local files\n",
+		"conflict licenses/aidlc.md init never overwrites divergent local files\n",
 		"✓ written\n",
 		"write .ai/README.md payload\n",
 		"write .ai/models.defaults.toml payload\n",
@@ -173,9 +182,10 @@ func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 		}
 	}
 
-	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local license edits" {
-		t.Fatalf("divergent file overwritten: %q", got)
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "local license edits" {
+		t.Fatalf("divergent mapped license overwritten: %q", got)
 	}
+	assertMissing(t, target, "LICENSE")
 	assertExists(t, target, ".ai/README.md")
 	assertExists(t, target, ".ai/models.defaults.toml")
 	assertExists(t, target, "AGENTS.md")
@@ -185,7 +195,7 @@ func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 func TestInitCLIConflictWithPostPlanErrorReturnsUsage(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
-	testutil.WriteFile(t, target, "LICENSE", "local license edits")
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
 	if err := os.Mkdir(filepath.Join(target, "AGENTS.md"), 0o755); err != nil {
 		t.Fatalf("mkdir AGENTS.md: %v", err)
 	}
@@ -196,7 +206,7 @@ func TestInitCLIConflictWithPostPlanErrorReturnsUsage(t *testing.T) {
 	if code != contract.ExitUsage {
 		t.Fatalf("init cli code = %d, want usage; stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "conflict LICENSE init never overwrites divergent local files\n") {
+	if !strings.Contains(stdout.String(), "conflict licenses/aidlc.md init never overwrites divergent local files\n") {
 		t.Fatalf("stdout missing conflict plan:\n%s", stdout.String())
 	}
 	if !strings.Contains(stderr.String(), "aidlc init:") {
@@ -356,7 +366,8 @@ payload:
     - docs/spec/README.md
     - docs/adr/README.md
     - docs/blueprints/README.md
-    - LICENSE
+    - source: LICENSE
+      target: licenses/aidlc.md
   exclude:
     - docs/spec/[0-9]*-*.md
     - docs/adr/[0-9]*-*.md

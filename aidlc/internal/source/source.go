@@ -27,20 +27,25 @@ type Provider interface {
 	Snapshot(ctx context.Context) (Snapshot, error)
 }
 
+type ManifestInclude struct {
+	SourcePath string
+	TargetPath string
+}
+
 func ValidateSnapshot(snapshot Snapshot) error {
-	included := make(map[string]struct{}, len(snapshot.Manifest.Payload.Include))
-	for _, raw := range snapshot.Manifest.Payload.Include {
-		normalized, err := payload.NormalizeRelativePath(raw)
-		if err != nil {
-			return fmt.Errorf("invalid template include %q: %w", raw, err)
+	entries, err := ManifestIncludeEntries(snapshot.Manifest)
+	if err != nil {
+		return err
+	}
+
+	includedTargets := make(map[string]struct{}, len(entries))
+	sourceTargets := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		if _, ok := includedTargets[entry.TargetPath]; ok {
+			return fmt.Errorf("duplicate template target path %q", entry.TargetPath)
 		}
-		if payload.IsPrivatePath(normalized) {
-			return fmt.Errorf("template include %q is private", normalized)
-		}
-		if isBroadDirectory(normalized) && !snapshot.Manifest.Policy.AllowBroadDirectories {
-			return fmt.Errorf("template include %q is a broad directory", normalized)
-		}
-		included[normalized] = struct{}{}
+		includedTargets[entry.TargetPath] = struct{}{}
+		sourceTargets[entry.SourcePath] = entry.TargetPath
 	}
 
 	for _, raw := range snapshot.Manifest.Payload.Exclude {
@@ -48,7 +53,12 @@ func ValidateSnapshot(snapshot Snapshot) error {
 		if err != nil {
 			return fmt.Errorf("invalid template exclude %q: %w", raw, err)
 		}
-		if _, ok := included[normalized]; ok {
+		for _, entry := range entries {
+			if normalized == entry.SourcePath || normalized == entry.TargetPath {
+				return fmt.Errorf("template path %q is both included and excluded", normalized)
+			}
+		}
+		if _, ok := includedTargets[normalized]; ok {
 			return fmt.Errorf("template path %q is both included and excluded", normalized)
 		}
 	}
@@ -59,7 +69,10 @@ func ValidateSnapshot(snapshot Snapshot) error {
 		if err != nil {
 			return fmt.Errorf("invalid source path %q: %w", snapshot.Files[i].Path, err)
 		}
-		if _, ok := included[normalized]; !ok {
+		if targetPath, ok := sourceTargets[normalized]; ok {
+			normalized = targetPath
+		}
+		if _, ok := includedTargets[normalized]; !ok {
 			return fmt.Errorf("source path %q is not included by the public template manifest", normalized)
 		}
 		if _, ok := seen[normalized]; ok {
@@ -73,24 +86,66 @@ func ValidateSnapshot(snapshot Snapshot) error {
 }
 
 func ManifestIncludes(manifest contract.TemplateManifest) ([]string, error) {
-	paths := make([]string, 0, len(manifest.Payload.Include))
+	entries, err := ManifestIncludeEntries(manifest)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		paths = append(paths, entry.SourcePath)
+	}
+	return paths, nil
+}
+
+func ManifestIncludeEntries(manifest contract.TemplateManifest) ([]ManifestInclude, error) {
+	entries := make([]ManifestInclude, 0, len(manifest.Payload.Include)+len(manifest.Payload.IncludeMappings))
+	seenTargets := make(map[string]struct{}, len(manifest.Payload.Include)+len(manifest.Payload.IncludeMappings))
+
 	for _, raw := range manifest.Payload.Include {
-		normalized, err := payload.NormalizeRelativePath(raw)
+		normalized, err := normalizeManifestPath("template include", raw, manifest.Policy.AllowBroadDirectories)
 		if err != nil {
 			return nil, err
 		}
-		if isBroadDirectory(normalized) && !manifest.Policy.AllowBroadDirectories {
-			return nil, fmt.Errorf("template include %q is a broad directory", normalized)
+		if err := validatePublicTarget("template include", normalized); err != nil {
+			return nil, err
 		}
-		paths = append(paths, normalized)
+		if _, ok := seenTargets[normalized]; ok {
+			return nil, fmt.Errorf("duplicate template target path %q", normalized)
+		}
+		seenTargets[normalized] = struct{}{}
+		entries = append(entries, ManifestInclude{SourcePath: normalized, TargetPath: normalized})
 	}
-	return paths, nil
+
+	for _, mapping := range manifest.Payload.IncludeMappings {
+		sourcePath, err := normalizeManifestPath("template include source", mapping.Source, false)
+		if err != nil {
+			return nil, err
+		}
+		if err := validatePublicTarget("template include source", sourcePath); err != nil {
+			return nil, err
+		}
+		targetPath, err := normalizeManifestPath("template include target", mapping.Target, false)
+		if err != nil {
+			return nil, err
+		}
+		if err := validatePublicTarget("template include target", targetPath); err != nil {
+			return nil, err
+		}
+		if _, ok := seenTargets[targetPath]; ok {
+			return nil, fmt.Errorf("duplicate template target path %q", targetPath)
+		}
+		seenTargets[targetPath] = struct{}{}
+		entries = append(entries, ManifestInclude{SourcePath: sourcePath, TargetPath: targetPath})
+	}
+
+	return entries, nil
 }
 
 func ParseTemplateManifest(data []byte) (contract.TemplateManifest, error) {
 	var manifest contract.TemplateManifest
 	section := ""
 	list := ""
+	pendingMapping := -1
 
 	for lineNo, rawLine := range strings.Split(string(data), "\n") {
 		line := strings.TrimSpace(rawLine)
@@ -113,17 +168,30 @@ func ParseTemplateManifest(data []byte) (contract.TemplateManifest, error) {
 			list = ""
 		case section == "payload" && line == "include:":
 			list = "include"
+			pendingMapping = -1
 		case section == "payload" && line == "exclude:":
 			list = "exclude"
+			pendingMapping = -1
 		case section == "payload" && strings.HasPrefix(line, "- "):
 			value := strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "- ")), `"'`)
 			if list == "include" {
-				manifest.Payload.Include = append(manifest.Payload.Include, value)
+				if source, ok := parseInlineMappingField(value, "source"); ok {
+					manifest.Payload.IncludeMappings = append(manifest.Payload.IncludeMappings, contract.TemplatePayloadMapping{Source: source})
+					pendingMapping = len(manifest.Payload.IncludeMappings) - 1
+				} else {
+					manifest.Payload.Include = append(manifest.Payload.Include, value)
+					pendingMapping = -1
+				}
 			} else if list == "exclude" {
 				manifest.Payload.Exclude = append(manifest.Payload.Exclude, value)
+				pendingMapping = -1
 			} else {
 				return manifest, fmt.Errorf("manifest list item on line %d has no active list", lineNo+1)
 			}
+		case section == "payload" && list == "include" && pendingMapping >= 0 && strings.HasPrefix(line, "target:"):
+			target := strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "target:")), `"'`)
+			manifest.Payload.IncludeMappings[pendingMapping].Target = target
+			pendingMapping = -1
 		case section == "policy" && strings.Contains(line, ":"):
 			key, value, _ := strings.Cut(line, ":")
 			boolValue, err := parseBool(strings.TrimSpace(value))
@@ -150,8 +218,13 @@ func ParseTemplateManifest(data []byte) (contract.TemplateManifest, error) {
 	if manifest.SchemaVersion == 0 {
 		return manifest, fmt.Errorf("template manifest schema_version is required")
 	}
-	if len(manifest.Payload.Include) == 0 {
+	if len(manifest.Payload.Include)+len(manifest.Payload.IncludeMappings) == 0 {
 		return manifest, fmt.Errorf("template manifest payload.include is required")
+	}
+	for _, mapping := range manifest.Payload.IncludeMappings {
+		if mapping.Source == "" || mapping.Target == "" {
+			return manifest, fmt.Errorf("template manifest mapped include requires source and target")
+		}
 	}
 	return manifest, nil
 }
@@ -172,4 +245,30 @@ func isBroadDirectory(value string) bool {
 		return true
 	}
 	return strings.Contains(path.Base(value), "*")
+}
+
+func normalizeManifestPath(label, raw string, allowBroadDirectories bool) (string, error) {
+	normalized, err := payload.NormalizeRelativePath(raw)
+	if err != nil {
+		return "", fmt.Errorf("invalid %s %q: %w", label, raw, err)
+	}
+	if isBroadDirectory(normalized) && !allowBroadDirectories {
+		return "", fmt.Errorf("%s %q is a broad directory", label, normalized)
+	}
+	return normalized, nil
+}
+
+func validatePublicTarget(label, normalized string) error {
+	if payload.IsPrivatePath(normalized) {
+		return fmt.Errorf("%s %q is private", label, normalized)
+	}
+	return nil
+}
+
+func parseInlineMappingField(value, key string) (string, bool) {
+	field, raw, ok := strings.Cut(value, ":")
+	if !ok || strings.TrimSpace(field) != key {
+		return "", false
+	}
+	return strings.Trim(strings.TrimSpace(raw), `"'`), true
 }

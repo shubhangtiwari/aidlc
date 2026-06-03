@@ -18,11 +18,11 @@ func TestInitPlanningIsAdditive(t *testing.T) {
 		Mode:      templatesync.ModeInit,
 		TargetDir: target,
 		Source: source.Snapshot{
-			Manifest: manifest(".ai/README.md", ".ai/models.defaults.toml", "LICENSE"),
+			Manifest: manifestWithLicenseMapping(".ai/README.md", ".ai/models.defaults.toml"),
 			Files: []source.File{
 				file(".ai/README.md", "upstream"),
 				file(".ai/models.defaults.toml", "models"),
-				file("LICENSE", "license"),
+				file("licenses/aidlc.md", "license"),
 			},
 		},
 	})
@@ -37,8 +37,11 @@ func TestInitPlanningIsAdditive(t *testing.T) {
 	if states[".ai/models.defaults.toml"] != templatesync.StateSkip {
 		t.Fatalf("models state = %s, want skip", states[".ai/models.defaults.toml"])
 	}
-	if states["LICENSE"] != templatesync.StateCreate {
-		t.Fatalf("LICENSE state = %s, want create", states["LICENSE"])
+	if _, ok := states["LICENSE"]; ok {
+		t.Fatalf("root LICENSE was planned: %#v", states)
+	}
+	if states["licenses/aidlc.md"] != templatesync.StateCreate {
+		t.Fatalf("licenses/aidlc.md state = %s, want create", states["licenses/aidlc.md"])
 	}
 	if _, err := templatesync.ApplyPlan(target, plan); err != nil {
 		t.Fatalf("apply plan: %v", err)
@@ -46,8 +49,46 @@ func TestInitPlanningIsAdditive(t *testing.T) {
 	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "local edits" {
 		t.Fatalf("divergent file overwritten: %q", got)
 	}
-	if got := testutil.ReadFile(t, target, "LICENSE"); got != "license" {
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "license" {
 		t.Fatalf("created file = %q", got)
+	}
+}
+
+func TestUpdatePlanningTreatsHistoricalRootLicenseAsRemovedUpstream(t *testing.T) {
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "consumer license")
+
+	previous := &contract.TargetManifest{Files: []contract.ManifestFile{
+		{Path: "LICENSE", Checksum: templatesync.BytesChecksum([]byte("old aidlc license"))},
+	}}
+	plan, err := templatesync.BuildPlan(templatesync.PlanRequest{
+		Mode:             templatesync.ModeUpdate,
+		TargetDir:        target,
+		PreviousManifest: previous,
+		Source: source.Snapshot{
+			Manifest: manifestWithLicenseMapping(),
+			Files:    []source.File{file("licenses/aidlc.md", "new aidlc license")},
+		},
+	})
+	if err != nil {
+		t.Fatalf("build plan: %v", err)
+	}
+
+	states := statesByPath(plan)
+	if states["LICENSE"] != templatesync.StateRemovedUpstream {
+		t.Fatalf("LICENSE state = %s, want removed-upstream", states["LICENSE"])
+	}
+	if states["licenses/aidlc.md"] != templatesync.StateCreate {
+		t.Fatalf("licenses/aidlc.md state = %s, want create", states["licenses/aidlc.md"])
+	}
+	if _, err := templatesync.ApplyPlan(target, plan); err != nil {
+		t.Fatalf("apply plan: %v", err)
+	}
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "consumer license" {
+		t.Fatalf("root LICENSE changed: %q", got)
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "new aidlc license" {
+		t.Fatalf("mapped license not written: %q", got)
 	}
 }
 
@@ -158,6 +199,14 @@ func manifest(include ...string) contract.TemplateManifest {
 			RejectParentTraversal:    true,
 		},
 	}
+}
+
+func manifestWithLicenseMapping(include ...string) contract.TemplateManifest {
+	template := manifest(include...)
+	template.Payload.IncludeMappings = []contract.TemplatePayloadMapping{
+		{Source: "LICENSE", Target: "licenses/aidlc.md"},
+	}
+	return template
 }
 
 func file(name, content string) source.File {

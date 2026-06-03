@@ -47,8 +47,14 @@ type TemplateManifest struct {
 }
 
 type TemplatePayload struct {
-	Include []string `yaml:"include"`
-	Exclude []string `yaml:"exclude"`
+	Include         []string                 `yaml:"include"`
+	IncludeMappings []TemplatePayloadMapping `yaml:"-"`
+	Exclude         []string                 `yaml:"exclude"`
+}
+
+type TemplatePayloadMapping struct {
+	Source string `yaml:"source"`
+	Target string `yaml:"target"`
 }
 
 type TemplateManifestPolicy struct {

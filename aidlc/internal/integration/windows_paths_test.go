@@ -26,7 +26,8 @@ payload:
     - docs\spec\README.md
     - docs\adr\README.md
     - docs\blueprints\README.md
-    - LICENSE
+    - source: LICENSE
+      target: licenses\aidlc.md
   exclude:
     - docs/spec/[0-9]*-*.md
     - docs/adr/[0-9]*-*.md
@@ -54,6 +55,8 @@ policy:
 	assertExists(t, target, ".ai/README.md")
 	assertExists(t, target, ".codex/agents/architect.toml")
 	assertExists(t, target, ".codex/skills/classify-change/SKILL.md")
+	assertExists(t, target, "licenses/aidlc.md")
+	assertMissing(t, target, "LICENSE")
 	assertExists(t, target, "AGENTS.md")
 	assertExists(t, target, contract.TargetManifestPath)
 	assertMissing(t, target, contract.LegacyTargetManifestPath)
@@ -70,8 +73,11 @@ policy:
 		if strings.Contains(file.Path, `\`) {
 			t.Fatalf("manifest path was not normalized: %s", file.Path)
 		}
-		assertPublicManifestPath(t, file.Path)
+		if file.Path != "licenses/aidlc.md" {
+			assertPublicManifestPath(t, file.Path)
+		}
 	}
+	assertManifestIncludes(t, manifest, "licenses/aidlc.md")
 }
 
 func TestWindowsDrivePathIsRejectedAsTemplatePayloadPath(t *testing.T) {

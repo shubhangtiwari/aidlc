@@ -56,22 +56,22 @@ func (a Archive) Snapshot(ctx context.Context) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
-	includePaths, err := ManifestIncludes(manifest)
+	includeEntries, err := ManifestIncludeEntries(manifest)
 	if err != nil {
 		return Snapshot{}, err
 	}
 
-	files := make([]File, 0, len(includePaths))
-	for _, name := range includePaths {
-		file, ok := entries[name]
+	files := make([]File, 0, len(includeEntries))
+	for _, entry := range includeEntries {
+		file, ok := entries[entry.SourcePath]
 		if !ok {
-			return Snapshot{}, fmt.Errorf("archive missing payload file %s", name)
+			return Snapshot{}, fmt.Errorf("archive missing payload file %s", entry.SourcePath)
 		}
 		content, err := readZipFile(file)
 		if err != nil {
-			return Snapshot{}, fmt.Errorf("read payload file %s: %w", name, err)
+			return Snapshot{}, fmt.Errorf("read payload file %s: %w", entry.SourcePath, err)
 		}
-		files = append(files, File{Path: name, Content: content, Mode: file.Mode().Perm()})
+		files = append(files, File{Path: entry.TargetPath, Content: content, Mode: file.Mode().Perm()})
 	}
 
 	snapshot := Snapshot{

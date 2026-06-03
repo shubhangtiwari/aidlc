@@ -18,9 +18,13 @@ import (
 func TestCLIInitThenUpdateUsesManifestAndKeepsPrivateRepoFilesOut(t *testing.T) {
 	sourceV1 := createIntegrationSource(t, "v1")
 	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "consumer license\n")
 
 	runCLIInDir(t, target, contract.ExitOK, "init", "all", "--source", "local", "--path", sourceV1, "--ref", "v1")
 
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "consumer license\n" {
+		t.Fatalf("consumer root LICENSE changed: %q", got)
+	}
 	for _, name := range publicPayloadPaths() {
 		assertExists(t, target, name)
 	}
@@ -61,6 +65,9 @@ func TestCLIInitThenUpdateUsesManifestAndKeepsPrivateRepoFilesOut(t *testing.T) 
 	}
 	if got := testutil.ReadFile(t, target, ".ai/skills/classify-change.md"); !strings.Contains(got, "Updated classify body.") {
 		t.Fatalf("updated skill was not applied:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "consumer license\n" {
+		t.Fatalf("consumer root LICENSE changed on update: %q", got)
 	}
 	for _, name := range generatedIDEPaths() {
 		assertExists(t, target, name)
@@ -198,7 +205,7 @@ func TestCLIUpdateReportsConflictWithoutOverwritingOrLeakingPrivateFiles(t *test
 func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *testing.T) {
 	source := createIntegrationSource(t, "v1")
 	target := t.TempDir()
-	testutil.WriteFile(t, target, "LICENSE", "local project edits\n")
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local project edits\n")
 
 	stdout, stderr, code := runCLIInDir(t, target, contract.ExitConflict, "init", "codex", "--source", "local", "--path", source, "--ref", "v1")
 	if code != contract.ExitConflict {
@@ -207,13 +214,14 @@ func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *te
 	if !strings.Contains(stdout, "◆ plan") || !strings.Contains(stdout, "✓ written") || !strings.Contains(stdout, "✦ generated") {
 		t.Fatalf("stdout missing formatted sections:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "conflict LICENSE") {
+	if !strings.Contains(stdout, "conflict licenses/aidlc.md") {
 		t.Fatalf("stdout missing conflicted payload path:\n%s", stdout)
 	}
 
-	if got := testutil.ReadFile(t, target, "LICENSE"); got != "local project edits\n" {
-		t.Fatalf("conflicted file overwritten: %q", got)
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "local project edits\n" {
+		t.Fatalf("conflicted mapped license overwritten: %q", got)
 	}
+	assertMissing(t, target, "LICENSE")
 	assertExists(t, target, ".ai/README.md")
 	assertExists(t, target, ".ai/models.defaults.toml")
 	assertExists(t, target, ".ai/references/architectures/tiered-service/architecture.md")
@@ -230,7 +238,7 @@ func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *te
 	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
 	for _, file := range manifest.Files {
 		if file.Path == "LICENSE" {
-			t.Fatalf("manifest recorded conflicted payload path: %#v", manifest.Files)
+			t.Fatalf("manifest recorded root LICENSE path: %#v", manifest.Files)
 		}
 		assertPublicManifestPath(t, file.Path)
 		if strings.Contains(file.Path, source) || filepath.IsAbs(file.Path) {
@@ -240,6 +248,9 @@ func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *te
 	assertManifestIncludes(t, manifest, ".ai/README.md")
 	assertManifestIncludes(t, manifest, ".ai/models.defaults.toml")
 	assertManifestIncludes(t, manifest, ".ai/references/architectures/tiered-service/architecture.md")
+	if manifestHasFile(manifest, "licenses/aidlc.md") {
+		t.Fatalf("manifest recorded conflicted mapped license payload path: %#v", manifest.Files)
+	}
 }
 
 func runCLIInDir(t *testing.T, dir string, wantCode int, args ...string) (string, string, int) {
@@ -271,7 +282,7 @@ func createIntegrationSource(t testing.TB, label string) string {
 
 	root := t.TempDir()
 	testutil.WriteFile(t, root, ".ai/template-manifest.yaml", templateManifest())
-	for _, path := range publicPayloadPaths() {
+	for _, path := range sourcePayloadPaths() {
 		writePublicPayloadFile(t, root, path, label)
 	}
 	writePrivateRepoFiles(t, root)
@@ -308,7 +319,8 @@ payload:
     - docs/spec/README.md
     - docs/adr/README.md
     - docs/blueprints/README.md
-    - LICENSE
+    - source: LICENSE
+      target: licenses/aidlc.md
   exclude:
     - docs/spec/[0-9]*-*.md
     - docs/adr/[0-9]*-*.md
@@ -359,8 +371,18 @@ func publicPayloadPaths() []string {
 		"docs/spec/README.md",
 		"docs/adr/README.md",
 		"docs/blueprints/README.md",
-		"LICENSE",
+		"licenses/aidlc.md",
 	}
+}
+
+func sourcePayloadPaths() []string {
+	paths := publicPayloadPaths()
+	for i, path := range paths {
+		if path == "licenses/aidlc.md" {
+			paths[i] = "LICENSE"
+		}
+	}
+	return paths
 }
 
 func generatedIDEPaths() []string {
@@ -513,6 +535,15 @@ func assertManifestIncludes(t testing.TB, manifest *contract.TargetManifest, pat
 		}
 	}
 	t.Fatalf("manifest missing %s: %#v", path, manifest.Files)
+}
+
+func manifestHasFile(manifest *contract.TargetManifest, path string) bool {
+	for _, file := range manifest.Files {
+		if file.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 func assertIDESelection(t testing.TB, got, want []contract.IDE) {

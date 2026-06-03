@@ -68,12 +68,16 @@ It does not own root template source files except by reading the public template
   authoritative `workspace.ides`, generated IDE metadata, tracked payload paths, file checksums,
   file modes, and command metadata such as source kind and local source path. `workspace.ides`
   stores concrete IDE identifiers only, de-duplicated in canonical supported IDE order; `all`
-  expands to every concrete IDE before persistence.
+  expands to every concrete IDE before persistence. Tracked payload paths are destination paths:
+  the AIDLC repository root `LICENSE` payload is tracked in target repositories as
+  `licenses/aidlc.md`, leaving any consumer root `LICENSE` outside AIDLC ownership.
 - Legacy fallback: when `aidlc.lock.json` is absent, `.aidlc/manifest.json` may supply
   `workspace.ides`; if that field is absent, `generated.ide` is used, with `generated.ide: all`
   expanded to every concrete IDE. Root `aidlc.lock.json` takes precedence when both files exist.
 - Public template manifest: `.ai/template-manifest.yaml` allowlists public paths and documents
-  blocked private paths.
+  blocked private paths. Manifest entries may be same-path includes or explicit single-file
+  source-to-target includes; the AIDLC license reads from source `LICENSE` and installs to target
+  `licenses/aidlc.md`.
 - Payload policy: only normalized relative paths are valid; absolute paths, parent traversal,
   empty paths, and Windows drive paths are rejected.
 - Native IDE generation emits generated governance guidance from the portable `.ai/` contract.
@@ -91,14 +95,15 @@ It does not own root template source files except by reading the public template
 
 Source repository state owned by `aidlc/` is limited to the isolated Go module, tests, testdata,
 release configuration, installers, and release verification scripts. Target repositories may
-receive `aidlc.lock.json`, public template payload files, and generated IDE files such as
-`AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, `.claude/**`,
-`.github/copilot-instructions.md`, and `.windsurfrules`. The root lock owns workspace IDE
-selections, tracked payload checksums, generation metadata, and update source metadata. Legacy
-`.aidlc/manifest.json` may still be read for compatibility but is no longer the authoritative write
-target. During conflicted init, the partial root lock records only accepted upstream payload files
-plus generation/workspace metadata; conflicted payload paths are excluded from tracked clean file
-entries.
+receive `aidlc.lock.json`, public template payload files including `licenses/aidlc.md`, and
+generated IDE files such as `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, `.claude/**`,
+`.github/copilot-instructions.md`, and `.windsurfrules`. The consumer repository root `LICENSE` is
+not owned by AIDLC after license relocation; init and update must not create, overwrite, delete, or
+track it as the active AIDLC license payload. The root lock owns workspace IDE selections, tracked
+payload checksums, generation metadata, and update source metadata. Legacy `.aidlc/manifest.json`
+may still be read for compatibility but is no longer the authoritative write target. During
+conflicted init, the partial root lock records only accepted upstream payload files plus
+generation/workspace metadata; conflicted payload paths are excluded from tracked clean file entries.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
@@ -106,6 +111,9 @@ repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.ai
 ## Integration Boundaries
 
 - GitHub archive access is used to fetch template payload snapshots for normal init/update flows.
+- Local and GitHub/archive source providers may read payload bytes and modes from a source path that
+  differs from the emitted target path for explicit manifest mappings. Normal init/update flows
+  still use native filesystem, archive, checksum, and rendering logic and avoid shelling out.
 - GitHub release artifacts and checksum files are consumed by shell and PowerShell installers.
 - `aidlc upgrade` uses native GitHub release metadata and release asset downloads for CLI binary
   replacement, reusing `checksums.txt` verification and the existing release artifact naming
@@ -134,9 +142,11 @@ Coverage must include partial init conflicts that still write safe payload files
 files, and an honest root lock; root `aidlc.lock.json` workspace IDE persistence; legacy manifest
 fallback and migration timing; update regeneration of only selected IDE surfaces; unchanged update
 conflict behavior; formatted CLI result output; Makefile wrapper invocation of the native CLI;
-normalized tracked payload paths; release asset selection for supported platforms; checksum
-verification before binary replacement; dry-run behavior without archive downloads or destination
-writes; already-latest no-op behavior; upgrade command help and root CLI routing; packaged-binary
-`aidlc upgrade --help` smoke coverage; and rendered governance guidance parity where hardcoded
-spec-gate text exists. Cursor guidance tests must cover native Go generation for scope-aware spec
-ownership invariants.
+normalized tracked payload paths; license relocation to `licenses/aidlc.md`; preservation of a
+consumer root `LICENSE`; mapped target lock entries; historical `LICENSE` update behavior where the
+old tracked root path is reported as removed upstream without deletion; release asset selection for
+supported platforms; checksum verification before binary replacement; dry-run behavior without
+archive downloads or destination writes; already-latest no-op behavior; upgrade command help and
+root CLI routing; packaged-binary `aidlc upgrade --help` smoke coverage; and rendered governance
+guidance parity where hardcoded spec-gate text exists. Cursor guidance tests must cover native Go
+generation for scope-aware spec ownership invariants.

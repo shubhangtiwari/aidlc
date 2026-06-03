@@ -179,7 +179,8 @@ payload:
     - .ai/skills/classify-change.md
     - docs/adr/README.md
     - docs/blueprints/README.md
-    - LICENSE
+    - source: LICENSE
+      target: licenses/aidlc.md
   exclude:
     - docs/spec/[0-9]*-*.md
     - docs/adr/[0-9]*-*.md
@@ -216,6 +217,60 @@ policy:
 		t.Fatalf("docs/spec/README.md state = %s", states["docs/spec/README.md"])
 	}
 	assertExists(t, target, "docs/spec/README.md")
+}
+
+func TestUpdateFromHistoricalRootLicenseLockPreservesRootLicenseAndWritesMappedPayload(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "LICENSE", "consumer license\n")
+	writeTargetManifestJSON(t, target, contract.TargetManifestPath, contract.TargetManifest{
+		Upstream: contract.UpstreamRef{Source: "local", Ref: "v1", Commit: "v1"},
+		Generated: contract.GenerationRecord{
+			IDE: contract.IDECodex,
+		},
+		Workspace: contract.WorkspaceRecord{
+			IDEs: []contract.IDE{contract.IDECodex},
+		},
+		Files: []contract.ManifestFile{
+			{Path: "LICENSE", Checksum: templatesync.BytesChecksum([]byte("old aidlc license\n")), Mode: "0644"},
+		},
+		Metadata: map[string]string{"source_path": source},
+	})
+
+	result, err := RunUpdate(context.Background(), contract.UpdateOptions{
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: source, Ref: "v2"},
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if hasConflict(result.Plan) {
+		t.Fatal("unexpected conflict")
+	}
+	states := map[string]templatesync.DecisionState{}
+	for _, decision := range result.Plan.Decisions {
+		states[decision.Path] = decision.State
+	}
+	if states["LICENSE"] != templatesync.StateRemovedUpstream {
+		t.Fatalf("LICENSE state = %s, want removed-upstream", states["LICENSE"])
+	}
+	if states["licenses/aidlc.md"] != templatesync.StateCreate {
+		t.Fatalf("licenses/aidlc.md state = %s, want create", states["licenses/aidlc.md"])
+	}
+	if got := testutil.ReadFile(t, target, "LICENSE"); got != "consumer license\n" {
+		t.Fatalf("root LICENSE changed: %q", got)
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "license\n" {
+		t.Fatalf("mapped license payload = %q", got)
+	}
+
+	manifest := readTargetManifest(t, target)
+	if manifestHasFile(manifest, "LICENSE") {
+		t.Fatal("updated lock retained historical root LICENSE")
+	}
+	if !manifestHasFile(manifest, "licenses/aidlc.md") {
+		t.Fatal("updated lock omitted mapped AIDLC license payload")
+	}
 }
 
 func TestUpdateRegeneratesWorkspaceIDEsFromRootLock(t *testing.T) {
