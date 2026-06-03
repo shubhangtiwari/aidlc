@@ -45,8 +45,8 @@ The root `Makefile` remains the only supported command entrypoint.
 
 | Target | Purpose |
 | --- | --- |
-| `make init <ide>` | Generate IDE-native files from `.ai/` for this repository or a consumer repo. |
-| `make update` | Existing Bash-compatible update path for `.ai/`. |
+| `make init <ide>` | Thin wrapper around native `aidlc init` for generating IDE-native files from `.ai/`. |
+| `make update` | Thin wrapper around native `aidlc update` for manifest-aware `.ai/` sync. |
 | `make aidlc-test` | Run Go tests for the isolated `aidlc/` module. |
 | `make aidlc-release-check` | Validate release packaging prerequisites without creating root-level Go manifests. |
 | `make validate-governance` | Validate AIDLC governance docs, manifest exclusions, and CLI module boundaries. |
@@ -64,7 +64,7 @@ No root-level Go manifest is allowed. Go commands execute from `aidlc/`.
   for this repository.
 - CLI implementation artifacts: `aidlc/**`, installers, release configuration, and CI.
 - Generated IDE artifacts: `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, and equivalent
-  files produced by `make init` or future `aidlc init`.
+  files produced by native `aidlc init` or the `make init` wrapper.
 
 ## Initialization Record
 

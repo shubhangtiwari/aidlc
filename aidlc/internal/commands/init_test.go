@@ -48,6 +48,8 @@ func TestInitCopiesOnlyPublicManifestPathsAndGeneratesIDE(t *testing.T) {
 	assertMissing(t, target, "docs/ARCHITECTURE.md")
 	assertMissing(t, target, "docs/architecture/software.md")
 	assertMissing(t, target, "aidlc/internal/commands/init.go")
+	assertMissing(t, target, ".ai/scripts/ai_init.sh")
+	assertMissing(t, target, ".ai/scripts/ai_update.sh")
 	assertMissing(t, target, ".github/workflows/aidlc-release.yml")
 	assertMissing(t, target, "aidlc/.goreleaser.yaml")
 	assertMissing(t, target, "aidlc/scripts/install.sh")
@@ -109,6 +111,9 @@ func TestInitCLIUsageAndVersionOutput(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "Usage: aidlc init") {
 		t.Fatalf("usage output missing: %q", stdout.String())
+	}
+	if strings.Contains(stdout.String(), "ai_init.sh") || strings.Contains(stdout.String(), "bash") {
+		t.Fatalf("init help references retired shell compatibility: %q", stdout.String())
 	}
 
 	stdout.Reset()
@@ -281,6 +286,8 @@ policy:
 	testutil.WriteFile(t, root, "docs/ARCHITECTURE.md", "private architecture\n")
 	testutil.WriteFile(t, root, "docs/architecture/software.md", "private layer docs\n")
 	testutil.WriteFile(t, root, "aidlc/internal/commands/init.go", "private source\n")
+	testutil.WriteFile(t, root, ".ai/scripts/ai_init.sh", "retired shell init\n")
+	testutil.WriteFile(t, root, ".ai/scripts/ai_update.sh", "retired shell update\n")
 	testutil.WriteFile(t, root, ".github/workflows/aidlc-release.yml", "private ci\n")
 	testutil.WriteFile(t, root, "aidlc/.goreleaser.yaml", "private release\n")
 	testutil.WriteFile(t, root, "aidlc/scripts/install.sh", "private installer\n")

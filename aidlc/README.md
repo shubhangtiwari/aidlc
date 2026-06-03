@@ -4,6 +4,11 @@
 It uses only Go standard-library filesystem, archive, HTTP, checksum, and rendering
 logic.
 
+This README is the canonical command reference for the native CLI. Repository
+Makefile targets such as `make init <ide>` and `make update` may wrap these
+commands for local workflows, but the supported user-facing behavior is defined
+by `aidlc init` and `aidlc update`.
+
 ## Commands
 
 ```text

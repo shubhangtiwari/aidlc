@@ -40,6 +40,9 @@ func TestGenerateMinimalAllIDEs(t *testing.T) {
 	if !strings.Contains(agents, "- Manifest: not detected (optional — re-run `make init <ide>` after adding one)") {
 		t.Fatalf("AGENTS.md missing no-manifest facts:\n%s", agents)
 	}
+	if strings.Contains(agents, "ai_init.sh") || strings.Contains(agents, "ai_update.sh") {
+		t.Fatalf("AGENTS.md references retired shell compatibility:\n%s", agents)
+	}
 	if !strings.Contains(agents, "- `architect` — `.cursor/agents/architect.md` — Plans changes.") {
 		t.Fatalf("AGENTS.md missing cursor agent summary:\n%s", agents)
 	}

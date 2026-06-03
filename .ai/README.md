@@ -10,11 +10,13 @@ Project-specific facts live in canonical project files generated or curated afte
 - Module-specific contracts, owned state, and read-only paths → module blueprints under
   `docs/blueprints/`.
 - Test gates and standard commands → `Makefile`.
-- Persona model defaults per IDE → `.ai/models.defaults.toml` (projected by `make init <ide>`).
+- Persona model defaults per IDE → `.ai/models.defaults.toml` (projected by `aidlc init <ide>` or
+  this repository's `make init <ide>` wrapper).
 
-The generator at `.ai/scripts/ai_init.sh` reads `.ai/` and optionally enriches output from a project
-manifest when one is detected at the repo root. Run `make init <ide>` without a manifest to project
-governance only; re-run after adding a language/runtime manifest to refresh toolchain facts.
+The native `aidlc init <ide>` generator reads `.ai/` and optionally enriches output from a project
+manifest when one is detected at the repo root. Run `aidlc init <ide>` without a manifest to project
+governance only; re-run after adding a language/runtime manifest to refresh toolchain facts. In this
+repository, `make init <ide>` remains a thin wrapper around the native CLI.
 **Do not edit generated IDE files by hand.**
 
 ## Files in this directory
@@ -30,7 +32,7 @@ governance only; re-run after adding a language/runtime manifest to refresh tool
   - `orchestrate-spec.md` — parallel implementer waves from spec work packages.
 - `templates/` — spec drafting template; approval brief template (chat-only, for architect).
 - `references/architectures/` — reference profiles for the `init-architecture` skill.
-- `scripts/` — generator and maintenance scripts (`ai_init.sh`, `ai_update.sh`, `finalize_spec.sh`).
+- `scripts/` — maintenance scripts (`finalize_spec.sh`).
 
 ## Model defaults
 
@@ -46,7 +48,7 @@ Edit `.ai/models.defaults.toml` to change which model each IDE uses for each per
 - **Docs define truth:** architecture, specs, ADRs, blueprints, and manifests hold project facts.
 
 <!-- INIT:BEGIN -->
-<!-- Everything below this marker is copied verbatim into per-IDE entrypoints by .ai/scripts/ai_init.sh. -->
+<!-- Everything below this marker is copied verbatim into per-IDE entrypoints by aidlc init. -->
 
 ## Main agent delegation
 

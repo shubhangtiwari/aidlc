@@ -2,9 +2,9 @@
 #
 # Governance targets (template-managed):
 #   init           Generate IDE-specific entrypoints (CLAUDE.md, AGENTS.md, .agents/, .codex/, .cursor/, ...)
-#                  from .ai/ guidance. Re-run after editing anything under .ai/.
-#   update         Pull the latest .ai/ from the upstream AIDLC repository (overwrites local .ai/).
-#                  Use ARGS="--dry-run" to preview, "--ref REF" to pin a branch/tag.
+#                  through native aidlc. Re-run after editing anything under .ai/.
+#   update         Sync .ai/ through native aidlc using the repository root as the default local source.
+#                  Use ARGS="--dry-run" to preview or pass native aidlc update flags.
 #   finalize-spec  Post-merge spec cleanup: marks spec status: implemented, removes in-flight
 #                  artifacts, commits, optionally pushes. Wired into CI by init-architecture.
 #
@@ -16,15 +16,15 @@
 .PHONY: help init update finalize-spec install run test validate-governance \
         aidlc-test aidlc-release-check claude codex cursor copilot windsurf all
 
-BASH ?= bash
 AIDLC_GOTOOLCHAIN ?= go1.25.5
+BASH ?= bash
 INIT_ARG := $(word 2,$(MAKECMDGOALS))
 FINALIZE_ARGS := $(filter-out finalize-spec,$(MAKECMDGOALS))
 
 help:
 	@echo "usage:"
 	@echo "  make init <claude|codex|cursor|copilot|windsurf|all>   # generate IDE entrypoints from .ai/"
-	@echo "  make update [ARGS=\"--ref REF|--dry-run|--yes|--url URL\"]  # sync .ai/ from upstream AIDLC repository"
+	@echo "  make update [ARGS=\"--ref REF|--dry-run|--source github|--url URL\"]  # sync through native aidlc"
 	@echo "  make finalize-spec [ARGS=\"--dry-run|--spec PATH|--branch NAME|--push\"]  # post-merge spec cleanup"
 	@echo ""
 	@echo "  make aidlc-test          # run Go tests for the isolated aidlc module"
@@ -36,29 +36,27 @@ help:
 
 # --- Governance targets ------------------------------------------------------
 
-# Generate per-IDE entrypoint files from .ai/ guidance.
-# Reads .ai/personas/, .ai/skills/, .ai/README.md (INIT block), and .ai/models.defaults.toml,
-# and writes IDE-native files (CLAUDE.md, AGENTS.md, .claude/skills/, .codex/agents/,
-# .codex/skills/, .cursor/rules/, .cursor/skills/, ...).
-# Generated files are gitignored and must not be hand-edited; re-run after changing .ai/.
+# Generate per-IDE entrypoint files from .ai/ guidance through native aidlc.
 init:
 	@if [ -z "$(INIT_ARG)" ]; then \
 		echo "usage: make init <claude|codex|cursor|copilot|windsurf|all>"; exit 2; \
 	fi
-	@chmod +x .ai/scripts/ai_init.sh
 	@case "$(INIT_ARG)" in \
 		claude|codex|cursor|copilot|windsurf|all) \
-			$(BASH) .ai/scripts/ai_init.sh "$(INIT_ARG)" ;; \
+			AIDLC_TMP="$$(mktemp -d)"; \
+			trap 'rm -rf "$$AIDLC_TMP"' EXIT; \
+			(cd aidlc && go build -o "$$AIDLC_TMP/aidlc" ./cmd/aidlc) && \
+			"$$AIDLC_TMP/aidlc" init "$(INIT_ARG)" --source local --path "$(CURDIR)" $(ARGS) ;; \
 		*) echo "unknown init target '$(INIT_ARG)'"; \
 		   echo "usage: make init <claude|codex|cursor|copilot|windsurf|all>"; exit 2 ;; \
 	esac
 
-# Pull the latest .ai/ from the upstream AIDLC repository and overwrite the local copy.
-# Shallow-clones upstream, rsyncs .ai/ with --delete, prompts before applying.
-# Useful so consumers can pick up new personas, skills, scripts, and references without re-forking.
+# Sync .ai/ through native aidlc using this repository as the local source.
 update:
-	@chmod +x .ai/scripts/ai_update.sh
-	@$(BASH) .ai/scripts/ai_update.sh $(ARGS)
+	@AIDLC_TMP="$$(mktemp -d)"; \
+	trap 'rm -rf "$$AIDLC_TMP"' EXIT; \
+	(cd aidlc && go build -o "$$AIDLC_TMP/aidlc" ./cmd/aidlc) && \
+	"$$AIDLC_TMP/aidlc" update --source local --path "$(CURDIR)" $(ARGS)
 
 # Post-merge spec finalization: flips the merged spec to status: implemented, removes the
 # in-flight pointer, commits the change, and optionally pushes. Intended to run on the default
@@ -99,9 +97,14 @@ validate-governance:
 	@grep -q "aidlc/\\*\\*" .ai/template-manifest.yaml
 	@grep -q ".github/\\*\\*" .ai/template-manifest.yaml
 	@grep -q "release/\\*\\*" .ai/template-manifest.yaml
+	@grep -q ".ai/scripts/finalize_spec.sh" .ai/template-manifest.yaml
+	@! grep -q ".ai/scripts/ai_init.sh" .ai/template-manifest.yaml
+	@! grep -q ".ai/scripts/ai_update.sh" .ai/template-manifest.yaml
 	@test -f aidlc/go.mod
 	@test ! -f go.mod
 	@test ! -f go.sum
+	@$(MAKE) init codex ARGS="--dry-run"
+	@$(MAKE) update ARGS="--dry-run"
 
 # Sentinel rule so 'make init <name>' doesn't try to build <name> as a separate target.
 claude codex cursor copilot windsurf all:

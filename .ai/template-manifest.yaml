@@ -9,8 +9,6 @@ payload:
     - .ai/references/architecture-template.md
     - .ai/references/ci/github-finalize-spec.yml
     - .ai/references/ci/gitlab-finalize-spec.yml
-    - .ai/scripts/ai_init.sh
-    - .ai/scripts/ai_update.sh
     - .ai/scripts/finalize_spec.sh
     - .ai/skills/classify-change.md
     - .ai/skills/init-architecture.md

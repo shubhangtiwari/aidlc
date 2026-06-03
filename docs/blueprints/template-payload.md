@@ -3,9 +3,9 @@
 ## Package Purpose
 
 The template payload is the set of repository files that may be copied into a consumer project by
-`aidlc init`, `aidlc update`, or compatibility tooling. Payload membership is intentionally smaller
-than this repository because this repository also contains AIDLC product implementation,
-architecture, in-flight specifications, CI, and release machinery.
+`aidlc init` or `aidlc update`. Payload membership is intentionally smaller than this repository
+because this repository also contains AIDLC product implementation, architecture, in-flight
+specifications, CI, and release machinery.
 
 ## Package Boundary
 
@@ -20,6 +20,10 @@ The public payload is a strict allowlist:
 - `.ai/**` files intentionally listed in `.ai/template-manifest.yaml`.
 - Starter docs or templates intentionally listed in `.ai/template-manifest.yaml`.
 - License files intentionally listed in `.ai/template-manifest.yaml`.
+
+`.ai/scripts/ai_init.sh` and `.ai/scripts/ai_update.sh` are not public payload entries. Native
+`aidlc init` and `aidlc update` own supported init/update behavior. `.ai/scripts/finalize_spec.sh`
+remains public because spec finalization is a separate governance maintenance flow.
 
 Broad directory copying is forbidden. In particular, `docs/**` is never public by directory; each
 public starter document must be listed explicitly. Manifest includes are normalized relative paths;
@@ -45,6 +49,8 @@ explicitly narrows a starter exception:
 - `.github/**`
 - `release/**`, `dist/**`, `build/**`
 - release and implementation files, including `.github/**`, `aidlc/**`, and `aidlc/scripts/**`
+- retired init/update compatibility scripts, including `.ai/scripts/ai_init.sh` and
+  `.ai/scripts/ai_update.sh`
 
 ## Update Semantics
 

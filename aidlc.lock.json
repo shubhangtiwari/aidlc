@@ -61,16 +61,6 @@
       "mode": "0666"
     },
     {
-      "path": ".ai/scripts/ai_init.sh",
-      "checksum": "sha256:25f3c593a415301353b4f1570ea04b433f5045e53f15217f54e9d4996de41d4e",
-      "mode": "0755"
-    },
-    {
-      "path": ".ai/scripts/ai_update.sh",
-      "checksum": "sha256:e74dc3f6699bb49b9b8707eea7cdf90934e66e624b1db8e3b9c2f279060da9fb",
-      "mode": "0755"
-    },
-    {
       "path": ".ai/scripts/finalize_spec.sh",
       "checksum": "sha256:79e4208758a9024b102719b0fb804fbe8c54aab856939b7ab0ed972cc57ce754",
       "mode": "0755"

@@ -65,6 +65,8 @@ It does not own root template source files except by reading the public template
   Cursor rule rendering is part of that generated guidance contract: spec-gate text must follow the
   portable scope-resolution rule for nested initialized AIDLC roots, including scope-local
   `docs/spec/<epoch>-<slug>.md` ownership and parent-scope refusal for files owned by nested scopes.
+- Repository `make init <ide>` and `make update` targets are thin wrappers around the native CLI.
+  They do not define a separate Bash compatibility contract.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
 
 ## Owned State
@@ -86,12 +88,11 @@ target.
   cross-platform static binary packaging, checksums, and GitHub release asset upload.
 - Local-source mode is allowed for tests and development fixtures.
 - Normal init/update flows must not call Bash, Make, rsync, or git.
+- Root Makefile init/update targets may invoke the native CLI for repository developer workflows,
+  but they must not call retired `.ai/scripts/ai_init.sh` or `.ai/scripts/ai_update.sh` paths.
 - `aidlc update` regenerates IDE files selected by `aidlc.lock.json` after a conflict-free
   mutating update. When the root lock is absent, update can fall back to legacy
   `.aidlc/manifest.json` and writes `aidlc.lock.json` only after a clean non-dry-run mutation.
-- Bash `make init <ide>` compatibility records the same workspace IDE selection in root
-  `aidlc.lock.json` after successful compatibility generation and preserves lock fields it does not
-  own.
 
 ## Test Gates
 
@@ -101,7 +102,7 @@ target.
 - `make validate-governance`
 
 Coverage must include root `aidlc.lock.json` workspace IDE persistence, legacy manifest fallback and
-migration timing, update regeneration of only selected IDE surfaces, compatibility lock recording,
-normalized tracked payload paths, and rendered governance guidance parity where hardcoded spec-gate
-text exists. Cursor guidance tests must cover parity between Bash compatibility generation and
-native Go generation for scope-aware spec ownership invariants.
+migration timing, update regeneration of only selected IDE surfaces, Makefile wrapper invocation of
+the native CLI, normalized tracked payload paths, and rendered governance guidance parity where
+hardcoded spec-gate text exists. Cursor guidance tests must cover native Go generation for
+scope-aware spec ownership invariants.

@@ -27,6 +27,8 @@ func TestUpdateAppliesCleanManifestAwareChangesAndExcludesImplementationFiles(t 
 	sourceV2 := createTemplateSource(t)
 	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\n## Main agent delegation\n\nUpdated guidance.\n")
 	testutil.WriteFile(t, sourceV2, "aidlc/internal/commands/update.go", "new private source\n")
+	testutil.WriteFile(t, sourceV2, ".ai/scripts/ai_init.sh", "retired shell init\n")
+	testutil.WriteFile(t, sourceV2, ".ai/scripts/ai_update.sh", "retired shell update\n")
 	testutil.WriteFile(t, sourceV2, ".github/workflows/aidlc-ci.yml", "new private ci\n")
 
 	result, err := RunUpdate(context.Background(), contract.UpdateOptions{
@@ -43,6 +45,8 @@ func TestUpdateAppliesCleanManifestAwareChangesAndExcludesImplementationFiles(t 
 		t.Fatalf("README was not updated: %q", got)
 	}
 	assertMissing(t, target, "aidlc/internal/commands/update.go")
+	assertMissing(t, target, ".ai/scripts/ai_init.sh")
+	assertMissing(t, target, ".ai/scripts/ai_update.sh")
 	assertMissing(t, target, ".github/workflows/aidlc-ci.yml")
 	assertMissing(t, target, "docs/ARCHITECTURE.md")
 	assertExists(t, target, contract.TargetManifestPath)
@@ -411,6 +415,9 @@ func TestUpdateCLIHelpOutput(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "Usage: aidlc update") {
 		t.Fatalf("help output missing: %q", stdout.String())
+	}
+	if strings.Contains(stdout.String(), "ai_update.sh") || strings.Contains(stdout.String(), "bash") {
+		t.Fatalf("update help references retired shell compatibility: %q", stdout.String())
 	}
 }
 

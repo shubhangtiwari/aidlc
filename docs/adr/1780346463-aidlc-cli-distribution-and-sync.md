@@ -6,10 +6,10 @@ Accepted
 
 ## Context
 
-AIDLC is currently consumed by cloning or copying this template repository and running Bash/Make
-entrypoints. That creates friction for non-Unix environments and risks copying repository-local
-implementation artifacts into consumer projects. The new CLI must preserve existing Make/Bash
-compatibility while providing a native installable surface.
+AIDLC was initially consumed by cloning or copying this template repository and running Bash/Make
+entrypoints. That created friction for non-Unix environments and risked copying repository-local
+implementation artifacts into consumer projects. The CLI provides a native installable surface for
+init/update flows.
 
 ## Decision
 
@@ -31,7 +31,10 @@ and unknown local project files are not deleted.
 
 - Cross-platform installation can distribute macOS, Linux, and Windows binaries without requiring
   Bash, Make, rsync, git, or a language runtime for normal users.
-- Existing `make init <ide>` and `make update` remain available during and after the CLI rollout.
+- Bash init/update compatibility was retired by
+  [ADR-1780458611](1780458611-retire-bash-compatibility.md). Existing repository `make init <ide>`
+  and `make update` targets remain available as thin native CLI wrappers, not as independent Bash
+  compatibility surfaces.
 - Release tooling must stay under `aidlc/` or repository automation paths and must not become part
   of public template payload.
 - Consumer repositories only receive explicitly public governance payload, not in-flight specs,

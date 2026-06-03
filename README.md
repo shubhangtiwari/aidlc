@@ -13,24 +13,24 @@ the real project structure as it takes shape.
 ## Contents
 
 - `.ai/` - portable AI personas, skills, templates, delegation, scripts, and optional model defaults.
+- `aidlc/` - native CLI source and command reference for initializing and updating governance files.
 - `docs/spec/` - spec-first workflow documentation and tracker.
 - `docs/adr/` - architecture decision record guidance.
 - `docs/blueprints/` - module blueprint guidance and template.
-- `.ai/scripts/ai_init.sh` - shell generator for assistant-specific files.
-- `.ai/scripts/ai_update.sh` - syncs `.ai/` from the upstream AIDLC repository.
 - `.ai/scripts/finalize_spec.sh` - post-merge spec finalization helper.
 
 ## Initialize
 
-Governance projection comes entirely from `.ai/` and `docs/`:
+Governance projection comes entirely from `.ai/` and `docs/`. Use the native CLI to initialize a
+repository for one IDE or all supported IDEs:
 
 ```sh
-make init codex
-make init claude
-make init cursor
-make init copilot
-make init windsurf
-make init all
+aidlc init codex
+aidlc init claude
+aidlc init cursor
+aidlc init copilot
+aidlc init windsurf
+aidlc init all
 ```
 
 This writes assistant-specific files such as `AGENTS.md`, `.codex/agents/*.toml`,
@@ -39,6 +39,16 @@ this template). Cursor output includes an always-applied AI DLC discovery rule s
 Gemini, and other Cursor Agent models can find generated personas and skills. Regenerate after
 changing `.ai/`; do not edit generated IDE files by hand.
 
+This repository also keeps Makefile wrappers for local governance workflows:
+
+```sh
+make init codex
+make update
+```
+
+Those targets delegate to native `aidlc init` and `aidlc update`; they are repository execution
+wrappers, not separate shell compatibility commands.
+
 Generated assistant files do not infer project, dependency, or toolchain facts. Forked projects
 should document those facts explicitly in their own architecture, blueprint, ADR, and spec files when
 they become relevant.
@@ -46,7 +56,7 @@ they become relevant.
 ## Install `aidlc`
 
 `aidlc` is the native CLI for initializing and updating AIDLC governance files without depending on
-the template `Makefile` or shell-only sync scripts.
+the template `Makefile` or shell scripts.
 
 Install with Go:
 

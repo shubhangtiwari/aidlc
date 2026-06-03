@@ -49,6 +49,8 @@ func TestCLIInitThenUpdateUsesManifestAndKeepsPrivateRepoFilesOut(t *testing.T) 
 	testutil.WriteFile(t, sourceV2, ".ai/README.md", readme("updated shared guidance"))
 	testutil.WriteFile(t, sourceV2, ".ai/skills/classify-change.md", skillDoc("classify-change", "Classifies governed changes.", "Updated classify body."))
 	testutil.WriteFile(t, sourceV2, "docs/spec/1780346463-add-aidlc-cli.md", "private spec changed in source\n")
+	testutil.WriteFile(t, sourceV2, ".ai/scripts/ai_init.sh", "retired shell init changed in source\n")
+	testutil.WriteFile(t, sourceV2, ".ai/scripts/ai_update.sh", "retired shell update changed in source\n")
 	testutil.WriteFile(t, sourceV2, "aidlc/internal/commands/update.go", "private CLI source changed in source\n")
 	testutil.WriteFile(t, sourceV2, ".github/workflows/aidlc-ci.yml", "private CI changed in source\n")
 
@@ -301,6 +303,8 @@ func privateRepoPaths() []string {
 		"docs/blueprints/template-payload.md",
 		"docs/ARCHITECTURE.md",
 		"docs/architecture/software.md",
+		".ai/scripts/ai_init.sh",
+		".ai/scripts/ai_update.sh",
 		"aidlc/cmd/aidlc/main.go",
 		"aidlc/internal/commands/init.go",
 		"aidlc/internal/commands/update.go",

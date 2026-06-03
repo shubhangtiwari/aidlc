@@ -1,4 +1,4 @@
-# Persona model defaults — read by .ai/scripts/ai_init.sh at generation time.
+# Persona model defaults — read by aidlc init at generation time.
 # Empty model or reasoning = do not emit that field for the IDE.
 # Use exact strings from each IDE's model picker if these differ in your account.
 
