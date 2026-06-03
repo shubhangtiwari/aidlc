@@ -5,15 +5,16 @@ It uses only Go standard-library filesystem, archive, HTTP, checksum, and render
 logic.
 
 This README is the canonical command reference for the native CLI. Repository
-Makefile targets such as `make init <ide>` and `make update` may wrap these
+Makefile targets such as `make init <ide>` and `make update` may wrap payload
 commands for local workflows, but the supported user-facing behavior is defined
-by `aidlc init` and `aidlc update`.
+by `aidlc init`, `aidlc update`, `aidlc upgrade`, and `aidlc version`.
 
 ## Commands
 
 ```text
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
 aidlc update [flags]
+aidlc upgrade [flags]
 aidlc version
 ```
 
@@ -35,6 +36,29 @@ After a clean non-dry-run update, it regenerates the IDE files listed in
 `workspace.ides` and writes the root lock. Divergent local files are reported as
 conflicts and are not overwritten. Files removed upstream are reported but not
 deleted from the target repository.
+
+`aidlc upgrade` updates the installed CLI binary from GitHub release assets. By
+default it resolves the latest release from `shubhangtiwari/aidlc`, selects the
+asset for the current OS and architecture, downloads `checksums.txt` and the
+release archive, verifies the archive SHA-256, extracts the `aidlc` executable,
+and replaces the binary in the directory of the running executable. If the
+resolved latest release matches the current version, the command exits
+successfully without writing. Explicit `--version vX.Y.Z` or
+`--version aidlc/vX.Y.Z` requests reinstall that release even when the current
+version matches. `--dry-run` resolves the release, asset, and destination, then
+prints the plan without downloading archives, extracting files, or writing the
+install destination.
+
+Upgrade output is deterministic plain text:
+
+```text
+current version: <version>
+target version: <version>
+release tag: <tag>
+selected asset: <asset>
+destination: <path>
+status: installed|skipped|dry-run
+```
 
 Mutating init and update output is grouped into deterministic plain-text
 sections:
@@ -67,13 +91,40 @@ aidlc init codex --source local --path /path/to/aidlc
 aidlc update --source local --path /path/to/aidlc --ref main
 ```
 
+Upgrade-specific flags:
+
+```text
+--repo owner/repo      GitHub repository for release lookup. Default:
+                       shubhangtiwari/aidlc.
+--version latest|TAG   Release selector. Default: latest. Explicit tags may be
+                       vX.Y.Z or aidlc/vX.Y.Z and normalize to vX.Y.Z output.
+--install-dir DIR      Directory containing the aidlc executable to replace.
+                       Default: directory of the running executable.
+--dry-run              Print the resolved release, asset, and destination
+                       without downloading archives or writing files.
+```
+
+Installer scripts (`aidlc/scripts/install.sh` and `aidlc/scripts/install.ps1`)
+bootstrap a machine by downloading published release assets. `aidlc upgrade`
+uses the same release asset naming scheme and `checksums.txt` verification for
+an already installed CLI, but performs release lookup, checksum verification,
+archive extraction, and binary replacement natively rather than invoking the
+installer scripts or shelling out to Bash, Make, rsync, git, curl, tar, zip, or
+PowerShell.
+
 ## Exit Codes
 
 ```text
 0  success
 1  one or more manifest-managed files conflict with local changes
-2  usage, source, fetch, manifest, or write error
+2  usage, source, fetch, manifest, release lookup, download, checksum,
+   extraction, install, or write error
 ```
+
+For `aidlc upgrade`, exit `0` covers a completed install, a dry-run, and an
+already-latest no-op. Release lookup, download, checksum, extraction, install,
+unsupported platform, and invalid flag errors exit `2` with an
+`aidlc upgrade:` stderr prefix.
 
 `aidlc version` prints `aidlc <version>`. Development builds print `aidlc dev`
 unless release packaging injects a version.

@@ -18,7 +18,8 @@ Domain: `software`
   fallback.
 - Public template manifest schema for `.ai/template-manifest.yaml`.
 - Payload path policy.
-- Native IDE generation, manifest-aware payload sync, installers, and release checks.
+- Native IDE generation, manifest-aware payload sync, installers, release checks, and native CLI
+  binary upgrades.
 
 It does not own root template source files except by reading the public template manifest as input.
 
@@ -28,18 +29,18 @@ It does not own root template source files except by reading the public template
 | --- | --- | --- |
 | `aidlc/cmd/aidlc` | Interface | Executable entrypoint. |
 | `aidlc/internal/cli` | Interface | Root command wiring and process-facing concerns. |
-| `aidlc/internal/commands` | Application | Init, update, version orchestration. |
+| `aidlc/internal/commands` | Application | Init, update, upgrade, and version orchestration. |
 | `aidlc/internal/generator` | Application | IDE file generation. |
 | `aidlc/internal/sync` | Application | Manifest-aware planning and copy decisions. |
 | `aidlc/internal/source` | Infrastructure | GitHub archive and local-source access. |
-| `aidlc/internal/install` | Infrastructure | Installer and checksum validation. |
+| `aidlc/internal/install` | Infrastructure | Installer, release download, checksum validation, archive extraction, and binary replacement. |
 | `aidlc/internal/contract` | Contracts | Shared command, IDE, manifest, and option types. |
 | `aidlc/internal/payload` | Contracts | Public payload path normalization and exclusion policy. |
 | `aidlc/internal/testutil` | Test Support | Filesystem helpers for tests. |
 
 ## Cross-package Contracts
 
-- Commands: `init`, `update`, and `version`.
+- Commands: `init`, `update`, `upgrade`, and `version`.
 - `aidlc init <claude|codex|cursor|copilot|windsurf|all> [--source github|local] [--url URL]
   [--ref REF] [--path PATH] [--dry-run]` copies the public template payload and then generates the
   requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`. Init conflicts exit
@@ -49,6 +50,18 @@ It does not own root template source files except by reading the public template
   `aidlc.lock.json`, or legacy `.aidlc/manifest.json` when the root lock is absent, fetches the
   configured or overridden source, applies clean manifest-aware updates, and regenerates the
   persisted workspace IDE surfaces.
+- `aidlc upgrade [--repo owner/repo] [--version latest|TAG] [--install-dir DIR] [--dry-run]`
+  upgrades the installed CLI binary from GitHub release assets. The default repository is
+  `shubhangtiwari/aidlc`, the default version selector is `latest`, and the default destination is
+  the directory of the running executable. Explicit selectors accept `vX.Y.Z` and `aidlc/vX.Y.Z`;
+  release tags normalize to the `aidlc version` format `vX.Y.Z` in command output. Latest-release
+  requests that resolve to the current version exit `0` without writing, while explicit version
+  requests reinstall the selected release. Dry-run exits `0` after resolving release metadata,
+  selected asset, and destination without downloading archives, extracting binaries, or writing.
+  Usage, unsupported platform, release lookup, download, checksum, extraction, and install errors
+  exit `2` with deterministic `aidlc upgrade:` stderr. Human output is deterministic plain text
+  with current version, target version, release tag, selected asset, destination, and status
+  `installed`, `skipped`, or `dry-run`.
 - `aidlc version` prints the CLI version string.
 - Supported IDEs: `claude`, `codex`, `cursor`, `copilot`, `windsurf`, and aggregate `all`.
 - Target lock: root `aidlc.lock.json` records schema version, upstream source/ref/commit,
@@ -86,11 +99,18 @@ selections, tracked payload checksums, generation metadata, and update source me
 target. During conflicted init, the partial root lock records only accepted upstream payload files
 plus generation/workspace metadata; conflicted payload paths are excluded from tracked clean file
 entries.
+`aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
+temporary staging files in that destination directory during replacement. It does not modify target
+repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
 
 ## Integration Boundaries
 
 - GitHub archive access is used to fetch template payload snapshots for normal init/update flows.
 - GitHub release artifacts and checksum files are consumed by shell and PowerShell installers.
+- `aidlc upgrade` uses native GitHub release metadata and release asset downloads for CLI binary
+  replacement, reusing `checksums.txt` verification and the existing release artifact naming
+  scheme: `aidlc_<os>_<arch>.tar.gz` for Darwin/Linux, `aidlc_windows_<arch>.zip` for Windows, and
+  `checksums.txt`.
 - `.github/workflows/aidlc-release.yml` and `aidlc/scripts/build-release-assets.sh` own
   cross-platform static binary packaging, checksums, and GitHub release asset upload.
 - Local-source mode is allowed for tests and development fixtures.
@@ -114,6 +134,9 @@ Coverage must include partial init conflicts that still write safe payload files
 files, and an honest root lock; root `aidlc.lock.json` workspace IDE persistence; legacy manifest
 fallback and migration timing; update regeneration of only selected IDE surfaces; unchanged update
 conflict behavior; formatted CLI result output; Makefile wrapper invocation of the native CLI;
-normalized tracked payload paths; and rendered governance guidance parity where hardcoded spec-gate
-text exists. Cursor guidance tests must cover native Go generation for scope-aware spec ownership
-invariants.
+normalized tracked payload paths; release asset selection for supported platforms; checksum
+verification before binary replacement; dry-run behavior without archive downloads or destination
+writes; already-latest no-op behavior; upgrade command help and root CLI routing; packaged-binary
+`aidlc upgrade --help` smoke coverage; and rendered governance guidance parity where hardcoded
+spec-gate text exists. Cursor guidance tests must cover native Go generation for scope-aware spec
+ownership invariants.

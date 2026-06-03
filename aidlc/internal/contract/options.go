@@ -5,6 +5,7 @@ type CommandName string
 const (
 	CommandInit    CommandName = "init"
 	CommandUpdate  CommandName = "update"
+	CommandUpgrade CommandName = "upgrade"
 	CommandVersion CommandName = "version"
 )
 
@@ -25,6 +26,18 @@ type UpdateOptions struct {
 	TargetDir string
 	Source    SourceOptions
 	DryRun    bool
+}
+
+type UpgradeOptions struct {
+	Repository string
+	Version    UpgradeVersionSelector
+	InstallDir string
+	DryRun     bool
+}
+
+type UpgradeVersionSelector struct {
+	Value    string
+	Explicit bool
 }
 
 type SourceOptions struct {

@@ -20,6 +20,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return commands.RunInitCLI(ctx, args[1:], stdout, stderr)
 	case "update":
 		return commands.RunUpdateCLI(ctx, args[1:], stdout, stderr)
+	case "upgrade":
+		return commands.RunUpgradeCLI(ctx, args[1:], stdout, stderr)
 	case "version":
 		return commands.RunVersionCLI(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -38,6 +40,7 @@ func printRootHelp(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]")
 	fmt.Fprintln(w, "  aidlc update [flags]")
+	fmt.Fprintln(w, "  aidlc upgrade [flags]")
 	fmt.Fprintln(w, "  aidlc version")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Common flags:")

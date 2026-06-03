@@ -49,4 +49,26 @@ if [ "$("$tmp_dir/run/aidlc" version)" != "aidlc release-check" ]; then
   exit 2
 fi
 
+upgrade_help="$("$tmp_dir/run/aidlc" upgrade --help)"
+case "$upgrade_help" in
+  *"Usage: aidlc upgrade [flags]"* ) ;;
+  * ) echo "aidlc release check: generated binary did not expose upgrade help" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+case "$upgrade_help" in
+  *"--repo owner/repo"* ) ;;
+  * ) echo "aidlc release check: upgrade help did not document --repo" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+case "$upgrade_help" in
+  *"--version latest|TAG"* ) ;;
+  * ) echo "aidlc release check: upgrade help did not document --version" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+case "$upgrade_help" in
+  *"--install-dir DIR"* ) ;;
+  * ) echo "aidlc release check: upgrade help did not document --install-dir" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+case "$upgrade_help" in
+  *"--dry-run"* ) ;;
+  * ) echo "aidlc release check: upgrade help did not document --dry-run" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+
 echo "aidlc release check passed"
