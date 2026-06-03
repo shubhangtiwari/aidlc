@@ -36,6 +36,10 @@ main session.
    integrations).
 4. If architecture is initialized, skim `docs/ARCHITECTURE.md` and the domain profile under
    `docs/architecture/` when layer boundaries matter.
+5. Resolve the AIDLC owning scope for named or likely affected paths: start at each path's directory,
+   walk upward to the invocation root, and select the nearest directory containing both
+   `.ai/README.md` and `docs/spec/README.md`. If none is found below the invocation root, use the
+   invocation root.
 
 ## Classification rules
 
@@ -61,7 +65,10 @@ down-tier to avoid a spec.
    - `draft-spec` — medium, large, or uncertain → **delegate `architect`** for spec + approval brief.
    - `ask-user` — one or two focused questions whose answers would change tier or `next`.
 4. Write a **rationale** (2–4 sentences), plain language.
-5. Post the **Triage record** (format below) in chat, then **route immediately** per `next` (do not
+5. Include the resolved owning scope(s) in `suggested_scope` when path evidence is available. If a
+   medium/large/uncertain request spans multiple scopes, note that architect must draft one spec per
+   scope.
+6. Post the **Triage record** (format below) in chat, then **route immediately** per `next` (do not
    skip architect delegation when `next` is `draft-spec`).
 
 ## Triage record (required output)
@@ -90,7 +97,7 @@ Do not override `tier` or `next` without user consent in chat.
 
 ## Out of scope (this skill)
 
-- Writing or updating `docs/spec/*.md` in the main session (architect planning only).
+- Writing or updating `<scope-root>/docs/spec/*.md` in the main session (architect planning only).
 - Running `implementer` or `reviewer` before triage and routing complete.
 - Tiering for non-governed paths (main session may proceed without this skill).
 

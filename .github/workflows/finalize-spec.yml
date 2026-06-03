@@ -1,0 +1,31 @@
+# Post-merge spec cleanup via make finalize-spec.
+
+name: finalize-spec
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Finalize merged spec
+        env:
+          CI: "true"
+        run: |
+          make finalize-spec ARGS="--branch ${{ github.event.pull_request.head.ref }}"

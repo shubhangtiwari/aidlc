@@ -61,6 +61,10 @@ It does not own root template source files except by reading the public template
   blocked private paths.
 - Payload policy: only normalized relative paths are valid; absolute paths, parent traversal,
   empty paths, and Windows drive paths are rejected.
+- Native IDE generation emits generated governance guidance from the portable `.ai/` contract.
+  Cursor rule rendering is part of that generated guidance contract: spec-gate text must follow the
+  portable scope-resolution rule for nested initialized AIDLC roots, including scope-local
+  `docs/spec/<epoch>-<slug>.md` ownership and parent-scope refusal for files owned by nested scopes.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
 
 ## Owned State
@@ -98,4 +102,6 @@ target.
 
 Coverage must include root `aidlc.lock.json` workspace IDE persistence, legacy manifest fallback and
 migration timing, update regeneration of only selected IDE surfaces, compatibility lock recording,
-and normalized tracked payload paths.
+normalized tracked payload paths, and rendered governance guidance parity where hardcoded spec-gate
+text exists. Cursor guidance tests must cover parity between Bash compatibility generation and
+native Go generation for scope-aware spec ownership invariants.

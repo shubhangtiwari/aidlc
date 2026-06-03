@@ -10,9 +10,10 @@ the governing spec.
 
 ## Prerequisites
 
-- Spec at `docs/spec/<epoch>-<slug>.md` with `status: approved` in frontmatter.
+- Spec at `<scope-root>/docs/spec/<epoch>-<slug>.md` with `status: approved` in frontmatter.
 - Spec defines `work_packages` with `wave`, `depends_on`, `files`, `gates`, and `done_when`.
 - Single branch for all work packages unless the user directs otherwise.
+- For a user request with multiple scoped specs, run this playbook once per approved scoped spec.
 
 ## Method
 
@@ -23,9 +24,10 @@ the governing spec.
    - Delegate **one implementer per WP** in this wave with a brief containing:
      - Spec path and WP id
      - Allowed file paths only
-     - Domain profile: `docs/architecture/<domain>.md`
+     - Domain profile: `<scope-root>/docs/architecture/<domain>.md`
      - Gates to run (`make` targets)
      - `done_when` criteria
+     - Owning scope root; paths are relative to that scope unless the spec says otherwise
    - Cap concurrent implementers at 3–6; queue excess WPs in the same wave.
    - Wait for all WPs in the wave to report done or escalated before the next wave.
 4. **After final wave (mandatory):** main session delegates `reviewer` on the full branch diff vs

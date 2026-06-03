@@ -144,18 +144,19 @@ func renderCursorGovernanceRule(globs string) []byte {
 
 Applies under the source root, ` + "`tests/`, `docs/spec/`, `docs/blueprints/`, `docs/adr/`,\n" +
 		"`docs/ARCHITECTURE.md`, and `docs/architecture/`.\n\n" +
-		"Portable rules: `.ai/README.md`. Parallel waves: skill `orchestrate-spec`.\n\n" +
+		"Portable rules: `.ai/README.md` (especially Scope resolution). Parallel waves: skill `orchestrate-spec`.\n\n" +
 		`## Main session
 
 - **Do not** edit governed paths when tier is medium, large, or uncertain without delegating.
-- **Do** launch ` + "`architect` to draft `docs/spec/<epoch>-<slug>.md`, then stop for approval.\n" +
+- **Do** launch ` + "`architect` to draft scope-local spec file(s), then stop for approval.\n" +
+		"  Scope-local specs live at `docs/spec/<epoch>-<slug>.md` relative to each resolved AIDLC scope root.\n" +
 		"- **Do** apply skill `classify-change` in the main session before inline intent, spec, or\n" +
 		"  implementer on governed paths (Hard Rule 7). Do not delegate triage to `architect`. When triage\n" +
 		"  is medium/large/uncertain (`next: draft-spec`), delegate `architect` for planning.\n" +
 		"- **Do** launch `implementer` for all governed edits: after `status: approved`, or after\n" +
 		"  trivial/small intent is confirmed following triage (no spec). Main session does not patch governed source.\n" +
 		"- **Do** expect implementer blueprint sanity on every run (update `docs/blueprints/` when needed).\n" +
-		"- Check `docs/spec/.in-flight.yaml` for specs tied to the current branch.\n\n" +
+		"- Check `docs/spec/.in-flight.yaml` in the owning scope for specs tied to the current branch.\n\n" +
 		`## Review
 
 | Tier | Reviewer |

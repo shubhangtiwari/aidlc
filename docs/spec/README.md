@@ -5,12 +5,31 @@ PR or MR. Medium and large changes are approved before implementation begins.
 
 ## Human vs agent audiences
 
-Specs under `docs/spec/` are optimized for **agents**: YAML frontmatter, work packages, dependency
-graphs, and precise file lists. Humans should **not** need to read the full spec to approve work.
+Specs under a scope-local `docs/spec/` directory are optimized for **agents**: YAML frontmatter,
+work packages, dependency graphs, and precise file lists. Humans should **not** need to read the full
+spec to approve work.
 
 At draft stage, the **architect** posts an **approval brief** in chat (see
 `.ai/templates/approval-brief.md`): medium detail covering why, what changes, and which files. After
 approval, implementer and reviewer use the **spec file only** as the source of truth.
+
+## Scope roots
+
+The **invocation root** is the AIDLC root where the current agent session or prompt started. An
+**AIDLC scope root** is the invocation root or a directory below it that contains both
+`.ai/README.md` and `docs/spec/README.md`. Generated IDE files such as `AGENTS.md`, `.codex/**`,
+`.cursor/**`, or `CLAUDE.md` are not scope markers.
+
+Resolve the owning scope for each affected file by walking from the file's directory upward to the
+invocation root and selecting the nearest AIDLC scope root. If no nested initialized scope is found,
+the invocation root owns the path. Paths outside the invocation root are outside this workflow
+unless the user explicitly changes the invocation scope or starts a separate governed session there.
+
+A medium or large request that maps affected paths to more than one scope must produce one draft
+spec per resolved scope. Each scoped spec may include only files owned by that scope. A parent scope
+spec must not claim files below a nested initialized AIDLC scope. One approval brief may summarize
+multiple scoped draft specs for a single user request, but implementation and review treat each
+approved spec file as a separate governing artifact.
 
 ## When to write a spec
 
@@ -36,7 +55,8 @@ the change affects contracts, owned state, integrations, topology, or read-only 
 | `domain` | yes | `software`, `data-engineering`, `data-science`, or `mixed` |
 | `work_packages` | medium/large | Delegable units with waves and dependencies |
 
-Optional sidecar: `docs/spec/<epoch>-<slug>.work-packages.yaml` when YAML frontmatter is too large.
+Optional sidecar: `<scope-root>/docs/spec/<epoch>-<slug>.work-packages.yaml` when YAML frontmatter
+is too large.
 
 ## Work packages
 
@@ -58,13 +78,14 @@ draft → approved → implemented → stale
 3. Architect posts approval brief in chat; user approves and spec `status` becomes `approved`.
 4. Implementer applies the spec (per work package when defined), including blueprint deltas. For
    trivial/small work without a spec, implementer still runs blueprint sanity in the same PR.
-5. Open a PR or MR; add an entry to `docs/spec/.in-flight.yaml` (manual or automation).
+5. Open a PR or MR; add an entry to the owning scope's `docs/spec/.in-flight.yaml` (manual or
+   automation).
 6. After merge, run `make finalize-spec` or rely on CI — removes the in-flight entry and sets
    `status: implemented`.
 
 ## Naming
 
-Use `docs/spec/<epoch>-<slug>.md`:
+Use `<scope-root>/docs/spec/<epoch>-<slug>.md`:
 
 | Token | Meaning | Example |
 | --- | --- | --- |
@@ -72,7 +93,8 @@ Use `docs/spec/<epoch>-<slug>.md`:
 | **slug** | Short kebab-case feature name | `add-oauth-login` |
 
 Set the epoch once when creating the file. Do not reuse another branch’s epoch. The slug is the
-readable name only (2–6 words, kebab-case).
+readable name only (2–6 words, kebab-case). Existing single-scope behavior is unchanged because the
+invocation root is also a scope root.
 
 Frontmatter `id:` must be `spec-<epoch>-<slug>` (e.g. `spec-1748092800-add-oauth-login`).
 
@@ -92,13 +114,13 @@ Override in frontmatter before approval if needed.
 | PRD | Product motivation | `docs/PRD_*.md` |
 | ADR | Architecture decision | `docs/adr/<epoch>-*.md` |
 | Blueprint | Module-level living design | `docs/blueprints/<module>.md` |
-| Spec | Feature change | `docs/spec/<epoch>-*.md` |
+| Spec | Feature change | `<scope-root>/docs/spec/<epoch>-*.md` |
 
 Specs may span modules. They update blueprints; they do not replace ADRs.
 
 ## In-flight Tracker
 
-`docs/spec/.in-flight.yaml` lists specs whose PRs or MRs are open but not merged.
+`<scope-root>/docs/spec/.in-flight.yaml` lists specs whose PRs or MRs are open but not merged.
 
 ```yaml
 in-flight:

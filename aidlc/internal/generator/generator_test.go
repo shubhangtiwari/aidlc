@@ -56,6 +56,19 @@ func TestGenerateMinimalAllIDEs(t *testing.T) {
 	if !strings.Contains(cursorRule, "globs: {**/*,tests/**,docs/spec/**,docs/blueprints/**,docs/adr/**,docs/ARCHITECTURE.md,docs/architecture/**}") {
 		t.Fatalf("cursor governance rule missing default globs:\n%s", cursorRule)
 	}
+	for _, want := range []string{
+		"Portable rules: `.ai/README.md` (especially Scope resolution). Parallel waves: skill `orchestrate-spec`.",
+		"- **Do** launch `architect` to draft scope-local spec file(s), then stop for approval.",
+		"Scope-local specs live at `docs/spec/<epoch>-<slug>.md` relative to each resolved AIDLC scope root.",
+		"- Check `docs/spec/.in-flight.yaml` in the owning scope for specs tied to the current branch.",
+	} {
+		if !strings.Contains(cursorRule, want) {
+			t.Fatalf("cursor governance rule missing %q:\n%s", want, cursorRule)
+		}
+	}
+	if strings.Contains(cursorRule, "- **Do** launch `architect` to draft `docs/spec/<epoch>-<slug>.md`, then stop for approval.") {
+		t.Fatalf("cursor governance rule kept invocation-root-only draft guidance:\n%s", cursorRule)
+	}
 }
 
 func TestGenerateManifestEnrichedCodex(t *testing.T) {

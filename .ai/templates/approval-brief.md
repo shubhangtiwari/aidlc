@@ -1,7 +1,7 @@
 # Approval Brief (chat-only)
 
 Human-facing summary for spec approval. **Not** written to the repository. The architect posts
-this in chat after drafting `docs/spec/<epoch>-<slug>.md` and **stops** for approval.
+this in chat after drafting `<scope-root>/docs/spec/<epoch>-<slug>.md` and **stops** for approval.
 
 Target length: **~250–500 words** (medium detail — not a one-liner, not a full spec).
 
@@ -10,7 +10,7 @@ Target length: **~250–500 words** (medium detail — not a one-liner, not a fu
 | Tier | Approval brief |
 | --- | --- |
 | Trivial / small | Main agent: shorter inline summary in chat; no spec; then `implementer` |
-| Medium / large | Full brief below after spec is saved |
+| Medium / large | Full brief below after scoped spec file(s) are saved |
 
 ## Required blocks
 
@@ -30,7 +30,8 @@ Include integration or data impacts when relevant.
 ### Files and areas
 
 Grouped list of concrete paths (from spec `Affected files` and work package `files`). For each group,
-note **new** vs **modified**. Group by work package, layer, or module — whichever is clearest.
+note **new** vs **modified**. Group by scope root first when one user request produced multiple
+scoped draft specs; otherwise group by work package, layer, or module — whichever is clearest.
 
 ### How we will build it
 
@@ -44,10 +45,14 @@ blueprint updates"). Skip this subsection for small changes.
 
 ### Approval ask
 
-- Spec path: `docs/spec/<epoch>-<slug>.md`
+- Spec path: `<scope-root>/docs/spec/<epoch>-<slug>.md`
 - Tier: `<tier>`
 - Status: `draft` (flip to `approved` after you confirm)
 - Explicit question: approve to proceed with implementation?
+
+For one user request that spans multiple AIDLC scopes, list every scoped spec path and ask whether
+the user approves all listed drafts. A single approval brief may cover all of them, but each scoped
+spec remains a separate governing artifact for implementation and review.
 
 ## Do not include in chat
 
@@ -67,5 +72,5 @@ blueprint updates"). Skip this subsection for small changes.
 
 ## After approval
 
-User confirms (or flips `status: approved` in spec frontmatter). Implementer reads the **spec file
-only** — not the chat history.
+User confirms (or flips `status: approved` in each spec frontmatter). Implementer reads the
+**spec file only** — not the chat history.

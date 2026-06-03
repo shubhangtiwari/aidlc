@@ -50,7 +50,10 @@ The root `Makefile` remains the only supported command entrypoint.
 | `make aidlc-test` | Run Go tests for the isolated `aidlc/` module. |
 | `make aidlc-release-check` | Validate release packaging prerequisites without creating root-level Go manifests. |
 | `make validate-governance` | Validate AIDLC governance docs, manifest exclusions, and CLI module boundaries. |
+| `make install` | Download Go dependencies from the isolated `aidlc/` module. |
+| `make run` | Run local `aidlc` CLI help from the isolated Go module. |
 | `make test` | Aggregate governance validation and `aidlc` tests for this template repository. |
+| `.github/workflows/finalize-spec.yml` | Post-merge spec cleanup workflow that runs `make finalize-spec` on merged pull requests. |
 
 No root-level Go manifest is allowed. Go commands execute from `aidlc/`.
 
@@ -70,3 +73,6 @@ No root-level Go manifest is allowed. Go commands execute from `aidlc/`.
 - Domain profile: `software`
 - Decision: map root governance payload separately from the isolated `aidlc/` Go module, with a
   strict manifest allowlist controlling public payload.
+- Refinement: 2026-06-03, Option B — kept the project-specific `software` profile, populated root
+  `Makefile` project recipes for the isolated Go module, and wired post-merge spec finalization via
+  `.github/workflows/finalize-spec.yml`.

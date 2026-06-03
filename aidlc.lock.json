@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "source": "https://github.com/shubhangtiwari/aidlc/archive/main",
+    "ref": "main",
+    "commit": "W/\"af3a599f22bafbe2cb41eb779aee6a03ce98e137c30188ec7f4147859bdfff0c\""
+  },
+  "workspace": {
+    "ides": [
+      "claude",
+      "codex",
+      "cursor",
+      "copilot",
+      "windsurf"
+    ]
+  },
+  "generated": {
+    "ide": "claude",
+    "version": "v0.1.1",
+    "timestamp": "2026-06-02T21:16:07Z"
+  },
+  "files": [
+    {
+      "path": ".ai/README.md",
+      "checksum": "sha256:8f306ad60b7e95248165ee17133743f97034f72f3f5252cc68805d9fec69d292",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/models.defaults.toml",
+      "checksum": "sha256:494662ca41554992fa3dabd9eadd6bd557f76c3a7d1f0df6c548cf29bea9d325",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/personas/architect.md",
+      "checksum": "sha256:efd9036902cad2ef6a868daf916be966cb6a7e83da5391cddde3188739802c69",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/personas/implementer.md",
+      "checksum": "sha256:958cbd7f6813a8f1f0e515aacd456aad34899d62bd2cdd4628f4b28aac7ed018",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/personas/reviewer.md",
+      "checksum": "sha256:b3b98abbe5d81f8debc964a04463c30d55df9a4db00d12d8d94e2d1d2fdc9bb1",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/references/architecture-template.md",
+      "checksum": "sha256:b42909c28e79a7039dc8c8d04eb6032fad7137d557a72703d332ba22c415daf3",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/references/ci/github-finalize-spec.yml",
+      "checksum": "sha256:3790812774b6ce4d842160bcfbdfb034a959d1fe063fe6edc8cdb84d9868b498",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/references/ci/gitlab-finalize-spec.yml",
+      "checksum": "sha256:40666a753188ae132d7f2203797b32a5f4c50f92229836b35a8965a5289215f9",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/scripts/ai_init.sh",
+      "checksum": "sha256:25f3c593a415301353b4f1570ea04b433f5045e53f15217f54e9d4996de41d4e",
+      "mode": "0755"
+    },
+    {
+      "path": ".ai/scripts/ai_update.sh",
+      "checksum": "sha256:e74dc3f6699bb49b9b8707eea7cdf90934e66e624b1db8e3b9c2f279060da9fb",
+      "mode": "0755"
+    },
+    {
+      "path": ".ai/scripts/finalize_spec.sh",
+      "checksum": "sha256:79e4208758a9024b102719b0fb804fbe8c54aab856939b7ab0ed972cc57ce754",
+      "mode": "0755"
+    },
+    {
+      "path": ".ai/skills/classify-change.md",
+      "checksum": "sha256:1f5bc82bac445b932c2644be3600e3dfa05528515150bf16cc7a923439eddb8f",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/skills/init-architecture.md",
+      "checksum": "sha256:4cf349287e000b78f80fbc0de6da9f94bbb59ca0b52b2f25c00ad440c6a0b9f9",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/skills/orchestrate-spec.md",
+      "checksum": "sha256:5a0e50f91c463bdeb9a73f093967f2f4d138d9d77f5135e6c282653061e1f791",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/templates/approval-brief.md",
+      "checksum": "sha256:eddc9d245fa209b65e42750fdc7de0ab819b1f3e6f148a6b8bdc60b80f44f1e7",
+      "mode": "0666"
+    },
+    {
+      "path": ".ai/templates/spec.md",
+      "checksum": "sha256:6157c10d85dffd88f7b631a770c11ef1fa69967469e1f1ecde85df4f190ac642",
+      "mode": "0666"
+    },
+    {
+      "path": "LICENSE",
+      "checksum": "sha256:902be07d47d231615523640a81a7d23aee416d0a207b47c9d14a32d6a10e4c0c",
+      "mode": "0666"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "checksum": "sha256:d20be39ddcb6cb2c322dac86d705e87b6abe56eb31dcd92e6129082a9136d9ec",
+      "mode": "0666"
+    },
+    {
+      "path": "docs/blueprints/README.md",
+      "checksum": "sha256:d892606a91ff6f4ec15867714c3cb0a46162453be63c2d7e4baca42900bfe3ae",
+      "mode": "0666"
+    },
+    {
+      "path": "docs/spec/README.md",
+      "checksum": "sha256:ef2a7190ddaaab74416ed8a43c0064ed41be851ebc71ff09fb619559d23f4605",
+      "mode": "0666"
+    }
+  ],
+  "metadata": {
+    "command": "init",
+    "source_kind": "github",
+    "source_url": "https://github.com/shubhangtiwari/aidlc"
+  }
+}

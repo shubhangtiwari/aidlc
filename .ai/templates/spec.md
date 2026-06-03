@@ -1,6 +1,7 @@
 ---
 # epoch: date +%s at file creation; slug: kebab-case feature name (2–6 words)
 # owner: git config user.name (trimmed), else whoami — do not invent
+# path: <scope-root>/docs/spec/<epoch>-<slug>.md; paths are relative to that AIDLC scope root
 id: spec-<epoch>-<slug>
 status: draft
 owner: <from git user.name or whoami>
@@ -49,12 +50,15 @@ Explicit list of what this spec is not solving.
 ## Constraints
 
 Layer rules, performance, compatibility, governance. Anything that narrows the design space.
+Include scope ownership when relevant: this spec may own only files in its resolved AIDLC scope and
+must not claim files below a nested initialized scope.
 
 - ...
 
 ## Affected files
 
-Concrete paths the implementation will touch. Avoid broad directory globs.
+Concrete paths the implementation will touch, relative to this spec's AIDLC scope root unless noted.
+Avoid broad directory globs.
 
 - `path/to/file`
 - ...
@@ -101,7 +105,7 @@ Named scenarios mapped to test gates.
 Must be empty before status flips from `draft` to `approved`. If a question cannot be resolved, it
 becomes a constraint or a non-goal.
 
-- [ ] ...
+- None.
 
 ## Implementation notes
 

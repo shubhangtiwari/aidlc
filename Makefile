@@ -8,14 +8,10 @@
 #   finalize-spec  Post-merge spec cleanup: marks spec status: implemented, removes in-flight
 #                  artifacts, commits, optionally pushes. Wired into CI by init-architecture.
 #
-# Project targets (filled in at architecture initialization — see .ai/skills/init-architecture.md):
-#   install        Install project dependencies (npm/uv/poetry/cargo/... — chosen per stack).
-#   run            Run the project locally (dev server, pipeline, notebook host, ...).
-#   test           Run the project's test suite (unit/integration gates per architecture profile).
-#
-# Until init-architecture has run for this fork, install/run/test are placeholders that print
-# guidance. The init-architecture skill replaces them with real recipes based on the detected
-# manifest and chosen reference profile.
+# Project targets:
+#   install        Download Go dependencies for the isolated aidlc module.
+#   run            Run the local aidlc CLI help from the isolated Go module.
+#   test           Run the repository governance and aidlc gates.
 
 .PHONY: help init update finalize-spec install run test validate-governance \
         aidlc-test aidlc-release-check claude codex cursor copilot windsurf all
@@ -34,8 +30,8 @@ help:
 	@echo "  make aidlc-test          # run Go tests for the isolated aidlc module"
 	@echo "  make aidlc-release-check # validate aidlc release packaging prerequisites"
 	@echo "  make validate-governance # validate governance docs and public payload manifest"
-	@echo "  make install   # install project dependencies (filled in by init-architecture)"
-	@echo "  make run       # run the project locally (filled in by init-architecture)"
+	@echo "  make install   # download Go dependencies for the isolated aidlc module"
+	@echo "  make run       # run the local aidlc CLI help"
 	@echo "  make test      # run the repository governance and aidlc gates"
 
 # --- Governance targets ------------------------------------------------------
@@ -71,19 +67,13 @@ finalize-spec:
 	@chmod +x .ai/scripts/finalize_spec.sh
 	@$(BASH) .ai/scripts/finalize_spec.sh $(ARGS)
 
-# --- Project targets (placeholders) -----------------------------------------
-# Replaced by the init-architecture skill once a manifest and reference profile are chosen.
-# Until then, these print guidance so consumers see what's expected.
+# --- Project targets ---------------------------------------------------------
 
 install:
-	@echo "make install — placeholder."
-	@echo "Run 'make init <ide>' and the init-architecture skill to populate this target"
-	@echo "with the real dependency-install command for your stack."
+	@cd aidlc && go mod download
 
 run:
-	@echo "make run — placeholder."
-	@echo "Run 'make init <ide>' and the init-architecture skill to populate this target"
-	@echo "with the real local-run command for your stack."
+	@cd aidlc && go run ./cmd/aidlc --help
 
 test:
 	@$(MAKE) validate-governance

@@ -26,12 +26,17 @@ public starter document must be listed explicitly. Manifest includes are normali
 absolute paths, parent traversal, Windows drive paths, and broad globs are rejected by the CLI
 payload policy.
 
+Public governance guidance in `.ai/**` and the starter `docs/spec/README.md` defines scope-aware
+spec ownership: medium and large specs are local to the resolved AIDLC scope root that owns the
+affected paths. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are implementation
+artifacts for this repository and must remain excluded from payload copying.
+
 ## Read-only Paths
 
 The following repository-local paths are non-payload unless a future ADR and manifest update
 explicitly narrows a starter exception:
 
-- `docs/spec/*.md`
+- `docs/spec/*.md`, except the public starter `docs/spec/README.md`
 - non-public `docs/adr/*.md`
 - non-public `docs/blueprints/*.md`
 - `docs/ARCHITECTURE.md`
@@ -53,9 +58,16 @@ explicitly narrows a starter exception:
 - `.aidlc/manifest.json` records tracked public payload files, upstream source/ref/commit,
   checksums, modes, generation metadata, and command metadata. Update decisions use that manifest
   instead of scanning broad repository directories.
+- Payload updates may refresh scope-resolution guidance in initialized roots, including
+  `.ai/**` guidance and the public starter `docs/spec/README.md`.
+- Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
+  `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
 
 ## Test Gates
 
 - `make validate-governance`
 - `make aidlc-test`
 - `make test`
+
+Validation must preserve the explicit `docs/spec/README.md` manifest include, the numbered
+`docs/spec/[0-9]*-*.md` exclusions, and the prohibition on broad `docs/**` payload copying.

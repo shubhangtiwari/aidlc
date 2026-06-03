@@ -1070,19 +1070,20 @@ gen_cursor() {
 Applies under the source root, \`tests/\`, \`docs/spec/\`, \`docs/blueprints/\`, \`docs/adr/\`,
 \`docs/ARCHITECTURE.md\`, and \`docs/architecture/\`.
 
-Portable rules: \`.ai/README.md\`. Parallel waves: skill \`orchestrate-spec\`.
+Portable rules: \`.ai/README.md\` (especially Scope resolution). Parallel waves: skill \`orchestrate-spec\`.
 
 ## Main session
 
 - **Do not** edit governed paths when tier is medium, large, or uncertain without delegating.
-- **Do** launch \`architect\` to draft \`docs/spec/<epoch>-<slug>.md\`, then stop for approval.
+- **Do** launch \`architect\` to draft scope-local spec file(s), then stop for approval.
+  Scope-local specs live at \`docs/spec/<epoch>-<slug>.md\` relative to each resolved AIDLC scope root.
 - **Do** apply skill \`classify-change\` in the main session before inline intent, spec, or
   implementer on governed paths (Hard Rule 7). Do not delegate triage to \`architect\`. When triage
   is medium/large/uncertain (\`next: draft-spec\`), delegate \`architect\` for planning.
 - **Do** launch \`implementer\` for all governed edits: after \`status: approved\`, or after
   trivial/small intent is confirmed following triage (no spec). Main session does not patch governed source.
 - **Do** expect implementer blueprint sanity on every run (update \`docs/blueprints/\` when needed).
-- Check \`docs/spec/.in-flight.yaml\` for specs tied to the current branch.
+- Check \`docs/spec/.in-flight.yaml\` in the owning scope for specs tied to the current branch.
 
 ## Review
 

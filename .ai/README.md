@@ -69,6 +69,25 @@ The main agent must **not** edit governed paths directly when tier is medium, la
 or when the user asks to implement, fix, add, refactor, or ship without an approved spec. User goal
 verbs do **not** waive the spec gate.
 
+### Scope resolution
+
+Governance is resolved from the **invocation root**: the AIDLC root where the current agent session
+or prompt started. An **AIDLC scope root** is the invocation root or a directory below it that
+contains both `.ai/README.md` and `docs/spec/README.md`. Generated IDE files such as `AGENTS.md`,
+`.codex/**`, `.cursor/**`, or `CLAUDE.md` are not scope markers.
+
+For each affected path, resolve the owning scope by walking from the path's directory upward to the
+invocation root and selecting the nearest AIDLC scope root. If no nested scope is found, fall back to
+the invocation root. Paths outside the invocation root are outside this governed workflow unless the
+user explicitly changes the invocation scope or starts a separate governed session there.
+
+Medium, large, or uncertain requests that map affected files to multiple AIDLC scope roots require
+one draft spec per resolved scope. Each scoped spec lives at
+`docs/spec/<epoch>-<slug>.md` relative to that scope and may include only files owned by that scope.
+A parent scoped spec must not claim files below a nested initialized AIDLC scope. One approval brief
+may summarize multiple scoped draft specs for the same user request, but implementation and review
+treat each approved scoped spec as its own governing artifact.
+
 ### Before any state-changing tool call
 
 1. **Choose the path:**
@@ -93,13 +112,13 @@ verbs do **not** waive the spec gate.
 | 3 | `reviewer` | **Medium / large / uncertain (after approved spec) only** — finished diff vs governing spec; **not** used for trivial / small |
 
 **Medium / large / uncertain:** main session runs `classify-change`; when `next: draft-spec`,
-**delegate `architect`** for planning. The architect writes the spec to disk and
-posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path
+**delegate `architect`** for planning. The architect writes the scope-local spec file(s) to disk and
+posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path(s)
 and brief summary to the user, then **stop** until they explicitly approve. Do not call
 `implementer` in the same turn. Do not paste the full spec into chat — the brief is the human gate;
-the spec file is the machine gate. After all implementer work (including `orchestrate-spec` waves),
-the main session **must** delegate `reviewer` before reporting implementation complete or opening a
-PR — see **Review** and Hard Rule 6.
+the scoped spec file is the machine gate. After all implementer work (including `orchestrate-spec`
+waves), the main session **must** delegate `reviewer` before reporting implementation complete or
+opening a PR — see **Review** and Hard Rule 6.
 
 **Trivial / small:** After triage (`next: inline-intent`). No spec file. Main agent states intent
 inline (short summary: what, which files, expected outcome) informed by the Triage record. User
@@ -120,7 +139,7 @@ Governed (all tiers):
        ↓
   next: ask-user → main asks → classify-change again
   next: inline-intent → main inline intent → user confirms → implementer → done
-  next: draft-spec → delegate architect → spec (file) + approval brief (chat)
+  next: draft-spec → delegate architect → scope-local spec file(s) + approval brief (chat)
        ↓ user approves
        main → implementer (per WP / orchestrate-spec) → reviewer → merge
 ```
@@ -155,7 +174,7 @@ For medium/large specs with `work_packages` in frontmatter:
 | Audience | Artifact | Location |
 | --- | --- | --- |
 | Human (approval) | Approval brief | Chat only — architect synthesis |
-| Agents (execution) | Spec | `docs/spec/<epoch>-<slug>.md` on disk |
+| Agents (execution) | Spec | `<scope-root>/docs/spec/<epoch>-<slug>.md` on disk |
 
 The main agent may restate the brief for clarity but must not regenerate a full plan or duplicate
 the spec body in chat.
