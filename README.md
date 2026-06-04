@@ -134,6 +134,19 @@ aidlc init codex --dry-run
 aidlc update --dry-run
 ```
 
+Overwrite divergent public payload files intentionally:
+
+```sh
+aidlc init codex --force
+aidlc update --force
+```
+
+Forced runs only overwrite manifest-managed public payload destinations that would otherwise be
+reported as conflicts. They print those plan rows as `overwrite <path> <reason>` and exit `0` when
+no other usage, source, generation, lock, or write error occurs. `--dry-run --force` reports the
+same overwrite decisions without writing payload files, generated IDE files, `aidlc.lock.json`, or a
+legacy manifest migration.
+
 Use a local template checkout while developing or testing AIDLC changes:
 
 ```sh
@@ -141,8 +154,10 @@ aidlc init codex --source local --path /path/to/aidlc
 aidlc update --source local --path /path/to/aidlc --ref main
 ```
 
-Divergent local files are reported as conflicts and are not overwritten. See
-[`aidlc/README.md`](aidlc/README.md) for the full command reference and exit codes.
+Divergent local files are reported as conflicts and are not overwritten unless `--force` is used.
+Non-forced conflicts exit `1`; successful forced overwrites exit `0`; usage, source, fetch,
+generation, lock, and write errors exit `2`. See [`aidlc/README.md`](aidlc/README.md) for the full
+command reference and exit codes.
 
 ## Customize Architecture
 

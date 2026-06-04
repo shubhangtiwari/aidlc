@@ -29,6 +29,12 @@ does not mark conflicted paths as clean. Successful and partial runs write
 in `workspace.ides`; `init all` stores every concrete IDE rather than the
 aggregate `all` value.
 
+`aidlc init <ide> --force` converts conflicting public payload destinations into
+explicit overwrite decisions. It replaces those divergent payload files with the
+selected upstream content, writes other payload files, generates the requested
+IDE files, records overwritten paths as clean tracked files in `aidlc.lock.json`,
+and exits `0` when no non-force error occurs.
+
 `aidlc update` reads `aidlc.lock.json`, falling back to legacy
 `.aidlc/manifest.json` when the root lock is absent, fetches or reads the
 configured upstream source/ref, and applies only manifest-aware safe updates.
@@ -36,6 +42,15 @@ After a clean non-dry-run update, it regenerates the IDE files listed in
 `workspace.ides` and writes the root lock. Divergent local files are reported as
 conflicts and are not overwritten. Files removed upstream are reported but not
 deleted from the target repository.
+
+`aidlc update --force` converts otherwise conflicting public payload destinations
+into overwrite decisions, replaces them with the selected upstream content,
+regenerates only the persisted `workspace.ides` surfaces, and writes
+`aidlc.lock.json` for the accepted upstream plan. If only legacy
+`.aidlc/manifest.json` exists, forced update may migrate to the root lock only
+during a non-dry-run mutation. `--force` never deletes files removed upstream and
+never overwrites private paths, local-only files, or files outside
+`.ai/template-manifest.yaml`.
 
 `aidlc upgrade` updates the installed CLI binary from GitHub release assets. By
 default it resolves the latest release from `shubhangtiwari/aidlc`, selects the
@@ -72,6 +87,13 @@ write <path> <comment>
 generate <path> <comment>
 ```
 
+Decision states include `create`, `skip`, `update-clean`, `overwrite`,
+`conflict`, and `removed-upstream`. Forced conflict bypasses are printed as
+`overwrite` rows, not `conflict` rows. `--dry-run --force` prints the planned
+`overwrite` rows but omits written and generated sections because it does not
+write payload files, generated IDE files, the root lock, or a legacy manifest
+migration.
+
 ## Flags
 
 ```text
@@ -82,6 +104,7 @@ generate <path> <comment>
 --ref REF               GitHub ref or local source label. Default: main.
 --path PATH             Local source path for --source local.
 --dry-run               Print planned changes without writing files.
+--force                 Overwrite divergent public payload files.
 ```
 
 Local source mode is intended for development and tests:
@@ -120,6 +143,11 @@ PowerShell.
 2  usage, source, fetch, manifest, release lookup, download, checksum,
    extraction, install, or write error
 ```
+
+For `aidlc init` and `aidlc update`, exit `0` includes successful forced
+overwrites and dry-run force previews. Non-forced conflicts still exit `1`.
+Write, generation, lock, source, fetch, and usage errors are not downgraded by
+`--force`; they exit `2`.
 
 For `aidlc upgrade`, exit `0` covers a completed install, a dry-run, and an
 already-latest no-op. Release lookup, download, checksum, extraction, install,

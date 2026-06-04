@@ -42,14 +42,14 @@ It does not own root template source files except by reading the public template
 
 - Commands: `init`, `update`, `upgrade`, and `version`.
 - `aidlc init <claude|codex|cursor|copilot|windsurf|all> [--source github|local] [--url URL]
-  [--ref REF] [--path PATH] [--dry-run]` copies the public template payload and then generates the
-  requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`. Init conflicts exit
-  `1` but do not block safe create/skip payload decisions, requested IDE generation, or root lock
-  writing. Divergent local files remain untouched.
-- `aidlc update [--source github|local] [--url URL] [--ref REF] [--path PATH] [--dry-run]` reads
-  `aidlc.lock.json`, or legacy `.aidlc/manifest.json` when the root lock is absent, fetches the
-  configured or overridden source, applies clean manifest-aware updates, and regenerates the
-  persisted workspace IDE surfaces.
+  [--ref REF] [--path PATH] [--dry-run] [--force]` copies the public template payload and then
+  generates the requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`. Init
+  conflicts exit `1` but do not block safe create/skip payload decisions, requested IDE generation,
+  or root lock writing. Divergent local files remain untouched unless `--force` is set.
+- `aidlc update [--source github|local] [--url URL] [--ref REF] [--path PATH] [--dry-run]
+  [--force]` reads `aidlc.lock.json`, or legacy `.aidlc/manifest.json` when the root lock is absent,
+  fetches the configured or overridden source, applies clean manifest-aware updates, and regenerates
+  the persisted workspace IDE surfaces.
 - `aidlc upgrade [--repo owner/repo] [--version latest|TAG] [--install-dir DIR] [--dry-run]`
   upgrades the installed CLI binary from GitHub release assets. The default repository is
   `shubhangtiwari/aidlc`, the default version selector is `latest`, and the default destination is
@@ -87,9 +87,12 @@ It does not own root template source files except by reading the public template
 - Repository `make init <ide>` and `make update` targets are thin wrappers around the native CLI.
   They do not define a separate Bash compatibility contract.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
+  Successful forced init/update overwrites exit `0`; `--force` does not downgrade usage, source,
+  fetch, manifest, generation, lock, write, or upgrade errors.
 - Human CLI result output is deterministic plain text with sections headed exactly `◆ plan`,
   `✓ written`, and `✦ generated`. Plan rows use `<decision-state> <path> <reason>`, written rows
-  use `write <path> <comment>`, and generated rows use `generate <path> <comment>`.
+  use `write <path> <comment>`, and generated rows use `generate <path> <comment>`. Forced
+  conflict bypasses print as `overwrite <path> <reason>` rows instead of `conflict` rows.
 
 ## Owned State
 
@@ -104,6 +107,10 @@ payload checksums, generation metadata, and update source metadata. Legacy `.aid
 may still be read for compatibility but is no longer the authoritative write target. During
 conflicted init, the partial root lock records only accepted upstream payload files plus
 generation/workspace metadata; conflicted payload paths are excluded from tracked clean file entries.
+Forced init and forced update may replace divergent public payload destination files and then record
+those overwritten paths as clean tracked files in `aidlc.lock.json`. Removed-upstream files,
+private paths, unknown local files, and local-only files remain outside forced deletion or overwrite
+behavior.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
@@ -130,6 +137,10 @@ repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.ai
 - `aidlc update` regenerates IDE files selected by `aidlc.lock.json` after a conflict-free
   mutating update. When the root lock is absent, update can fall back to legacy
   `.aidlc/manifest.json` and writes `aidlc.lock.json` only after a clean non-dry-run mutation.
+- Forced update regenerates only the persisted workspace IDE surfaces and writes or migrates the
+  root lock only after a non-dry-run forced mutation. `--dry-run --force` is read-only: it reports
+  overwrite decisions without writing payload files, generated IDE files, `aidlc.lock.json`, or a
+  legacy manifest migration.
 
 ## Test Gates
 
@@ -149,4 +160,7 @@ supported platforms; checksum verification before binary replacement; dry-run be
 archive downloads or destination writes; already-latest no-op behavior; upgrade command help and
 root CLI routing; packaged-binary `aidlc upgrade --help` smoke coverage; and rendered governance
 guidance parity where hardcoded spec-gate text exists. Cursor guidance tests must cover native Go
-generation for scope-aware spec ownership invariants.
+generation for scope-aware spec ownership invariants. Forced init/update coverage must prove
+overwrite output rows, exit `0` on successful forced overwrites, lock tracking of overwritten public
+payload paths, regenerated requested or persisted IDE files, private path exclusion, dry-run force
+read-only behavior, and unchanged non-forced conflict behavior.

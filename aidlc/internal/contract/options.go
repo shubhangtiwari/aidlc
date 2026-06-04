@@ -20,12 +20,14 @@ type InitOptions struct {
 	TargetDir string
 	Source    SourceOptions
 	DryRun    bool
+	Force     bool
 }
 
 type UpdateOptions struct {
 	TargetDir string
 	Source    SourceOptions
 	DryRun    bool
+	Force     bool
 }
 
 type UpgradeOptions struct {

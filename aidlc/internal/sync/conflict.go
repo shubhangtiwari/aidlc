@@ -6,6 +6,7 @@ const (
 	StateCreate          DecisionState = "create"
 	StateSkip            DecisionState = "skip"
 	StateUpdateClean     DecisionState = "update-clean"
+	StateOverwrite       DecisionState = "overwrite"
 	StateConflict        DecisionState = "conflict"
 	StateRemovedUpstream DecisionState = "removed-upstream"
 )
@@ -28,5 +29,5 @@ type Decision struct {
 }
 
 func (d Decision) IsWritable() bool {
-	return d.State == StateCreate || d.State == StateUpdateClean
+	return d.State == StateCreate || d.State == StateUpdateClean || d.State == StateOverwrite
 }

@@ -82,6 +82,55 @@ func TestUpdateRefusesDivergentOverwrite(t *testing.T) {
 	}
 }
 
+func TestUpdateForceOverwritesDivergentPayloadRegeneratesWorkspaceIDEAndWritesLock(t *testing.T) {
+	sourceV1 := createTemplateSource(t)
+	target := t.TempDir()
+	if _, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV1, Ref: "v1"},
+	}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	manifest := readTargetManifest(t, target)
+	manifest.Workspace.IDEs = []contract.IDE{contract.IDECursor}
+	if err := templatesync.WriteManifest(target, *manifest); err != nil {
+		t.Fatalf("write root lock: %v", err)
+	}
+	testutil.WriteFile(t, target, ".ai/README.md", "local edits\n")
+
+	sourceV2 := createTemplateSource(t)
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\nforced upstream edits\n")
+
+	result, err := RunUpdate(context.Background(), contract.UpdateOptions{
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV2, Ref: "v2"},
+		Force:     true,
+	})
+	if err != nil {
+		t.Fatalf("update force: %v", err)
+	}
+	if hasConflict(result.Plan) {
+		t.Fatal("forced update reported conflicts")
+	}
+	states := map[string]templatesync.DecisionState{}
+	for _, decision := range result.Plan.Decisions {
+		states[decision.Path] = decision.State
+	}
+	if states[".ai/README.md"] != templatesync.StateOverwrite {
+		t.Fatalf(".ai/README.md state = %s, want overwrite", states[".ai/README.md"])
+	}
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "<!-- INIT:BEGIN -->\n\nforced upstream edits\n" {
+		t.Fatalf("README was not overwritten: %q", got)
+	}
+	assertGenerated(t, result.Generated, ".cursor/rules/core.mdc")
+	assertNotGenerated(t, result.Generated, ".codex/agents/architect.toml")
+	assertIDESelection(t, readTargetManifest(t, target).Workspace.IDEs, []contract.IDE{contract.IDECursor})
+	if !manifestHasFile(readTargetManifest(t, target), ".ai/README.md") {
+		t.Fatal("updated lock omitted overwritten payload path")
+	}
+}
+
 func TestUpdateDryRunDoesNotWrite(t *testing.T) {
 	sourceV1 := createTemplateSource(t)
 	target := t.TempDir()
@@ -425,6 +474,60 @@ func TestUpdateDryRunDoesNotRegenerateOrMigrateLegacyLock(t *testing.T) {
 	}
 }
 
+func TestUpdateDryRunForceReportsOverwriteWithoutRegeneratingOrMigratingLegacyLock(t *testing.T) {
+	sourceV1 := createTemplateSource(t)
+	target := t.TempDir()
+	if _, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV1, Ref: "v1"},
+	}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	manifest := readTargetManifest(t, target)
+	writeTargetManifestJSON(t, target, contract.LegacyTargetManifestPath, *manifest)
+	removeTargetFile(t, target, contract.TargetManifestPath)
+	legacyBefore := testutil.ReadFile(t, target, contract.LegacyTargetManifestPath)
+	generatedBefore := testutil.ReadFile(t, target, "AGENTS.md")
+	testutil.WriteFile(t, target, ".ai/README.md", "local edits\n")
+
+	sourceV2 := createTemplateSource(t)
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\nforced dry run update\n")
+
+	result, err := RunUpdate(context.Background(), contract.UpdateOptions{
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV2, Ref: "v2"},
+		DryRun:    true,
+		Force:     true,
+	})
+	if err != nil {
+		t.Fatalf("update dry-run force: %v", err)
+	}
+	if hasConflict(result.Plan) {
+		t.Fatal("dry-run forced update reported conflicts")
+	}
+	states := map[string]templatesync.DecisionState{}
+	for _, decision := range result.Plan.Decisions {
+		states[decision.Path] = decision.State
+	}
+	if states[".ai/README.md"] != templatesync.StateOverwrite {
+		t.Fatalf(".ai/README.md state = %s, want overwrite", states[".ai/README.md"])
+	}
+	if len(result.Written) != 0 || len(result.Generated) != 0 {
+		t.Fatalf("dry run force wrote files: %#v", result)
+	}
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "local edits\n" {
+		t.Fatalf("dry run force changed README: %q", got)
+	}
+	assertMissing(t, target, contract.TargetManifestPath)
+	if got := testutil.ReadFile(t, target, contract.LegacyTargetManifestPath); got != legacyBefore {
+		t.Fatalf("legacy manifest changed on dry-run force:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, "AGENTS.md"); got != generatedBefore {
+		t.Fatalf("generated file changed on dry-run force: %q", got)
+	}
+}
+
 func TestUpdateConflictDoesNotRegenerateOrRewriteLock(t *testing.T) {
 	sourceV1 := createTemplateSource(t)
 	target := t.TempDir()
@@ -473,6 +576,82 @@ func TestUpdateCLIHelpOutput(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "ai_update.sh") || strings.Contains(stdout.String(), "bash") {
 		t.Fatalf("update help references retired shell compatibility: %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "--force") || !strings.Contains(stdout.String(), "Overwrite divergent payload files") {
+		t.Fatalf("help output missing force flag: %q", stdout.String())
+	}
+}
+
+func TestUpdateCLIForcePrintsOverwriteAndExitsOK(t *testing.T) {
+	sourceV1 := createTemplateSource(t)
+	target := t.TempDir()
+	if _, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV1, Ref: "v1"},
+	}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	testutil.WriteFile(t, target, ".ai/README.md", "local edits\n")
+	sourceV2 := createTemplateSource(t)
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\ncli forced upstream edits\n")
+	chdirForTest(t, target)
+
+	var stdout, stderr bytes.Buffer
+	code := RunUpdateCLI(context.Background(), []string{"--force", "--source", "local", "--path", sourceV2, "--ref", "v2"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("update force cli code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "overwrite .ai/README.md force overwrites local file diverged from previous manifest\n") {
+		t.Fatalf("output missing overwrite row:\n%s", output)
+	}
+	if strings.Contains(output, "conflict .ai/README.md") {
+		t.Fatalf("output contains conflict row:\n%s", output)
+	}
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "<!-- INIT:BEGIN -->\n\ncli forced upstream edits\n" {
+		t.Fatalf("README was not overwritten: %q", got)
+	}
+	assertExists(t, target, contract.TargetManifestPath)
+}
+
+func TestUpdateCLIDryRunForcePrintsOverwriteWithoutWriting(t *testing.T) {
+	sourceV1 := createTemplateSource(t)
+	target := t.TempDir()
+	if _, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV1, Ref: "v1"},
+	}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	lockBefore := testutil.ReadFile(t, target, contract.TargetManifestPath)
+	generatedBefore := testutil.ReadFile(t, target, "AGENTS.md")
+	testutil.WriteFile(t, target, ".ai/README.md", "local edits\n")
+	sourceV2 := createTemplateSource(t)
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\ncli dry-run forced upstream edits\n")
+	chdirForTest(t, target)
+
+	var stdout, stderr bytes.Buffer
+	code := RunUpdateCLI(context.Background(), []string{"--dry-run", "--force", "--source", "local", "--path", sourceV2, "--ref", "v2"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("update dry-run force cli code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "overwrite .ai/README.md force overwrites local file diverged from previous manifest\n") {
+		t.Fatalf("output missing overwrite row:\n%s", output)
+	}
+	if strings.Contains(output, "conflict .ai/README.md") || strings.Contains(output, "✓ written") || strings.Contains(output, "✦ generated") {
+		t.Fatalf("dry-run force output contains unexpected sections:\n%s", output)
+	}
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != "local edits\n" {
+		t.Fatalf("dry run force changed README: %q", got)
+	}
+	if got := testutil.ReadFile(t, target, contract.TargetManifestPath); got != lockBefore {
+		t.Fatalf("root lock changed on dry-run force:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, "AGENTS.md"); got != generatedBefore {
+		t.Fatalf("generated file changed on dry-run force: %q", got)
 	}
 }
 

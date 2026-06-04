@@ -17,6 +17,7 @@ type PlanRequest struct {
 	TargetDir        string
 	Source           source.Snapshot
 	PreviousManifest *contract.TargetManifest
+	Force            bool
 }
 
 type Plan struct {
@@ -124,8 +125,13 @@ func BuildPlan(req PlanRequest) (Plan, error) {
 			continue
 		}
 		if req.Mode == ModeInit {
-			decision.State = StateConflict
-			decision.Reason = "init never overwrites divergent local files"
+			if req.Force {
+				decision.State = StateOverwrite
+				decision.Reason = "force overwrites divergent local file"
+			} else {
+				decision.State = StateConflict
+				decision.Reason = "init never overwrites divergent local files"
+			}
 			plan.Decisions = append(plan.Decisions, decision)
 			continue
 		}
@@ -136,11 +142,20 @@ func BuildPlan(req PlanRequest) (Plan, error) {
 			continue
 		}
 
-		decision.State = StateConflict
-		if hasPrevious {
-			decision.Reason = "local file diverged from previous manifest"
+		if req.Force {
+			decision.State = StateOverwrite
+			if hasPrevious {
+				decision.Reason = "force overwrites local file diverged from previous manifest"
+			} else {
+				decision.Reason = "force overwrites local file not tracked by the previous manifest"
+			}
 		} else {
-			decision.Reason = "local file is not tracked by the previous manifest"
+			decision.State = StateConflict
+			if hasPrevious {
+				decision.Reason = "local file diverged from previous manifest"
+			} else {
+				decision.Reason = "local file is not tracked by the previous manifest"
+			}
 		}
 		plan.Decisions = append(plan.Decisions, decision)
 	}

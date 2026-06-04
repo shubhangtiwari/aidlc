@@ -150,6 +150,82 @@ func TestInitDryRunWithConflictDoesNotWritePayloadGeneratedOrLock(t *testing.T) 
 	assertMissing(t, target, contract.TargetManifestPath)
 }
 
+func TestInitForceOverwritesDivergentPayloadGeneratesIDEAndWritesLock(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
+
+	result, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: source, Ref: "test"},
+		Force:     true,
+	})
+	if err != nil {
+		t.Fatalf("init force: %v", err)
+	}
+	if hasConflict(result.Plan) {
+		t.Fatal("forced init reported conflicts")
+	}
+	states := map[string]templatesync.DecisionState{}
+	for _, decision := range result.Plan.Decisions {
+		states[decision.Path] = decision.State
+	}
+	if states["licenses/aidlc.md"] != templatesync.StateOverwrite {
+		t.Fatalf("licenses/aidlc.md state = %s, want overwrite", states["licenses/aidlc.md"])
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "license\n" {
+		t.Fatalf("mapped license payload was not overwritten: %q", got)
+	}
+	assertExists(t, target, ".ai/README.md")
+	assertExists(t, target, "AGENTS.md")
+	assertExists(t, target, ".codex/agents/architect.toml")
+	assertExists(t, target, contract.TargetManifestPath)
+	assertGenerated(t, result.Generated, "AGENTS.md")
+
+	manifest := readTargetManifest(t, target)
+	if !manifestHasFile(manifest, "licenses/aidlc.md") {
+		t.Fatal("init lock omitted overwritten payload path")
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECodex})
+}
+
+func TestInitDryRunForceReportsOverwriteWithoutWritingPayloadGeneratedOrLock(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
+
+	result, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: source, Ref: "test"},
+		DryRun:    true,
+		Force:     true,
+	})
+	if err != nil {
+		t.Fatalf("init dry run force: %v", err)
+	}
+	if hasConflict(result.Plan) {
+		t.Fatal("dry-run forced init reported conflicts")
+	}
+	states := map[string]templatesync.DecisionState{}
+	for _, decision := range result.Plan.Decisions {
+		states[decision.Path] = decision.State
+	}
+	if states["licenses/aidlc.md"] != templatesync.StateOverwrite {
+		t.Fatalf("licenses/aidlc.md state = %s, want overwrite", states["licenses/aidlc.md"])
+	}
+	if len(result.Written) != 0 || len(result.Generated) != 0 {
+		t.Fatalf("dry run force wrote files: %#v", result)
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "local license edits" {
+		t.Fatalf("dry run force changed divergent mapped license: %q", got)
+	}
+	assertMissing(t, target, ".ai/README.md")
+	assertMissing(t, target, "AGENTS.md")
+	assertMissing(t, target, contract.TargetManifestPath)
+}
+
 func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
@@ -192,6 +268,65 @@ func TestInitCLIConflictAppliesSafeWritesAndPrintsResultSections(t *testing.T) {
 	assertExists(t, target, contract.TargetManifestPath)
 }
 
+func TestInitCLIForceAcceptsFlagBeforeOrAfterIDEAndPrintsOverwrite(t *testing.T) {
+	for name, args := range map[string][]string{
+		"before": {"--force", "codex"},
+		"after":  {"codex", "--force"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			source := createTemplateSource(t)
+			target := t.TempDir()
+			testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
+			chdirForTest(t, target)
+
+			cliArgs := append([]string{}, args...)
+			cliArgs = append(cliArgs, "--source", "local", "--path", source, "--ref", "test")
+			var stdout, stderr bytes.Buffer
+			code := RunInitCLI(context.Background(), cliArgs, &stdout, &stderr)
+			if code != contract.ExitOK {
+				t.Fatalf("init force cli code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+			}
+			output := stdout.String()
+			if !strings.Contains(output, "overwrite licenses/aidlc.md force overwrites divergent local file\n") {
+				t.Fatalf("output missing overwrite row:\n%s", output)
+			}
+			if strings.Contains(output, "conflict licenses/aidlc.md") {
+				t.Fatalf("output contains conflict row:\n%s", output)
+			}
+			if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "license\n" {
+				t.Fatalf("mapped license payload was not overwritten: %q", got)
+			}
+			assertExists(t, target, "AGENTS.md")
+			assertExists(t, target, contract.TargetManifestPath)
+		})
+	}
+}
+
+func TestInitCLIDryRunForcePrintsOverwriteWithoutWriting(t *testing.T) {
+	source := createTemplateSource(t)
+	target := t.TempDir()
+	testutil.WriteFile(t, target, "licenses/aidlc.md", "local license edits")
+	chdirForTest(t, target)
+
+	var stdout, stderr bytes.Buffer
+	code := RunInitCLI(context.Background(), []string{"codex", "--force", "--dry-run", "--source", "local", "--path", source, "--ref", "test"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("init dry-run force cli code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "overwrite licenses/aidlc.md force overwrites divergent local file\n") {
+		t.Fatalf("output missing overwrite row:\n%s", output)
+	}
+	if strings.Contains(output, "conflict licenses/aidlc.md") || strings.Contains(output, "✓ written") || strings.Contains(output, "✦ generated") {
+		t.Fatalf("dry-run force output contains unexpected sections:\n%s", output)
+	}
+	if got := testutil.ReadFile(t, target, "licenses/aidlc.md"); got != "local license edits" {
+		t.Fatalf("dry run force changed divergent mapped license: %q", got)
+	}
+	assertMissing(t, target, "AGENTS.md")
+	assertMissing(t, target, contract.TargetManifestPath)
+}
+
 func TestInitCLIConflictWithPostPlanErrorReturnsUsage(t *testing.T) {
 	source := createTemplateSource(t)
 	target := t.TempDir()
@@ -228,6 +363,9 @@ func TestInitCLIUsageAndVersionOutput(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "Usage: aidlc init") {
 		t.Fatalf("usage output missing: %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "--force") || !strings.Contains(stdout.String(), "Overwrite divergent payload files") {
+		t.Fatalf("usage output missing force flag: %q", stdout.String())
 	}
 	if strings.Contains(stdout.String(), "ai_init.sh") || strings.Contains(stdout.String(), "bash") {
 		t.Fatalf("init help references retired shell compatibility: %q", stdout.String())

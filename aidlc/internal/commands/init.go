@@ -38,6 +38,7 @@ func RunInitCLI(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	fs.StringVar(&opts.Source.Ref, "ref", opts.Source.Ref, "GitHub ref or local source label")
 	fs.StringVar(&opts.Source.Path, "path", "", "local source path when --source local")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "print planned changes without writing")
+	fs.BoolVar(&opts.Force, "force", false, "overwrite divergent payload files")
 
 	fs.Usage = func() { printInitUsage(stderr) }
 	if err := fs.Parse(flagArgs); err != nil {
@@ -119,6 +120,7 @@ func RunInit(ctx context.Context, opts contract.InitOptions) (CommandResult, err
 		Mode:      templatesync.ModeInit,
 		TargetDir: opts.TargetDir,
 		Source:    snapshot,
+		Force:     opts.Force,
 	})
 	if err != nil {
 		return CommandResult{}, err
@@ -325,6 +327,7 @@ func printInitUsage(w io.Writer) {
 	fmt.Fprintln(w, "  --ref REF               GitHub ref or local source label")
 	fmt.Fprintln(w, "  --path PATH             Local source path when --source local")
 	fmt.Fprintln(w, "  --dry-run               Print planned changes without writing")
+	fmt.Fprintln(w, "  --force                 Overwrite divergent payload files")
 }
 
 func isHelpArg(args []string) bool {

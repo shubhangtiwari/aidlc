@@ -71,6 +71,9 @@ explicitly narrows a starter exception:
   decisions without overwriting divergent local files.
 - Update is checksum-aware: compare prior manifest checksums, local checksums, and upstream
   checksums before writing.
+- Conflicts are non-destructive by default. Explicit force converts conflicting public payload
+  destination paths into overwrite decisions, but it does not delete removed-upstream files and does
+  not make private paths, unknown local files, or local-only files writable.
 - Unknown local project files are not deleted.
 - Payload planning, checksum comparison, write decisions, filesystem writes, and target manifest
   tracking use destination paths. For mapped entries, source bytes and modes come from the source

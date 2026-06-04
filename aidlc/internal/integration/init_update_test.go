@@ -253,6 +253,141 @@ func TestCLIInitWithConflictsWritesSafePayloadGeneratedFilesAndPartialLock(t *te
 	}
 }
 
+func TestCLIForcedInitOverwritesDivergentPublicPayloadAndTracksIt(t *testing.T) {
+	source := createIntegrationSource(t, "v1")
+	target := t.TempDir()
+	testutil.WriteFile(t, target, ".ai/README.md", "local project guidance\n")
+
+	stdout, stderr, code := runCLIInDir(t, target, contract.ExitOK, "init", "cursor", "--force", "--source", "local", "--path", source, "--ref", "v1")
+	if code != contract.ExitOK {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "overwrite .ai/README.md force overwrites divergent local file\n") {
+		t.Fatalf("stdout missing overwrite row:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "conflict .ai/README.md") {
+		t.Fatalf("stdout contains conflict row:\n%s", stdout)
+	}
+
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); !strings.Contains(got, "Use governed workflows v1.") {
+		t.Fatalf("forced init did not overwrite README:\n%s", got)
+	}
+	assertExists(t, target, ".ai/models.defaults.toml")
+	assertExists(t, target, "docs/spec/README.md")
+	assertExists(t, target, "AGENTS.md")
+	assertExists(t, target, ".cursor/rules/core.mdc")
+	assertMissing(t, target, ".codex/agents/architect.toml")
+	assertExists(t, target, contract.TargetManifestPath)
+	assertPrivatePathsMissing(t, target)
+
+	manifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECursor})
+	if manifest.Upstream.Ref != "v1" {
+		t.Fatalf("manifest ref = %q, want v1", manifest.Upstream.Ref)
+	}
+	assertManifestIncludes(t, manifest, ".ai/README.md")
+	for _, file := range manifest.Files {
+		assertPublicManifestPath(t, file.Path)
+	}
+}
+
+func TestCLIForcedUpdateOverwritesDivergentPublicPayloadAndRegeneratesSelectedIDEs(t *testing.T) {
+	sourceV1 := createIntegrationSource(t, "v1")
+	target := t.TempDir()
+	runCLIInDir(t, target, contract.ExitOK, "init", "cursor", "--source", "local", "--path", sourceV1, "--ref", "v1")
+
+	testutil.WriteFile(t, target, ".ai/README.md", "local project edits\n")
+	sourceV2 := createIntegrationSource(t, "v2")
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", readme("forced upstream guidance"))
+	testutil.WriteFile(t, sourceV2, ".ai/skills/classify-change.md", skillDoc("classify-change", "Classifies governed changes.", "Forced update skill body."))
+	testutil.WriteFile(t, sourceV2, "docs/spec/1780346463-add-aidlc-cli.md", "private spec changed in source\n")
+	testutil.WriteFile(t, sourceV2, "aidlc/internal/sync/planner.go", "private planner changed in source\n")
+
+	stdout, stderr, code := runCLIInDir(t, target, contract.ExitOK, "update", "--force", "--source", "local", "--path", sourceV2, "--ref", "v2")
+	if code != contract.ExitOK {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "overwrite .ai/README.md force overwrites local file diverged from previous manifest\n") {
+		t.Fatalf("stdout missing overwrite row:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "conflict .ai/README.md") {
+		t.Fatalf("stdout contains conflict row:\n%s", stdout)
+	}
+
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); !strings.Contains(got, "forced upstream guidance") {
+		t.Fatalf("forced update did not overwrite README:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, "AGENTS.md"); !strings.Contains(got, "forced upstream guidance") {
+		t.Fatalf("AGENTS.md was not regenerated:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, ".cursor/skills/classify-change/SKILL.md"); !strings.Contains(got, "Forced update skill body.") {
+		t.Fatalf("cursor skill was not regenerated:\n%s", got)
+	}
+	assertMissing(t, target, ".codex/agents/architect.toml")
+	assertMissing(t, target, ".claude/agents/architect.md")
+	assertPrivatePathsMissing(t, target)
+
+	manifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	assertIDESelection(t, manifest.Workspace.IDEs, []contract.IDE{contract.IDECursor})
+	if manifest.Upstream.Ref != "v2" {
+		t.Fatalf("manifest ref = %q, want v2", manifest.Upstream.Ref)
+	}
+	assertManifestIncludes(t, manifest, ".ai/README.md")
+	for _, file := range manifest.Files {
+		assertPublicManifestPath(t, file.Path)
+	}
+}
+
+func TestCLIForceDryRunReportsOverwriteWithoutWriting(t *testing.T) {
+	sourceV1 := createIntegrationSource(t, "v1")
+	target := t.TempDir()
+	runCLIInDir(t, target, contract.ExitOK, "init", "codex", "--source", "local", "--path", sourceV1, "--ref", "v1")
+
+	lockBefore := testutil.ReadFile(t, target, contract.TargetManifestPath)
+	generatedBefore := testutil.ReadFile(t, target, "AGENTS.md")
+	testutil.WriteFile(t, target, ".ai/README.md", "local dry-run edits\n")
+	payloadBefore := testutil.ReadFile(t, target, ".ai/README.md")
+	manifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	writeLegacyManifestJSON(t, target, *manifest)
+	legacyBefore := testutil.ReadFile(t, target, contract.LegacyTargetManifestPath)
+
+	sourceV2 := createIntegrationSource(t, "v2")
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", readme("dry-run force upstream guidance"))
+
+	stdout, stderr, code := runCLIInDir(t, target, contract.ExitOK, "update", "--dry-run", "--force", "--source", "local", "--path", sourceV2, "--ref", "v2")
+	if code != contract.ExitOK {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "overwrite .ai/README.md force overwrites local file diverged from previous manifest\n") {
+		t.Fatalf("stdout missing overwrite row:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "conflict .ai/README.md") || strings.Contains(stdout, "✓ written") || strings.Contains(stdout, "✦ generated") {
+		t.Fatalf("dry-run force output contains unexpected sections:\n%s", stdout)
+	}
+	if got := testutil.ReadFile(t, target, ".ai/README.md"); got != payloadBefore {
+		t.Fatalf("dry-run force changed payload:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, "AGENTS.md"); got != generatedBefore {
+		t.Fatalf("dry-run force changed generated file:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, contract.TargetManifestPath); got != lockBefore {
+		t.Fatalf("dry-run force changed root lock:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, target, contract.LegacyTargetManifestPath); got != legacyBefore {
+		t.Fatalf("dry-run force changed legacy manifest:\n%s", got)
+	}
+	assertPrivatePathsMissing(t, target)
+}
+
 func runCLIInDir(t *testing.T, dir string, wantCode int, args ...string) (string, string, int) {
 	t.Helper()
 
