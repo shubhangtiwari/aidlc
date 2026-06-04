@@ -1,117 +1,61 @@
 # AIDLC
 
-MIT License - Copyright (c) 2026 [Shubhang Tiwari](mailto:shubh.bitsmith@gmail.com).
+AIDLC is a portable governance harness for AI-assisted software projects. It gives coding agents a
+shared operating model: how to classify change risk, when to write a spec, which agent persona owns
+planning or implementation, and where project facts such as architecture, contracts, and test gates
+must live.
 
-This repository hosts the AIDLC governance template and native CLI for AI-assisted repositories. It contains
-project-neutral operating rules, personas, skills, documentation templates, and initialization
-tooling for common coding assistants.
+The `aidlc` CLI installs and updates that harness in a repository, then projects it into IDE-native
+files for Codex, Claude, Cursor, Copilot, and Windsurf.
 
-It intentionally does not include project code, dependency manifests, architecture profiles, quality
-gate definitions, or placeholder scaffolding. Fork the template, run the initializer, then document
-the real project structure as it takes shape.
+## Table of Contents
 
-## Contents
+- [Install](#install)
+- [Setup](#setup)
+- [What the Harness Provides](#what-the-harness-provides)
+- [Governed Change Flow](#governed-change-flow)
+- [Responsibility Matrix](#responsibility-matrix)
+- [Agents](#agents)
+- [Skills](#skills)
+- [CLI Commands](#cli-commands)
+- [Maintainer Notes](#maintainer-notes)
+- [License](#license)
 
-- `.ai/` - portable AI personas, skills, templates, delegation, scripts, and optional model defaults.
-- `aidlc/` - native CLI source and command reference for initializing and updating governance files.
-- `docs/spec/` - spec-first workflow documentation and tracker.
-- `docs/adr/` - architecture decision record guidance.
-- `docs/blueprints/` - module blueprint guidance and template.
-- `.ai/scripts/finalize_spec.sh` - post-merge spec finalization helper.
+## Install
 
-## Initialize
+Choose one installation path.
 
-Governance projection comes entirely from `.ai/` and `docs/`. Use the native CLI to initialize a
-repository for one IDE or all supported IDEs:
+### Curl
 
-```sh
-aidlc init codex
-aidlc init claude
-aidlc init cursor
-aidlc init copilot
-aidlc init windsurf
-aidlc init all
-```
-
-This writes assistant-specific files such as `AGENTS.md`, `.codex/agents/*.toml`,
-`.agents/skills/*/SKILL.md`, `CLAUDE.md`, or `.cursor/rules/` (gitignored and not committed in
-this template). Cursor output includes an always-applied AI DLC discovery rule so Composer, Claude,
-Gemini, and other Cursor Agent models can find generated personas and skills. Regenerate after
-changing `.ai/`; do not edit generated IDE files by hand.
-
-This repository also keeps Makefile wrappers for local governance workflows:
-
-```sh
-make init codex
-make update
-```
-
-Those targets delegate to native `aidlc init` and `aidlc update`; they are repository execution
-wrappers, not separate shell compatibility commands.
-
-Generated assistant files do not infer project, dependency, or toolchain facts. Forked projects
-should document those facts explicitly in their own architecture, blueprint, ADR, and spec files when
-they become relevant.
-
-## Install `aidlc`
-
-`aidlc` is the native CLI for initializing and updating AIDLC governance files without depending on
-the template `Makefile` or shell scripts.
-
-Install with Go:
-
-```sh
-go install github.com/shubhangtiwari/aidlc/aidlc/cmd/aidlc@latest
-```
-
-Install from the latest GitHub release on macOS or Linux after release assets are published:
-The Unix shell installer defaults to `/usr/local/bin/aidlc`.
+The Unix installer downloads the latest GitHub release, verifies the checksum, and installs
+`aidlc` to `/usr/local/bin`.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sudo sh
 ```
 
-Use `AIDLC_INSTALL_DIR` for a user-writable or custom destination instead of the default:
+### Homebrew
+
+Homebrew can install directly from the tap:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | AIDLC_INSTALL_DIR="$HOME/.local/bin" sh
+brew install shubhangtiwari/aidlc/aidlc
 ```
 
-Install from the latest GitHub release on Windows after release assets are published:
-
-```powershell
-iwr https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.ps1 -UseB | iex
-```
-
-For local development from this repository:
-
-```sh
-cd aidlc
-go install ./cmd/aidlc
-```
-
-Make sure the install directory is on your `PATH`, then verify:
+Verify the install:
 
 ```sh
 aidlc version
 ```
 
-## Release `aidlc`
+## Setup
 
-The release workflow builds native archives for macOS, Linux, and Windows, writes `checksums.txt`,
-and publishes them to the GitHub release for an existing `aidlc/v*` tag.
+Run setup from the root of the repository you want AIDLC to govern.
 
-```sh
-make aidlc-release-check
-git tag -a aidlc/v0.1.0 -m "aidlc v0.1.0"
-git push origin aidlc/v0.1.0
-```
+### 1. Create the IDE files
 
-The tag prefix is intentional because the Go module lives under `aidlc/`.
-
-## Use `aidlc`
-
-Initialize a repository for one IDE or all supported IDEs:
+`aidlc init <ide>` installs the portable harness payload and generates the IDE-specific files your
+assistant will read.
 
 ```sh
 aidlc init codex
@@ -122,52 +66,167 @@ aidlc init windsurf
 aidlc init all
 ```
 
-`aidlc init <ide>` copies the public AIDLC payload into the current repository and generates the
-selected IDE files. Successful runs write `aidlc.lock.json` at the repository root. The lock records
-the selected concrete IDEs in `workspace.ides`, so `aidlc init all` stores every supported IDE
-instead of the literal `all` value.
+Typical generated files include `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.claude/**`,
+`.cursor/**`, `.github/copilot-instructions.md`, and `.windsurfrules`, depending on the IDE target.
 
-Update an initialized repository from the recorded upstream source and regenerate the IDE files
-stored in `workspace.ides`:
+### 2. Initialise the harness
+
+After the IDE files exist, ask your agent to initialise the harness. Good prompts are:
+
+```text
+initialise harness
+initialise architecture
+set up AIDLC for this repo
+```
+
+The initialization pass reads the repository, identifies the language/runtime shape, suggests the
+best-fit architecture profile, and writes the project-specific governance docs. It creates or
+refreshes `docs/ARCHITECTURE.md`, adds the matching `docs/architecture/<domain>.md` layer rules, and
+finds logical modules that should have blueprints under `docs/blueprints/`. It also leaves ADRs
+under `docs/adr/` as the place for cross-cutting architecture decisions that should be explicit
+before implementation.
+
+### 3. Keep the harness current
+
+When AIDLC changes upstream, update the installed harness payload and regenerate the IDE projection:
 
 ```sh
 aidlc update
 ```
 
-Preview changes without writing files:
+Upgrade the installed CLI itself when a newer release is available. For the curl installer path,
+use the native upgrader:
 
 ```sh
-aidlc init codex --dry-run
-aidlc update --dry-run
+aidlc upgrade
 ```
 
-Overwrite divergent public payload files intentionally:
+For a Homebrew-managed install, keep the binary under Homebrew control:
 
 ```sh
-aidlc init codex --force
-aidlc update --force
+brew upgrade shubhangtiwari/aidlc/aidlc
 ```
 
-Forced runs only overwrite manifest-managed public payload destinations that would otherwise be
-reported as conflicts. They print those plan rows as `overwrite <path> <reason>` and exit `0` when
-no other usage, source, generation, lock, or write error occurs. `--dry-run --force` reports the
-same overwrite decisions without writing payload files, generated IDE files, `aidlc.lock.json`, or a
-legacy manifest migration.
+## What the Harness Provides
 
-Use a local template checkout while developing or testing AIDLC changes:
+AIDLC separates portable agent behavior from project-specific truth.
+
+- `.ai/` contains portable personas, skills, templates, and generation rules.
+- `docs/ARCHITECTURE.md` and `docs/architecture/` describe the actual project structure and layer
+  rules after initialization.
+- `docs/adr/` records architecture decisions that affect multiple modules, integrations, or long-term
+  project direction.
+- `docs/blueprints/` records module-level contracts, owned state, integration boundaries, and test
+  gates.
+- `docs/spec/` holds approved plans for medium and large changes.
+- Generated IDE files such as `AGENTS.md`, `CLAUDE.md`, `.codex/**`, and `.cursor/**` are projections
+  of the portable harness. Regenerate them with `aidlc init <ide>` or `aidlc update`; do not maintain
+  them by hand.
+
+The harness is intentionally not a framework. It does not guess your architecture, dependencies, or
+quality gates. It creates a disciplined place to document them.
+
+## Governed Change Flow
+
+Every request starts with a quick risk classification. Low-risk work stays lightweight; risky work
+goes through a spec and review gate.
+
+![AIDLC governed change flow](docs/assets/aidlc-flow.gif)
+
+Static version:
+
+```mermaid
+flowchart TB
+  Start["💬 Request"] --> Scope["🧭 Clarify"]
+  Scope --> Classify{"🏷️ Classify risk"}
+
+  Classify -->|Trivial / Small| SmallIntent["📝 Inline intent"]
+  SmallIntent --> SmallBuild["🛠️ Bounded edit"]
+  SmallBuild --> SmallGate["✅ Gates + blueprint sanity"]
+  SmallGate --> Done["📦 Done"]
+
+  Classify -->|Medium / Large / Uncertain| Spec["📄 Spec + approval brief"]
+  Spec --> Approve["👤 Human approval"]
+  Approve --> Work["🧱 Work packages"]
+  Work --> SpecGate["✅ Gates + blueprint sync"]
+  SpecGate --> Review["🔍 Reviewer gate"]
+  Review --> Done
+
+  classDef intake fill:#fff4d6,stroke:#d99b00,color:#3a2a00,stroke-width:1px;
+  classDef small fill:#eef6ff,stroke:#4a90e2,color:#0f2a44,stroke-width:1px;
+  classDef spec fill:#f4edff,stroke:#845ef7,color:#2d164d,stroke-width:1px;
+  classDef done fill:#ecfdf3,stroke:#2f9e44,color:#12351d,stroke-width:1px;
+
+  class Start,Scope,Classify intake;
+  class SmallIntent,SmallBuild,SmallGate small;
+  class Spec,Approve,Work,SpecGate,Review spec;
+  class Done done;
+```
+
+## Responsibility Matrix
+
+| Area | Source of truth | Responsibility |
+| --- | --- | --- |
+| Portable agent behavior | `.ai/` | Personas, skills, templates, and generated guidance content. |
+| Project architecture | `docs/ARCHITECTURE.md`, `docs/architecture/` | Layer rules, ownership boundaries, execution model, and command policy. |
+| Architecture decisions | `docs/adr/` | Cross-cutting decisions, tradeoffs, and rationale that should outlive a single change. |
+| Module contracts | `docs/blueprints/` | Public contracts, owned state, read-only paths, integrations, topology, and gates. |
+| Planned changes | `docs/spec/` | Approved specs, work packages, and implementation constraints. |
+| Commands and gates | `Makefile` | Supported local workflows for init, update, tests, release checks, and governance validation. |
+| Generated IDE guidance | `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, `.claude/**` | Tool-specific projection of the portable harness. |
+| Sync state | `aidlc.lock.json` | Selected IDEs, tracked payload checksums, source metadata, and generation metadata. |
+
+## Agents
+
+AIDLC defines three delegable personas:
+
+| Agent | Role |
+| --- | --- |
+| `architect` | Plans medium, large, or uncertain work. Writes specs and approval briefs; does not implement. |
+| `implementer` | Applies approved plans within assigned files, layers, and work packages. Performs blueprint sanity checks. |
+| `reviewer` | Validates medium and large implementation diffs against the spec, layer rules, and blueprints. |
+
+The main agent coordinates the flow: classify, route, enforce the spec gate, and report the final
+state.
+
+## Skills
+
+AIDLC ships focused playbooks that agents can invoke when the task calls for them:
+
+| Skill | Purpose |
+| --- | --- |
+| `classify-change` | Mandatory triage for governed implementation requests. |
+| `init-architecture` | Initializes or refreshes project architecture documentation from repository evidence. |
+| `orchestrate-spec` | Executes approved specs by dependency-ordered work-package waves. |
+
+Skills define procedure. Personas define authority.
+
+## CLI Commands
+
+```text
+aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
+aidlc update [flags]
+aidlc upgrade [flags]
+aidlc version
+```
+
+For CLI options, flags, output format, and exit codes, see the native CLI reference:
+[aidlc/README.md](aidlc/README.md).
+
+## Maintainer Notes
+
+Run repository gates through the Makefile:
 
 ```sh
-aidlc init codex --source local --path /path/to/aidlc
-aidlc update --source local --path /path/to/aidlc --ref main
+make test
+make aidlc-release-check
 ```
 
-Divergent local files are reported as conflicts and are not overwritten unless `--force` is used.
-Non-forced conflicts exit `1`; successful forced overwrites exit `0`; usage, source, fetch,
-generation, lock, and write errors exit `2`. See [`aidlc/README.md`](aidlc/README.md) for the full
-command reference and exit codes.
+Release tags for the CLI use the `aidlc/vX.Y.Z` shape because the Go module lives under `aidlc/`.
+After publishing a new CLI release, update the Homebrew tap formula to point at the new tag and
+checksum so `brew upgrade shubhangtiwari/aidlc/aidlc` can install it.
 
-## Customize Architecture
+## License
 
-Use the `init-architecture` skill in `.ai/skills/` after forking. It analyzes the repo and creates
-`docs/ARCHITECTURE.md` from real project evidence. Module contracts live in `docs/blueprints/` as
-the project grows.
+MIT License - Copyright (c) 2026
+[Shubhang Tiwari](mailto:shubh.bitsmith@gmail.com).
