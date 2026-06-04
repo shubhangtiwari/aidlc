@@ -10,6 +10,18 @@ test -f scripts/build-release-assets.sh
 test -f scripts/install.sh
 test -f scripts/install.ps1
 
+case "$(grep '^install_dir=' scripts/install.sh)" in
+  'install_dir="${AIDLC_INSTALL_DIR:-/usr/local/bin}"') ;;
+  *)
+    echo "aidlc release check: Unix installer must default AIDLC_INSTALL_DIR to /usr/local/bin" >&2
+    exit 2
+    ;;
+esac
+if grep -Eq '(^|[^[:alnum:]_])sudo([^[:alnum:]_]|$)' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must not invoke sudo internally" >&2
+  exit 2
+fi
+
 go test ./...
 
 tmp_dir="$(mktemp -d)"

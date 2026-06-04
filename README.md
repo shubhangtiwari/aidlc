@@ -65,9 +65,16 @@ go install github.com/shubhangtiwari/aidlc/aidlc/cmd/aidlc@latest
 ```
 
 Install from the latest GitHub release on macOS or Linux after release assets are published:
+The Unix shell installer defaults to `/usr/local/bin/aidlc`.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sudo sh
+```
+
+Use `AIDLC_INSTALL_DIR` for a user-writable or custom destination instead of the default:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | AIDLC_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
 Install from the latest GitHub release on Windows after release assets are published:

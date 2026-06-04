@@ -114,6 +114,9 @@ behavior.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
+The Unix shell installer owns only the installed `aidlc` executable at the resolved install
+directory. When `AIDLC_INSTALL_DIR` is unset, that destination is `/usr/local/bin/aidlc`; when
+`AIDLC_INSTALL_DIR` is set, ownership is limited to `aidlc` inside that caller-provided directory.
 
 ## Integration Boundaries
 
@@ -122,6 +125,11 @@ repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.ai
   differs from the emitted target path for explicit manifest mappings. Normal init/update flows
   still use native filesystem, archive, checksum, and rendering logic and avoid shelling out.
 - GitHub release artifacts and checksum files are consumed by shell and PowerShell installers.
+- The Unix shell installer downloads release artifacts, verifies them against `checksums.txt`, and
+  writes the `aidlc` executable to `/usr/local/bin` by default. It does not elevate privileges
+  itself; users who lack write permission to the default destination may invoke the installer shell
+  with elevated permissions. `AIDLC_INSTALL_DIR` remains the supported override for user-writable or
+  custom destinations.
 - `aidlc upgrade` uses native GitHub release metadata and release asset downloads for CLI binary
   replacement, reusing `checksums.txt` verification and the existing release artifact naming
   scheme: `aidlc_<os>_<arch>.tar.gz` for Darwin/Linux, `aidlc_windows_<arch>.zip` for Windows, and
@@ -156,7 +164,9 @@ conflict behavior; formatted CLI result output; Makefile wrapper invocation of t
 normalized tracked payload paths; license relocation to `licenses/aidlc.md`; preservation of a
 consumer root `LICENSE`; mapped target lock entries; historical `LICENSE` update behavior where the
 old tracked root path is reported as removed upstream without deletion; release asset selection for
-supported platforms; checksum verification before binary replacement; dry-run behavior without
+supported platforms; release verification of the Unix shell installer default destination and
+`AIDLC_INSTALL_DIR` override contract without network access; checksum verification before binary
+replacement; dry-run behavior without
 archive downloads or destination writes; already-latest no-op behavior; upgrade command help and
 root CLI routing; packaged-binary `aidlc upgrade --help` smoke coverage; and rendered governance
 guidance parity where hardcoded spec-gate text exists. Cursor guidance tests must cover native Go

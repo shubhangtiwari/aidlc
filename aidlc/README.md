@@ -135,6 +135,25 @@ archive extraction, and binary replacement natively rather than invoking the
 installer scripts or shelling out to Bash, Make, rsync, git, curl, tar, zip, or
 PowerShell.
 
+The Unix shell installer defaults to `/usr/local/bin/aidlc` when
+`AIDLC_INSTALL_DIR` is not set. The installer does not invoke `sudo`; callers
+that lack write permission to `/usr/local/bin` should run the installer shell
+with appropriate privileges, for example:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | sudo sh
+```
+
+Set `AIDLC_INSTALL_DIR` to install to a user-writable or custom destination:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shubhangtiwari/aidlc/main/aidlc/scripts/install.sh | AIDLC_INSTALL_DIR="$HOME/.local/bin" sh
+```
+
+The PowerShell installer defines the Windows installation behavior separately;
+the Unix default and `AIDLC_INSTALL_DIR` contract above do not change Windows
+installer behavior.
+
 ## Exit Codes
 
 ```text

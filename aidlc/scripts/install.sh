@@ -3,7 +3,7 @@ set -eu
 
 repo="${AIDLC_REPO:-shubhangtiwari/aidlc}"
 version="${AIDLC_VERSION:-latest}"
-install_dir="${AIDLC_INSTALL_DIR:-$HOME/.local/bin}"
+install_dir="${AIDLC_INSTALL_DIR:-/usr/local/bin}"
 tmp_dir="$(mktemp -d)"
 
 cleanup() {
