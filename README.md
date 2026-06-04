@@ -8,6 +8,8 @@ must live.
 The `aidlc` CLI installs and updates that harness in a repository, then projects it into IDE-native
 files for Codex, Claude, Cursor, Copilot, and Windsurf.
 
+![AIDLC governed change flow](docs/assets/aidlc-flow.gif)
+
 ## Table of Contents
 
 - [Install](#install)
@@ -130,10 +132,6 @@ quality gates. It creates a disciplined place to document them.
 
 Every request starts with a quick risk classification. Low-risk work stays lightweight; risky work
 goes through a spec and review gate.
-
-![AIDLC governed change flow](docs/assets/aidlc-flow.gif)
-
-Static version:
 
 ```mermaid
 flowchart TB
