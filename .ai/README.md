@@ -116,6 +116,15 @@ treat each approved scoped spec as its own governing artifact.
 | 2 | `implementer` | After spec `status: approved`, or after trivial/small intent confirmed with user |
 | 3 | `reviewer` | **Medium / large / uncertain (after approved spec) only** — finished diff vs governing spec; **not** used for trivial / small |
 
+### Delegation prompt shape
+
+When spawning a named persona, do **not** fork or attach the full chat history. Start the persona
+with a self-contained prompt that includes only the guidance needed for the handoff: role, goal,
+scope root, governing spec path or inline intent, allowed files, relevant constraints, gates, and
+done criteria. If an IDE offers a history-preserving fork and a named-agent override separately,
+choose the named agent with the self-contained prompt; full-history forks can reject persona
+overrides or leak unrelated context into the delegated task.
+
 **Medium / large / uncertain:** main session runs `classify-change`; when `next: draft-spec`,
 **delegate `architect`** for planning. The architect writes the scope-local spec file(s) to disk and
 posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path(s)

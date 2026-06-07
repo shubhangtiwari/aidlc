@@ -21,7 +21,8 @@ the governing spec.
 2. **Sort waves** ascending (0, 1, 2, …).
 3. **For each wave:**
    - Confirm all `depends_on` WPs from prior waves are done.
-   - Delegate **one implementer per WP** in this wave with a brief containing:
+   - Delegate **one implementer per WP** in this wave with a self-contained prompt only; do not
+     fork or attach full chat history. The prompt must contain:
      - Spec path and WP id
      - Allowed file paths only
      - Domain profile: `<scope-root>/docs/architecture/<domain>.md`
