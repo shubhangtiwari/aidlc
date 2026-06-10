@@ -27,6 +27,8 @@ repository, `make init <ide>` remains a thin wrapper around the native CLI.
   - `implementer.md` — WP-scoped edits within layer rules.
   - `reviewer.md` — validates layer purity, spec, and WP `done_when`.
 - `skills/` — task playbooks (projected per IDE by `make init <ide>`).
+  - `architecture-diagrams.md` — create and review architecture diagrams using UML, Mermaid, C4,
+    PlantUML, and related standards.
   - `classify-change.md` — mandatory tier triage in the main session before governed implementation.
   - `init-architecture.md` — analyze repo and write `docs/ARCHITECTURE.md`.
   - `orchestrate-spec.md` — parallel implementer waves from spec work packages.
@@ -128,11 +130,14 @@ overrides or leak unrelated context into the delegated task.
 **Medium / large / uncertain:** main session runs `classify-change`; when `next: draft-spec`,
 **delegate `architect`** for planning. The architect writes the scope-local spec file(s) to disk and
 posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path(s)
-and brief summary to the user, then **stop** until they explicitly approve. Do not call
-`implementer` in the same turn. Do not paste the full spec into chat — the brief is the human gate;
-the scoped spec file is the machine gate. After all implementer work (including `orchestrate-spec`
-waves), the main session **must** delegate `reviewer` before reporting implementation complete or
-opening a PR — see **Review** and Hard Rule 6.
+and brief summary to the user, then **stop** until they explicitly approve. After explicit approval,
+the main session updates each approved scoped spec frontmatter from `status: draft` to
+`status: approved`; this status-only approval write does **not** require `architect` delegation. Do
+not call `implementer` in the same turn that presents the draft for approval. Do not paste the full
+spec into chat — the brief is the human gate; the scoped spec file is the machine gate. After all
+implementer work (including `orchestrate-spec` waves), the main session **must** delegate
+`reviewer` before reporting implementation complete or opening a PR — see **Review** and Hard Rule
+6.
 
 **Trivial / small:** After triage (`next: inline-intent`). No spec file. Main agent states intent
 inline (short summary: what, which files, expected outcome) informed by the Triage record. User
@@ -157,11 +162,12 @@ Governed (all tiers):
   next: inline-intent → main inline intent → user confirms → implementer → done
   next: draft-spec → delegate architect → scope-local spec file(s) + approval brief (chat)
        ↓ user approves
-       main → implementer (per WP / orchestrate-spec) → reviewer → merge
+       main flips spec status draft → approved → implementer (per WP / orchestrate-spec) → reviewer → merge
 ```
 
 **Human gate:** approval brief in chat for medium/large (~250–500 words); short inline intent for
-trivial/small. **Machine gate:** spec file on disk when tier requires it.
+trivial/small. **Machine gate:** spec file on disk when tier requires it; the main session records
+approval by changing only the approved spec's `status` frontmatter.
 
 ### Escalation
 

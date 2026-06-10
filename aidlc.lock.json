@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "upstream": {
-    "source": "https://github.com/shubhangtiwari/aidlc/archive/main",
+    "source": "local",
     "ref": "main",
-    "commit": "W/\"17f6f073ee4d632fa6ba8c120de2b418d52a8756099ac1f89ddf0d0745c8f4be\""
+    "commit": "main"
   },
   "workspace": {
     "ides": [
@@ -15,95 +15,95 @@
     ]
   },
   "generated": {
-    "ide": "claude",
-    "version": "v0.1.1",
-    "timestamp": "2026-06-02T21:16:07Z"
+    "ide": "all",
+    "version": "dev",
+    "timestamp": "2026-06-10T20:09:55Z"
   },
   "files": [
     {
       "path": ".ai/README.md",
-      "checksum": "sha256:5fff337da8194a6d1950e026e347636ff45f60153a1d81619359319bba40346f",
-      "mode": "0666"
+      "checksum": "sha256:753ecafdbcca467865928c4c7e39a23d98ac9b65e81b3eaa59954278f36f6f9f",
+      "mode": "0644"
     },
     {
       "path": ".ai/models.defaults.toml",
       "checksum": "sha256:ee2c09497a337e40abb861ab30516815279b5b57cf153a45b34e37adadbfbcc1",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/personas/architect.md",
-      "checksum": "sha256:172a14d40b12cd463a161db4fe07cb9766e47e5d49425f06193f9f4ec9da1c8c",
-      "mode": "0666"
+      "checksum": "sha256:7db3f023aaa03cc7cd370e7b0a07ff0a2d37886ecc0b73f20b806227604f7458",
+      "mode": "0644"
     },
     {
       "path": ".ai/personas/implementer.md",
       "checksum": "sha256:f030417cbebdd7c4a91e10bfb45a1fc97fc4a47dbbc85b4f79b18001f152cdac",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/personas/reviewer.md",
       "checksum": "sha256:b17174385ba4f0ab17a0a15ad11b595c868e1dc562ccb74e5fe8fde8c2c9a035",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architecture-template.md",
       "checksum": "sha256:b42909c28e79a7039dc8c8d04eb6032fad7137d557a72703d332ba22c415daf3",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/data-engineering/architecture.md",
       "checksum": "sha256:b7ed4c5ab85dbd8c9e70cc86df61440f817539e58f5a81635b8eafa9d017d44f",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/data-engineering/blueprint-template.md",
       "checksum": "sha256:b8bcea59eb63d2a91d822153e0fad40d4edce9f8deaac71d47fc42066d426c32",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/data-science/architecture.md",
       "checksum": "sha256:c5bdff68e9e6004f3a32d5e35b63ef0acd7b136075ed06c6c49d225a4bc0f544",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/data-science/blueprint-template.md",
       "checksum": "sha256:60d83d3d3a25aab61690cc2c8fd9514f73b4ca1db7bb80de1b96a822b33a57ca",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/minimal-tooling/architecture.md",
       "checksum": "sha256:f4dce7121fcb599caa6289df30d6a67f5a41729b38e2323df5165db8cedf8fe6",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/polyglot-monorepo/architecture.md",
       "checksum": "sha256:f0c0292a48937d152b1b2d32b646f405dcce6dde85862fb25c9dcbe903ebbb32",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/polyglot-monorepo/blueprint-template.md",
       "checksum": "sha256:db32129253d20a8114a615f5ace60f59cb25b86298f5c347c2177546ec60c177",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/tiered-service/architecture.md",
       "checksum": "sha256:750e12e2522cf5a9f6db9fbccf839e935a63ddb64562c3547d6305cce190b59b",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/architectures/tiered-service/blueprint-template.md",
       "checksum": "sha256:cf7d0c9fc57248b3071a80292791e72d421b62011cf35de55fc34c2165b1b403",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/ci/github-finalize-spec.yml",
       "checksum": "sha256:3790812774b6ce4d842160bcfbdfb034a959d1fe063fe6edc8cdb84d9868b498",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/references/ci/gitlab-finalize-spec.yml",
       "checksum": "sha256:40666a753188ae132d7f2203797b32a5f4c50f92229836b35a8965a5289215f9",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/scripts/finalize_spec.sh",
@@ -111,54 +111,60 @@
       "mode": "0755"
     },
     {
+      "path": ".ai/skills/architecture-diagrams.md",
+      "checksum": "sha256:87ad852ced7bf919ef19ef01664437957feeefa61b9b2a90458462a164692bb8",
+      "mode": "0644"
+    },
+    {
       "path": ".ai/skills/classify-change.md",
-      "checksum": "sha256:238e976f139b8cb10187804a8486998ef3e5c65c456862548deeff96061656dd",
-      "mode": "0666"
+      "checksum": "sha256:bd13d21b1ba9928d9a18108dc3de74ec5fa6aa23330c28792fe87c54e15a1417",
+      "mode": "0644"
     },
     {
       "path": ".ai/skills/init-architecture.md",
       "checksum": "sha256:4cf349287e000b78f80fbc0de6da9f94bbb59ca0b52b2f25c00ad440c6a0b9f9",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": ".ai/skills/orchestrate-spec.md",
-      "checksum": "sha256:1b6865d3dfb263e3bf9248cefe834d6f10df8f739867fa1fc7703c7a2582eb08",
-      "mode": "0666"
+      "checksum": "sha256:607401b47b4e405a860dda1ce25c25a7f6f1e3f416d426a2fcf0c65f799037a3",
+      "mode": "0644"
     },
     {
       "path": ".ai/templates/approval-brief.md",
-      "checksum": "sha256:66b3d441122813e052e5f159de8670a345ec6dc24545285a9dbc9feba0067b06",
-      "mode": "0666"
+      "checksum": "sha256:56b210f34d9c299bc85b6947a54644fe7cfe83ad56013450b68511bf21760354",
+      "mode": "0644"
     },
     {
       "path": ".ai/templates/spec.md",
       "checksum": "sha256:b6ed5bf438fc4653ab565ea8affc1709d9d9faa4b5abefe5c5508e4dceb4ca03",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": "docs/adr/README.md",
       "checksum": "sha256:d20be39ddcb6cb2c322dac86d705e87b6abe56eb31dcd92e6129082a9136d9ec",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": "docs/blueprints/README.md",
       "checksum": "sha256:d892606a91ff6f4ec15867714c3cb0a46162453be63c2d7e4baca42900bfe3ae",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": "docs/spec/README.md",
       "checksum": "sha256:46adc61fc8688c7bda502af5d109c932e634bd90dbd45657d9c0cd4d67985879",
-      "mode": "0666"
+      "mode": "0644"
     },
     {
       "path": "licenses/aidlc.md",
       "checksum": "sha256:902be07d47d231615523640a81a7d23aee416d0a207b47c9d14a32d6a10e4c0c",
-      "mode": "0666"
+      "mode": "0644"
     }
   ],
   "metadata": {
-    "command": "update",
-    "source_kind": "github",
-    "source_url": "https://github.com/shubhangtiwari/aidlc/archive/main"
+    "command": "init",
+    "source_kind": "local",
+    "source_path": "/Users/shubhangtiwari/git/aidlc/aidlc",
+    "source_url": "https://github.com/shubhangtiwari/aidlc"
   }
 }

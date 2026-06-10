@@ -96,14 +96,16 @@ Use exact field names:
 | `next` | Main session action |
 | --- | --- |
 | `inline-intent` | Post short inline intent from triage; user confirms; delegate `implementer` only. **No** `reviewer` unless user asks. |
-| `draft-spec` | **Delegate `architect`** with the Triage record and problem statement. Architect writes spec + approval brief. **Do not** call `implementer` until spec is approved. |
+| `draft-spec` | **Delegate `architect`** with the Triage record and problem statement. Architect writes spec + approval brief. **Do not** call `implementer` until spec is approved. After explicit user approval, the main session may perform only the `status: draft` to `status: approved` frontmatter flip before delegating `implementer`. |
 | `ask-user` | Ask the questions; re-run this skill after answers. |
 
 Do not override `tier` or `next` without user consent in chat.
 
 ## Out of scope (this skill)
 
-- Writing or updating `<scope-root>/docs/spec/*.md` in the main session (architect planning only).
+- Writing or updating `<scope-root>/docs/spec/*.md` in the main session, except the status-only
+  `draft` to `approved` frontmatter flip after explicit user approval. Architect owns planning
+  content and amendments.
 - Running `implementer` or `reviewer` before triage and routing complete.
 - Tiering for non-governed paths (main session may proceed without this skill).
 
@@ -111,4 +113,5 @@ Do not override `tier` or `next` without user consent in chat.
 
 - A **Triage record** exists in chat before any governed implementation step.
 - Trivial/small → inline intent → implementer.
-- Medium/large/uncertain → **architect** (automatic) → spec → approve → implementer → reviewer.
+- Medium/large/uncertain → **architect** (automatic) → spec → main approval status flip →
+  implementer → reviewer.

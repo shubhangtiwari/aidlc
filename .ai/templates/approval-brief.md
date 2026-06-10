@@ -47,7 +47,7 @@ blueprint updates"). Skip this subsection for small changes.
 
 - Spec path: `<scope-root>/docs/spec/<epoch>-<slug>.md`
 - Tier: `<tier>`
-- Status: `draft` (flip to `approved` after you confirm)
+- Status: `draft` (main session flips to `approved` after you confirm)
 - Explicit question: approve to proceed with implementation?
 
 For one user request that spans multiple AIDLC scopes, list every scoped spec path and ask whether
@@ -72,5 +72,5 @@ spec remains a separate governing artifact for implementation and review.
 
 ## After approval
 
-User confirms (or flips `status: approved` in each spec frontmatter). Implementer reads the
-**spec file only** — not the chat history.
+User confirms. The main session updates each approved spec frontmatter from `status: draft` to
+`status: approved`, then implementer reads the **spec file only** — not the chat history.

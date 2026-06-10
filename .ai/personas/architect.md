@@ -67,8 +67,10 @@ After saving medium/large scoped spec file(s):
 One approval brief may summarize multiple scoped draft specs created for the same user request.
 List every spec path in the approval ask and make clear that approval applies to each listed draft.
 
-On approval, remind the user to flip `status: approved` in the spec frontmatter (or confirm they
-approve so it can be updated) for every scoped spec. Implementer uses the **spec file only**.
+Do not handle approval bookkeeping after the brief. In the approval ask, state that the main session
+will flip each approved spec from `status: draft` to `status: approved` after explicit user
+approval. The architect is re-invoked only for spec amendments or material planning changes.
+Implementer uses the **spec file only**.
 
 If the user asks for more detail, expand the brief style in chat. Update the spec file only when they
 request a spec amendment.
