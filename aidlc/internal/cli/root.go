@@ -18,6 +18,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	switch args[0] {
+	case "doctor":
+		return commands.RunDoctorCLI(args[1:], stdout, stderr)
 	case "init":
 		return commands.RunInitCLI(ctx, args[1:], stdout, stderr)
 	case "map":
@@ -44,6 +46,7 @@ func printRootHelp(w io.Writer) {
 	fmt.Fprintln(w, "aidlc initializes and updates AIDLC governance files.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  aidlc doctor [flags]")
 	fmt.Fprintln(w, "  aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]")
 	fmt.Fprintln(w, "  aidlc map [flags]")
 	fmt.Fprintln(w, "  aidlc query [flags] <search terms>")

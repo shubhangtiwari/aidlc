@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
@@ -82,6 +83,39 @@ func TestWriteManifestDoesNotFallBackToGeneratedIDE(t *testing.T) {
 		t.Fatalf("read manifest: %v", err)
 	}
 	assertIDESelection(t, read.Workspace.IDEs, nil)
+}
+
+func TestWriteManifestPreservesExistingMapIncludeWhenUnset(t *testing.T) {
+	target := t.TempDir()
+	writeRawManifestJSON(t, target, `{
+		"schema_version": 1,
+		"upstream": {"source":"local","ref":"main","commit":"old"},
+		"workspace": {"map": {"include":[" docs/./architecture ","aidlc\\internal"]}},
+		"generated": {"ide":"codex","version":"old"},
+		"files": [{"path":".ai/README.md","checksum":"sha256:old"}]
+	}`)
+
+	if err := templatesync.WriteManifest(target, contract.TargetManifest{
+		Upstream:  contract.UpstreamRef{Source: "local", Ref: "main", Commit: "new"},
+		Generated: contract.GenerationRecord{IDE: contract.IDECodex, Version: "new"},
+		Files: []contract.ManifestFile{
+			{Path: ".ai/README.md", Checksum: "sha256:new"},
+		},
+	}); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	read, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	if read.Upstream.Commit != "new" {
+		t.Fatalf("commit = %q, want new", read.Upstream.Commit)
+	}
+	if read.Generated.Version != "new" {
+		t.Fatalf("generated version = %q, want new", read.Generated.Version)
+	}
+	assertStrings(t, read.Workspace.Map.Include, []string{"aidlc/internal", "docs/architecture"})
 }
 
 func TestReadManifestTreatsMissingAsNil(t *testing.T) {
@@ -192,6 +226,152 @@ func TestReadManifestFallsBackToLegacyGeneratedIDE(t *testing.T) {
 	assertIDESelection(t, read.Workspace.IDEs, contract.ConcreteIDEs())
 }
 
+func TestReadManifestNormalizesMapInclude(t *testing.T) {
+	target := t.TempDir()
+	writeManifestJSON(t, target, contract.TargetManifestPath, contract.TargetManifest{
+		Workspace: contract.WorkspaceRecord{
+			Map: contract.MapWorkspaceRecord{
+				Include: []string{" docs/./architecture ", "aidlc\\internal", "docs/architecture"},
+			},
+		},
+	})
+
+	read, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	assertStrings(t, read.Workspace.Map.Include, []string{"aidlc/internal", "docs/architecture"})
+}
+
+func TestReadManifestRejectsInvalidMapInclude(t *testing.T) {
+	target := t.TempDir()
+	writeManifestJSON(t, target, contract.TargetManifestPath, contract.TargetManifest{
+		Workspace: contract.WorkspaceRecord{
+			Map: contract.MapWorkspaceRecord{Include: []string{"docs/map"}},
+		},
+	})
+
+	_, err := templatesync.ReadManifest(target)
+	if err == nil {
+		t.Fatal("read manifest succeeded, want invalid map include error")
+	}
+	if !strings.Contains(err.Error(), "must not include generated map artifacts") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestWriteManifestMapIncludePreservesExistingLockFields(t *testing.T) {
+	target := t.TempDir()
+	writeRawManifestJSON(t, target, `{
+		"schema_version": 1,
+		"upstream": {"source":"local","ref":"main","commit":"abc123"},
+		"workspace": {
+			"ides": ["codex"],
+			"owner": "platform",
+			"map": {"include":["old"],"checksum":"sha256:old"}
+		},
+		"generated": {"ide":"codex","version":"test"},
+		"files": [{"path":".ai/README.md","checksum":"sha256:a"}],
+		"metadata": {"fixture":"true"},
+		"custom": {"kept": true}
+	}`)
+
+	if err := templatesync.WriteManifestMapInclude(
+		target,
+		[]string{" docs/./architecture ", "aidlc\\internal", "docs/architecture"},
+	); err != nil {
+		t.Fatalf("write map include: %v", err)
+	}
+
+	lock := readRawManifest(t, target)
+	if lock["schema_version"].(float64) != float64(contract.TargetManifestVersion) {
+		t.Fatalf("schema_version = %#v", lock["schema_version"])
+	}
+	assertJSONPathString(t, lock, "upstream", "commit", "abc123")
+	assertJSONPathString(t, lock, "generated", "version", "test")
+	assertJSONPathString(t, lock, "metadata", "fixture", "true")
+	if custom := lock["custom"].(map[string]any); custom["kept"] != true {
+		t.Fatalf("custom field not preserved: %#v", custom)
+	}
+	workspace := lock["workspace"].(map[string]any)
+	if workspace["owner"] != "platform" {
+		t.Fatalf("workspace owner = %#v", workspace["owner"])
+	}
+	mapRecord := workspace["map"].(map[string]any)
+	if mapRecord["checksum"] != "sha256:old" {
+		t.Fatalf("workspace.map checksum = %#v", mapRecord["checksum"])
+	}
+	assertAnyStrings(t, mapRecord["include"], []string{"aidlc/internal", "docs/architecture"})
+
+	include, ok, err := templatesync.ReadManifestMapInclude(target)
+	if err != nil {
+		t.Fatalf("read map include: %v", err)
+	}
+	if !ok {
+		t.Fatal("map include missing")
+	}
+	assertStrings(t, include, []string{"aidlc/internal", "docs/architecture"})
+}
+
+func TestWriteManifestMapIncludeInitializesMapOnlyLock(t *testing.T) {
+	target := t.TempDir()
+
+	if err := templatesync.WriteManifestMapInclude(target, []string{"docs"}); err != nil {
+		t.Fatalf("write map include: %v", err)
+	}
+
+	lock := readRawManifest(t, target)
+	if len(lock) != 2 {
+		t.Fatalf("lock keys = %#v, want only schema_version and workspace", lock)
+	}
+	if lock["schema_version"].(float64) != float64(contract.TargetManifestVersion) {
+		t.Fatalf("schema_version = %#v", lock["schema_version"])
+	}
+	workspace := lock["workspace"].(map[string]any)
+	if len(workspace) != 1 {
+		t.Fatalf("workspace = %#v, want only map", workspace)
+	}
+	mapRecord := workspace["map"].(map[string]any)
+	assertAnyStrings(t, mapRecord["include"], []string{"docs"})
+}
+
+func TestWriteManifestMapIncludeRejectsInvalidFolders(t *testing.T) {
+	for _, include := range []string{
+		"",
+		"/absolute",
+		"../outside",
+		"docs/map",
+		".claude",
+		".codex/state",
+		".cursor",
+		".venv/lib",
+		"build",
+		"cache/tmp",
+		"dist",
+		"node_modules/pkg",
+		"out",
+		"target/debug",
+		"vendor",
+	} {
+		t.Run(include, func(t *testing.T) {
+			err := templatesync.WriteManifestMapInclude(t.TempDir(), []string{include})
+			if err == nil {
+				t.Fatal("write map include succeeded, want error")
+			}
+		})
+	}
+}
+
+func TestReadManifestMapIncludeTreatsMissingAsUnset(t *testing.T) {
+	include, ok, err := templatesync.ReadManifestMapInclude(t.TempDir())
+	if err != nil {
+		t.Fatalf("read missing map include: %v", err)
+	}
+	if ok || include != nil {
+		t.Fatalf("include = %#v, ok = %v; want unset", include, ok)
+	}
+}
+
 func TestManifestFromPlanPersistsSourceChecksums(t *testing.T) {
 	plan := templatesync.Plan{
 		Upstream: contract.UpstreamRef{Source: "local", Ref: "main"},
@@ -215,12 +395,12 @@ func TestManifestFromPlanPersistsSourceChecksums(t *testing.T) {
 
 func TestManifestFromAcceptedPlanExcludesConflictedPayloads(t *testing.T) {
 	files := map[string]source.File{
-		".ai/created.md":    {Path: ".ai/created.md", Content: []byte("created"), Mode: 0o644},
-		".ai/skipped.md":    {Path: ".ai/skipped.md", Content: []byte("skipped"), Mode: 0o644},
-		".ai/updated.md":    {Path: ".ai/updated.md", Content: []byte("updated"), Mode: 0o600},
-		".ai/conflict.md":   {Path: ".ai/conflict.md", Content: []byte("upstream conflict"), Mode: 0o644},
-		".ai/unmatched.md":  {Path: ".ai/unmatched.md", Content: []byte("unmatched"), Mode: 0o644},
-		".ai/undecided.md":  {Path: ".ai/undecided.md", Content: []byte("undecided"), Mode: 0o644},
+		".ai/created.md":   {Path: ".ai/created.md", Content: []byte("created"), Mode: 0o644},
+		".ai/skipped.md":   {Path: ".ai/skipped.md", Content: []byte("skipped"), Mode: 0o644},
+		".ai/updated.md":   {Path: ".ai/updated.md", Content: []byte("updated"), Mode: 0o600},
+		".ai/conflict.md":  {Path: ".ai/conflict.md", Content: []byte("upstream conflict"), Mode: 0o644},
+		".ai/unmatched.md": {Path: ".ai/unmatched.md", Content: []byte("unmatched"), Mode: 0o644},
+		".ai/undecided.md": {Path: ".ai/undecided.md", Content: []byte("undecided"), Mode: 0o644},
 	}
 	plan := templatesync.Plan{
 		Upstream: contract.UpstreamRef{Source: "local", Ref: "main", Commit: "abc123"},
@@ -321,6 +501,27 @@ func writeManifestJSON(t *testing.T, target, relativePath string, manifest contr
 	}
 }
 
+func writeRawManifestJSON(t *testing.T, target, content string) {
+	t.Helper()
+	path := filepath.Join(target, filepath.FromSlash(contract.TargetManifestPath))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+}
+
+func readRawManifest(t *testing.T, target string) map[string]any {
+	t.Helper()
+	content := testutilReadFile(t, target, contract.TargetManifestPath)
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(content), &raw); err != nil {
+		t.Fatalf("parse written manifest: %v", err)
+	}
+	return raw
+}
+
 func assertIDESelection(t *testing.T, got, want []contract.IDE) {
 	t.Helper()
 	if len(got) != len(want) {
@@ -349,6 +550,45 @@ func assertManifestFiles(t *testing.T, got []contract.ManifestFile, want map[str
 		if file.Mode != formatMode(sourceFile.Mode) {
 			t.Fatalf("%s mode = %q", file.Path, file.Mode)
 		}
+	}
+}
+
+func assertStrings(t *testing.T, got, want []string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("strings = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("strings = %#v, want %#v", got, want)
+		}
+	}
+}
+
+func assertAnyStrings(t *testing.T, got any, want []string) {
+	t.Helper()
+	values, ok := got.([]any)
+	if !ok {
+		t.Fatalf("value = %#v, want []any", got)
+	}
+	if len(values) != len(want) {
+		t.Fatalf("strings = %#v, want %#v", values, want)
+	}
+	for i := range want {
+		if values[i] != want[i] {
+			t.Fatalf("strings = %#v, want %#v", values, want)
+		}
+	}
+}
+
+func assertJSONPathString(t *testing.T, raw map[string]any, objectName, fieldName, want string) {
+	t.Helper()
+	object, ok := raw[objectName].(map[string]any)
+	if !ok {
+		t.Fatalf("%s = %#v, want object", objectName, raw[objectName])
+	}
+	if object[fieldName] != want {
+		t.Fatalf("%s.%s = %#v, want %q", objectName, fieldName, object[fieldName], want)
 	}
 }
 

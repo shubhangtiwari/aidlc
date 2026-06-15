@@ -9,16 +9,68 @@ test ! -f ../go.sum
 test -f scripts/build-release-assets.sh
 test -f scripts/install.sh
 test -f scripts/install.ps1
+test -f ../.ai/Makefile.inc
 
-case "$(grep '^install_dir=' scripts/install.sh)" in
-  'install_dir="${AIDLC_INSTALL_DIR:-/usr/local/bin}"') ;;
-  *)
-    echo "aidlc release check: Unix installer must default AIDLC_INSTALL_DIR to /usr/local/bin" >&2
-    exit 2
-    ;;
-esac
-if grep -Eq '(^|[^[:alnum:]_])sudo([^[:alnum:]_]|$)' scripts/install.sh; then
+if grep -Eq '^[[:space:]]*sudo([[:space:]]|$)' scripts/install.sh; then
   echo "aidlc release check: Unix installer must not invoke sudo internally" >&2
+  exit 2
+fi
+if ! grep -Fq 'install_dir="$(choose_install_dir)"' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must choose install dir through discovery helper" >&2
+  exit 2
+fi
+if ! grep -Fq 'ensure_writable_dir "/usr/local/bin"' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must prefer writable /usr/local/bin" >&2
+  exit 2
+fi
+if ! grep -Fq 'user_dir="$HOME/.local/bin"' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must fall back to user-local ~/.local/bin" >&2
+  exit 2
+fi
+if ! grep -Fq 'dir_on_path "$install_dir"' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must check whether the install dir is on PATH" >&2
+  exit 2
+fi
+if ! grep -Fq 'AIDLC_BIN=$installed_path make <target>' scripts/install.sh; then
+  echo "aidlc release check: Unix installer must print AIDLC_BIN Make helper guidance" >&2
+  exit 2
+fi
+
+if ! grep -Fq 'Join-Path (Join-Path $DefaultLocalAppData "Programs") "aidlc\bin"' scripts/install.ps1; then
+  echo "aidlc release check: Windows installer must default to a user-local app bin directory" >&2
+  exit 2
+fi
+if ! grep -Fq 'SetEnvironmentVariable("Path", $NewUserPath, "User")' scripts/install.ps1; then
+  echo "aidlc release check: Windows installer must update the user PATH when possible" >&2
+  exit 2
+fi
+if ! grep -Fq 'open a new terminal or restart your IDE' scripts/install.ps1; then
+  echo "aidlc release check: Windows installer must print restart guidance for PATH changes" >&2
+  exit 2
+fi
+if ! grep -Fq '$env:AIDLC_BIN = $ExecutableLiteral' scripts/install.ps1; then
+  echo "aidlc release check: Windows installer must print AIDLC_BIN fallback guidance" >&2
+  exit 2
+fi
+
+if ! grep -Fq 'AIDLC_RESOLVE = aidlc_bin=' ../.ai/Makefile.inc; then
+  echo "aidlc release check: Make helper must use shared aidlc resolution" >&2
+  exit 2
+fi
+if ! grep -Fq 'command -v aidlc' ../.ai/Makefile.inc; then
+  echo "aidlc release check: Make helper must resolve aidlc from PATH" >&2
+  exit 2
+fi
+if ! grep -Fq '$$HOME/.local/bin/aidlc' ../.ai/Makefile.inc; then
+  echo "aidlc release check: Make helper must check user-local aidlc locations" >&2
+  exit 2
+fi
+if ! grep -Fq '$$LOCALAPPDATA/Programs/aidlc/bin/aidlc.exe' ../.ai/Makefile.inc; then
+  echo "aidlc release check: Make helper must check the Windows installer default aidlc.exe location" >&2
+  exit 2
+fi
+if ! grep -q '^ai-doctor:' ../.ai/Makefile.inc; then
+  echo "aidlc release check: Make helper must expose ai-doctor" >&2
   exit 2
 fi
 
@@ -81,6 +133,16 @@ esac
 case "$upgrade_help" in
   *"--dry-run"* ) ;;
   * ) echo "aidlc release check: upgrade help did not document --dry-run" >&2; echo "$upgrade_help" >&2; exit 2 ;;
+esac
+
+doctor_help="$("$tmp_dir/run/aidlc" doctor --help)"
+case "$doctor_help" in
+  *"Usage: aidlc doctor [flags]"* ) ;;
+  * ) echo "aidlc release check: generated binary did not expose doctor help" >&2; echo "$doctor_help" >&2; exit 2 ;;
+esac
+case "$doctor_help" in
+  *"--dir DIR"* ) ;;
+  * ) echo "aidlc release check: doctor help did not document --dir" >&2; echo "$doctor_help" >&2; exit 2 ;;
 esac
 
 echo "aidlc release check passed"

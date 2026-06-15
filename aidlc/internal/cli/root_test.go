@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
+	repomaptestdata "github.com/shubhangtiwari/aidlc/aidlc/testdata/repomap"
 )
 
 func TestRootHelpListsCommands(t *testing.T) {
@@ -19,6 +22,7 @@ func TestRootHelpListsCommands(t *testing.T) {
 		t.Fatalf("root help code = %d", code)
 	}
 	for _, want := range []string{
+		"aidlc doctor [flags]",
 		"aidlc map [flags]",
 		"aidlc query [flags] <search terms>",
 		"aidlc upgrade [flags]",
@@ -38,6 +42,7 @@ func TestRootRoutesMapAndQueryHelp(t *testing.T) {
 		args []string
 		want string
 	}{
+		{name: "doctor", args: []string{"doctor", "--help"}, want: "Usage: aidlc doctor [flags]"},
 		{name: "map", args: []string{"map", "--help"}, want: "Usage: aidlc map [flags]"},
 		{name: "query", args: []string{"query", "--help"}, want: "Usage: aidlc query [flags] <search terms>"},
 	} {
@@ -80,6 +85,9 @@ func TestRootUnknownCommandStillExitsUsage(t *testing.T) {
 	if !strings.Contains(stderr.String(), "aidlc upgrade [flags]") {
 		t.Fatalf("stderr root help missing upgrade:\n%s", stderr.String())
 	}
+	if !strings.Contains(stderr.String(), "aidlc doctor [flags]") {
+		t.Fatalf("stderr root help missing doctor:\n%s", stderr.String())
+	}
 	if stdout.Len() != 0 {
 		t.Fatalf("stdout = %q, want empty", stdout.String())
 	}
@@ -89,7 +97,7 @@ func TestRepoMapIntegrationRecallAndFallbackSuperset(t *testing.T) {
 	root := copyRepoMapFixture(t)
 
 	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), []string{"map", "--dir", root}, &stdout, &stderr)
+	code := Run(context.Background(), []string{"map", "--dir", root, "--include", "docs,internal,pkg"}, &stdout, &stderr)
 	if code != contract.ExitOK {
 		t.Fatalf("aidlc map code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
 	}
@@ -97,9 +105,12 @@ func TestRepoMapIntegrationRecallAndFallbackSuperset(t *testing.T) {
 		t.Fatalf("expected sqlite cache: %v", err)
 	}
 
-	var recallSum float64
-	var precisionSum float64
-	for _, query := range integrationQueries {
+	rawMetrics := queryMetricTotals{}
+	structuredMetrics := queryMetricTotals{}
+	var compactOutputBytes int
+	var sourceHeavyOutputBytes int
+	sourceHeavyText := sourceHeavyTextByPath(t, filepath.Join(root, filepath.FromSlash(model.MapDir)))
+	for _, query := range repomaptestdata.IntegrationQueries {
 		stdout.Reset()
 		stderr.Reset()
 		code := Run(context.Background(), []string{"query", "--dir", root, "--limit", "10", query.Text}, &stdout, &stderr)
@@ -109,21 +120,58 @@ func TestRepoMapIntegrationRecallAndFallbackSuperset(t *testing.T) {
 		results := queryResultPaths(stdout.String())
 		recall := recallAtK(results, query.Expected)
 		precision := precisionAtK(results, query.Expected)
-		t.Logf("fts query %q recall@10=%.2f precision@10=%.2f results=%v", query.Text, recall, precision, results)
-		recallSum += recall
-		precisionSum += precision
+		t.Logf("raw query %q recall@10=%.2f precision@10=%.2f results=%v", query.Text, recall, precision, results)
+		rawMetrics.add(recall, precision)
+		if missing := missingExpected(results, query.Expected); len(missing) > 0 {
+			t.Fatalf("raw query %q missing expected paths %v from results %v", query.Text, missing, results)
+		}
+
+		compactOutputBytes += len(stdout.String())
+		sourceHeavyOutputBytes += sourceHeavyResultBytes(results, sourceHeavyText)
+
+		plan, err := json.Marshal(query.Plan)
+		if err != nil {
+			t.Fatalf("marshal plan for %q: %v", query.Text, err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		code = Run(context.Background(), []string{"query", "--dir", root, "--plan-json", string(plan)}, &stdout, &stderr)
+		if code != contract.ExitOK {
+			t.Fatalf("aidlc query plan %q code = %d, stderr = %q", query.Text, code, stderr.String())
+		}
+		planResults := queryResultPaths(stdout.String())
+		planRecall := recallAtK(planResults, query.Expected)
+		planPrecision := precisionAtK(planResults, query.Expected)
+		t.Logf("plan query %q recall@10=%.2f precision@10=%.2f results=%v", query.Text, planRecall, planPrecision, planResults)
+		structuredMetrics.add(planRecall, planPrecision)
 	}
-	meanRecall := recallSum / float64(len(integrationQueries))
-	meanPrecision := precisionSum / float64(len(integrationQueries))
-	t.Logf("repo-map FTS mean recall@10=%.2f mean precision@10=%.2f over %d queries", meanRecall, meanPrecision, len(integrationQueries))
-	if meanRecall < 0.7 {
-		t.Fatalf("mean recall@10 = %.2f, want >= 0.70", meanRecall)
+	if len(repomaptestdata.IntegrationQueries) < 14 {
+		t.Fatalf("fixture query count = %d, want at least 14", len(repomaptestdata.IntegrationQueries))
+	}
+	t.Logf("repo-map raw mean recall@10=%.2f mean precision@10=%.2f over %d queries", rawMetrics.meanRecall(), rawMetrics.meanPrecision(), rawMetrics.count)
+	if rawMetrics.meanRecall() < 0.70 {
+		t.Fatalf("raw mean recall@10 = %.2f, want >= 0.70", rawMetrics.meanRecall())
+	}
+	t.Logf("repo-map structured plan mean recall@10=%.2f mean precision@10=%.2f over %d queries", structuredMetrics.meanRecall(), structuredMetrics.meanPrecision(), structuredMetrics.count)
+	if structuredMetrics.meanRecall() < 0.85 {
+		t.Fatalf("structured plan mean recall@10 = %.2f, want >= 0.85", structuredMetrics.meanRecall())
+	}
+	t.Logf("repo-map compact output bytes=%d source-heavy baseline bytes=%d reduction=%.1f%%",
+		compactOutputBytes,
+		sourceHeavyOutputBytes,
+		100*(1-float64(compactOutputBytes)/float64(sourceHeavyOutputBytes)),
+	)
+	if compactOutputBytes == 0 || sourceHeavyOutputBytes == 0 {
+		t.Fatalf("compact bytes = %d, source-heavy baseline bytes = %d", compactOutputBytes, sourceHeavyOutputBytes)
+	}
+	if float64(compactOutputBytes) > float64(sourceHeavyOutputBytes)*0.70 {
+		t.Fatalf("compact output bytes = %d, want at most 70%% of source-heavy baseline %d", compactOutputBytes, sourceHeavyOutputBytes)
 	}
 
 	if err := os.Remove(filepath.Join(root, filepath.FromSlash(model.MapDir), model.SQLiteFilename)); err != nil {
 		t.Fatalf("remove sqlite cache: %v", err)
 	}
-	for _, query := range integrationQueries {
+	for _, query := range repomaptestdata.IntegrationQueries {
 		stdout.Reset()
 		stderr.Reset()
 		code := Run(context.Background(), []string{"query", "--dir", root, "--limit", "100", query.Text}, &stdout, &stderr)
@@ -137,23 +185,30 @@ func TestRepoMapIntegrationRecallAndFallbackSuperset(t *testing.T) {
 	}
 }
 
-type labeledQuery struct {
-	Text     string
-	Expected []string
+type queryMetricTotals struct {
+	recallSum    float64
+	precisionSum float64
+	count        int
 }
 
-var integrationQueries = []labeledQuery{
-	{Text: "Add Auth", Expected: []string{"docs/spec/1000000000-add-auth.md"}},
-	{Text: "token validation greeting flow", Expected: []string{"docs/spec/1000000000-add-auth.md"}},
-	{Text: "approved specs scanner extraction", Expected: []string{"docs/spec/1000000000-add-auth.md"}},
-	{Text: "Use SQLite local query cache", Expected: []string{"docs/adr/1000000001-use-sqlite.md"}},
-	{Text: "committed JSONL shards", Expected: []string{"docs/adr/1000000001-use-sqlite.md"}},
-	{Text: "core module formats greetings", Expected: []string{"docs/blueprints/core.md"}},
-	{Text: "Greet accepts name display string", Expected: []string{"docs/blueprints/core.md"}},
-	{Text: "integration boundaries standard library", Expected: []string{"docs/blueprints/core.md"}},
-	{Text: "internal auth", Expected: []string{"internal/auth/auth.go", "internal/auth/auth_test.go"}},
-	{Text: "internal core", Expected: []string{"internal/core/core.go", "internal/core/core_test.go"}},
-	{Text: "pkg util", Expected: []string{"pkg/util/util.go", "pkg/util/util_test.go"}},
+func (m *queryMetricTotals) add(recall, precision float64) {
+	m.recallSum += recall
+	m.precisionSum += precision
+	m.count++
+}
+
+func (m queryMetricTotals) meanRecall() float64 {
+	if m.count == 0 {
+		return 0
+	}
+	return m.recallSum / float64(m.count)
+}
+
+func (m queryMetricTotals) meanPrecision() float64 {
+	if m.count == 0 {
+		return 0
+	}
+	return m.precisionSum / float64(m.count)
 }
 
 func copyRepoMapFixture(t testing.TB) string {
@@ -186,6 +241,60 @@ func copyRepoMapFixture(t testing.TB) string {
 		t.Fatalf("copy fixture: %v", err)
 	}
 	return targetRoot
+}
+
+func sourceHeavyTextByPath(t testing.TB, mapDir string) map[string]string {
+	t.Helper()
+
+	texts := map[string]string{}
+	for _, shard := range []string{
+		model.SourceChunksShard,
+		model.BlueprintsShard,
+		model.DocsShard,
+		model.ChangesShard,
+	} {
+		file, err := os.Open(filepath.Join(mapDir, shard))
+		if err != nil {
+			t.Fatalf("open %s: %v", shard, err)
+		}
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			var record struct {
+				Path string `json:"path"`
+				Text string `json:"text"`
+			}
+			if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+				_ = file.Close()
+				t.Fatalf("decode %s: %v", shard, err)
+			}
+			if record.Path != "" && record.Text != "" {
+				texts[record.Path] += " " + record.Text
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			_ = file.Close()
+			t.Fatalf("scan %s: %v", shard, err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatalf("close %s: %v", shard, err)
+		}
+	}
+	return texts
+}
+
+func sourceHeavyResultBytes(paths []string, textByPath map[string]string) int {
+	var b strings.Builder
+	for _, path := range paths {
+		text := strings.TrimSpace(textByPath[path])
+		if text == "" {
+			text = path
+		}
+		b.WriteString(path)
+		b.WriteString("\t1.000000\t")
+		b.WriteString(text)
+		b.WriteString("\n")
+	}
+	return b.Len()
 }
 
 func queryResultPaths(output string) []string {

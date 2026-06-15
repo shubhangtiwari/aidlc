@@ -84,11 +84,15 @@ func renderProjectSkill(skill document) []byte {
 
 func renderClaudeAgent(persona document, defaults map[string]map[string]modelDefault) []byte {
 	var b strings.Builder
+	def := defaultFor(defaults, "claude", persona.Name)
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "name: %s\n", persona.Name)
 	fmt.Fprintf(&b, "description: %s\n", jsonQuote(persona.Description))
-	if model := defaultFor(defaults, "claude", persona.Name).Model; model != "" {
-		fmt.Fprintf(&b, "model: %s\n", model)
+	if def.Model != "" {
+		fmt.Fprintf(&b, "model: %s\n", def.Model)
+	}
+	if def.Effort != "" {
+		fmt.Fprintf(&b, "effort: %s\n", def.Effort)
 	}
 	b.WriteString("---\n\n")
 	fmt.Fprintf(&b, "%s\n", persona.Body)
