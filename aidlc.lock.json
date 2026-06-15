@@ -17,7 +17,7 @@
   "generated": {
     "ide": "all",
     "version": "dev",
-    "timestamp": "2026-06-15T00:39:42Z"
+    "timestamp": "2026-06-15T01:16:07Z"
   },
   "files": [
     {
@@ -27,7 +27,7 @@
     },
     {
       "path": ".ai/README.md",
-      "checksum": "sha256:753ecafdbcca467865928c4c7e39a23d98ac9b65e81b3eaa59954278f36f6f9f",
+      "checksum": "sha256:85fa1dd88d8f072285ba83f4c4bba3680a60ff41aaaefe4872a2ac226ac88b46",
       "mode": "0644"
     },
     {
@@ -37,17 +37,17 @@
     },
     {
       "path": ".ai/personas/architect.md",
-      "checksum": "sha256:7db3f023aaa03cc7cd370e7b0a07ff0a2d37886ecc0b73f20b806227604f7458",
+      "checksum": "sha256:1e83f790ea1306ef04d0fd207fbe893a9d79e9ade8db4d9fc16114cc6ff717ff",
       "mode": "0644"
     },
     {
       "path": ".ai/personas/implementer.md",
-      "checksum": "sha256:f030417cbebdd7c4a91e10bfb45a1fc97fc4a47dbbc85b4f79b18001f152cdac",
+      "checksum": "sha256:26de2ea017fcbc3bf5433bf5d1cb1cd412cd23110e4b9f8b0079a5b4d518d4b2",
       "mode": "0644"
     },
     {
       "path": ".ai/personas/reviewer.md",
-      "checksum": "sha256:b17174385ba4f0ab17a0a15ad11b595c868e1dc562ccb74e5fe8fde8c2c9a035",
+      "checksum": "sha256:89c17d765ac5cab5c2a4444f17e7c3ee238907327c20d18a70062bfef7cf2203",
       "mode": "0644"
     },
     {
@@ -112,7 +112,7 @@
     },
     {
       "path": ".ai/repo-map-protocol.md",
-      "checksum": "sha256:90107ed8da7ac7a0737d17ad887a36c34d9c53017527d754cd5537440cbad8e9",
+      "checksum": "sha256:29166e3737b832ea73aed37edefc277fadbadf9cad8926c9753cf94dcd63eda3",
       "mode": "0644"
     },
     {

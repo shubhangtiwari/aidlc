@@ -51,6 +51,12 @@ that alter public behavior, schemas, owned state, contracts, integrations, or wo
 be medium or large. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are
 implementation artifacts for this repository and must remain excluded from payload copying.
 
+Repo-map protocol guidance is public payload and applies to all agent roles. Agents must use the
+repo map as the first discovery mechanism, query it before conventional file discovery, and read
+real files before making claims or edits. When writes are allowed, the main session is responsible
+for creating missing maps and refreshing stale maps before role delegation. Conventional discovery
+fallback is allowed only when the map is unavailable, insufficient, or cannot answer the question.
+
 ## Read-only Paths
 
 The following repository-local paths are non-payload unless a future ADR and manifest update
@@ -91,6 +97,8 @@ explicitly narrows a starter exception:
   instead of scanning broad repository directories.
 - Payload updates may refresh scope-resolution and tier-classification guidance in initialized
   roots, including `.ai/**` guidance and the public starter `docs/spec/README.md`.
+- Payload updates may refresh repo-map-first exploration guidance in initialized roots, including
+  `.ai/README.md`, `.ai/repo-map-protocol.md`, and persona guidance under `.ai/personas/**`.
 - Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
   `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
 

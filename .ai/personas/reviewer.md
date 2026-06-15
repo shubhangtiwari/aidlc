@@ -24,6 +24,10 @@ and the approved spec.
 Apply the reviewer checklist from the active domain profile at
 `<scope-root>/docs/architecture/<domain>.md`. Always verify, regardless of domain:
 
+0. **Repo-map-first exploration** — follow `.ai/repo-map-protocol.md`; query the repo map before
+   broad repository exploration and fall back to conventional discovery only when the map is
+   unavailable, insufficient, or cannot answer the question. If the map is missing or stale and your
+   handoff did not allow state-changing setup, ask the main session to create or refresh it.
 1. **Layer purity** — diff respects the layer rules of the active profile.
 2. **Test placement** — tests sit in the gates the profile defines (unit / integration / evals or
    domain-specific equivalents).

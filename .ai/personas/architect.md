@@ -39,6 +39,10 @@ The implementer cannot begin medium or large work until the spec is approved. Se
 
 ## Responsibilities
 
+- Follow `.ai/repo-map-protocol.md`: query the repo map before broad repository exploration and
+  fall back to conventional discovery only when the map is unavailable, insufficient, or cannot
+  answer the question. If the map is missing or stale and your handoff did not allow state-changing
+  setup, ask the main session to create or refresh it.
 - Accept the main session's **Triage record** and problem statement as input; do not re-tier down
   to trivial/small without user consent.
 - Read the owning scope's `docs/ARCHITECTURE.md`, `docs/architecture/` (domain profile for the

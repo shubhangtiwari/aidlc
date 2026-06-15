@@ -26,6 +26,10 @@ explicitly overrides in chat). Medium/large work also requires an approved spec 
 
 ## Responsibilities
 
+- Follow `.ai/repo-map-protocol.md`: query the repo map before broad repository exploration and
+  fall back to conventional discovery only when the map is unavailable, insufficient, or cannot
+  answer the question. If the map is missing or stale and your handoff did not allow state-changing
+  setup, ask the main session to create or refresh it.
 - Apply changes within the layers assigned by the approved spec and active work package.
 - Treat the spec's `Affected files`, WP `files`, and `Blueprint deltas` as the edit boundary when a
   spec exists. For trivial/small, stay within user-confirmed paths and layer rules.

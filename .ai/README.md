@@ -92,6 +92,27 @@ A parent scoped spec must not claim files below a nested initialized AIDLC scope
 may summarize multiple scoped draft specs for the same user request, but implementation and review
 treat each approved scoped spec as its own governing artifact.
 
+### Repo-map-first exploration
+
+When `.ai/repo-map-protocol.md` is present, it is mandatory for the main session and every persona.
+Use the repo map as the first discovery mechanism before broad repository exploration.
+
+1. **Bootstrap missing maps:** If `docs/map/index.json` or the canonical `docs/map/*.jsonl` shards
+   are missing and the user has not requested a read-only session, the main session must create the
+   map before broad exploration. Ensure the root `Makefile` includes `-include .ai/Makefile.inc`
+   exactly once, creating a minimal root `Makefile` with that include if none exists, then run
+   `make ai-map` and `make ai-map-check`. This setup is configuration/tooling work and does not
+   require governed triage.
+2. **Query before conventional discovery:** Before using broad conventional discovery tools such as
+   `rg --files`, `find`, tree listings, or speculative file reads, run
+   `make ai-query AI_QUERY="<task terms>"` from the invocation root. Use conventional tools only for
+   direct reads of identified files, for verification, or when the map cannot answer the question.
+3. **Fallback explicitly:** Fall back to conventional exploration only when the map is missing and
+   cannot be generated, `make ai-map` / `make ai-query` fails, the query returns no useful paths, or
+   the needed information is not represented in the map. State the reason for fallback.
+4. **Map is navigation, not evidence:** Query results are hints. Read the real source, tests,
+   specs, ADRs, and blueprints before editing, reviewing, or making architectural claims.
+
 ### Before any state-changing tool call
 
 1. **Choose the path:**
