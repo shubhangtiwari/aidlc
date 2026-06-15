@@ -21,20 +21,31 @@ type IndexFileHash struct {
 }
 
 type StalenessStatus struct {
-	Fresh        bool
-	MissingIndex bool
-	Changed      []string
-	Missing      []string
-	Added        []string
+	Fresh           bool
+	MissingIndex    bool
+	IncludeMismatch bool
+	Changed         []string
+	Missing         []string
+	Added           []string
 }
 
 func WriteIndex(mapDir string, shards Shards) error {
+	return WriteIndexWithOptions(mapDir, shards, ScanOptions{})
+}
+
+func WriteIndexWithOptions(mapDir string, shards Shards, options ScanOptions) error {
+	include, err := NormalizeInclude(options.Include)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(mapDir, 0o755); err != nil {
 		return fmt.Errorf("create map dir: %w", err)
 	}
 
+	meta := model.DefaultIndexMeta()
+	meta.Include = include
 	manifest := IndexManifest{
-		IndexMeta: model.DefaultIndexMeta(),
+		IndexMeta: meta,
 		Files:     fileHashes(shards.Files),
 	}
 	content, err := json.MarshalIndent(manifest, "", "  ")
@@ -49,6 +60,10 @@ func WriteIndex(mapDir string, shards Shards) error {
 }
 
 func CheckStaleness(root string) (StalenessStatus, error) {
+	return CheckStalenessWithOptions(root, ScanOptions{})
+}
+
+func CheckStalenessWithOptions(root string, options ScanOptions) (StalenessStatus, error) {
 	manifest, err := ReadIndex(filepath.Join(root, model.MapDir))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -57,7 +72,11 @@ func CheckStaleness(root string) (StalenessStatus, error) {
 		return StalenessStatus{}, err
 	}
 
-	current, err := ScanDir(root)
+	include, err := NormalizeInclude(options.Include)
+	if err != nil {
+		return StalenessStatus{}, err
+	}
+	current, err := ScanDirWithOptions(root, ScanOptions{Include: include})
 	if err != nil {
 		return StalenessStatus{}, err
 	}
@@ -69,6 +88,11 @@ func CheckStaleness(root string) (StalenessStatus, error) {
 	seen := map[string]bool{}
 
 	status := StalenessStatus{}
+	indexInclude, err := NormalizeInclude(manifest.Include)
+	if err != nil {
+		return StalenessStatus{}, err
+	}
+	status.IncludeMismatch = !sameStrings(indexInclude, include)
 	for _, file := range current.Files {
 		seen[file.Path] = true
 		hash, ok := indexed[file.Path]
@@ -88,7 +112,7 @@ func CheckStaleness(root string) (StalenessStatus, error) {
 	sort.Strings(status.Changed)
 	sort.Strings(status.Missing)
 	sort.Strings(status.Added)
-	status.Fresh = len(status.Changed) == 0 && len(status.Missing) == 0 && len(status.Added) == 0
+	status.Fresh = !status.IncludeMismatch && len(status.Changed) == 0 && len(status.Missing) == 0 && len(status.Added) == 0
 	return status, nil
 }
 
@@ -113,4 +137,16 @@ func fileHashes(files []model.FileRecord) []IndexFileHash {
 		return hashes[i].Path < hashes[j].Path
 	})
 	return hashes
+}
+
+func sameStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }

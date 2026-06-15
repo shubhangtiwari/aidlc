@@ -206,6 +206,8 @@ func loadModelDefaults(path string) (map[string]map[string]modelDefault, error) 
 			def.Model = tomlScalar(value)
 		case "reasoning":
 			def.Reasoning = tomlScalar(value)
+		case "effort":
+			def.Effort = tomlScalar(value)
 		}
 		defaults[ide][persona] = def
 	}

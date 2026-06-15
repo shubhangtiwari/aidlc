@@ -11,6 +11,7 @@ import (
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/cli"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
 	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
@@ -132,6 +133,49 @@ func TestCLIUpdateRegeneratesOnlyStoredWorkspaceIDEs(t *testing.T) {
 	assertIDESelection(t, updatedManifest.Workspace.IDEs, []contract.IDE{contract.IDECursor})
 	if updatedManifest.Upstream.Ref != "v2" {
 		t.Fatalf("updated manifest ref = %q, want v2", updatedManifest.Upstream.Ref)
+	}
+}
+
+func TestCLIMapGenerationPersistsAndReusesWorkspaceMapInclude(t *testing.T) {
+	sourceV1 := createIntegrationSource(t, "v1")
+	target := t.TempDir()
+
+	runCLIInDir(t, target, contract.ExitOK, "init", "codex", "--source", "local", "--path", sourceV1, "--ref", "v1")
+	testutil.WriteFile(t, target, "scratch/ignored.md", "# Ignore me\n")
+
+	stdout, _, _ := runCLIInDir(t, target, contract.ExitOK, "map", "--include", ".ai,docs")
+	if !strings.Contains(stdout, "include: .ai,docs\n") {
+		t.Fatalf("map stdout missing explicit include:\n%s", stdout)
+	}
+	manifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest after map: %v", err)
+	}
+	assertStrings(t, manifest.Workspace.Map.Include, []string{".ai", "docs"})
+
+	sourceV2 := createIntegrationSource(t, "v2")
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", readme("updated map whitelist guidance"))
+	runCLIInDir(t, target, contract.ExitOK, "update", "--source", "local", "--path", sourceV2, "--ref", "v2")
+	updatedManifest, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest after update: %v", err)
+	}
+	assertStrings(t, updatedManifest.Workspace.Map.Include, []string{".ai", "docs"})
+
+	stdout, _, _ = runCLIInDir(t, target, contract.ExitOK, "map")
+	if strings.Contains(stdout, "repo map include candidates:") {
+		t.Fatalf("saved map include should be reused without prompting:\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "include: .ai,docs\n") {
+		t.Fatalf("map stdout missing saved include:\n%s", stdout)
+	}
+
+	files := testutil.ReadFile(t, target, filepath.Join(model.MapDir, model.FilesShard))
+	if !strings.Contains(files, `"path":".ai/README.md"`) || !strings.Contains(files, `"path":"docs/spec/README.md"`) {
+		t.Fatalf("files shard missing whitelisted payload paths:\n%s", files)
+	}
+	if strings.Contains(files, `"path":"scratch/ignored.md"`) {
+		t.Fatalf("files shard included non-whitelisted directory:\n%s", files)
 	}
 }
 
@@ -689,6 +733,18 @@ func assertIDESelection(t testing.TB, got, want []contract.IDE) {
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("workspace IDEs = %#v, want %#v", got, want)
+		}
+	}
+}
+
+func assertStrings(t testing.TB, got, want []string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("strings = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("strings = %#v, want %#v", got, want)
 		}
 	}
 }

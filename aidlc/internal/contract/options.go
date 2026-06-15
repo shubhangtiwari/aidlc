@@ -48,3 +48,24 @@ type SourceOptions struct {
 	Ref  string
 	Path string
 }
+
+type AIDLCBinarySource string
+
+const (
+	AIDLCBinarySourceExplicit       AIDLCBinarySource = "explicit"
+	AIDLCBinarySourcePATH           AIDLCBinarySource = "path"
+	AIDLCBinarySourceCommonLocation AIDLCBinarySource = "common-location"
+)
+
+type AIDLCBinaryCandidate struct {
+	Path       string
+	Source     AIDLCBinarySource
+	Executable bool
+}
+
+type AIDLCBinaryDiscovery struct {
+	Path       string
+	Source     AIDLCBinarySource
+	Found      bool
+	Candidates []AIDLCBinaryCandidate
+}

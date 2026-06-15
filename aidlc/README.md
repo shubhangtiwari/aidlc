@@ -10,6 +10,7 @@ are performed by the generated agent harness after `aidlc init <ide>` has create
 ## Commands
 
 ```text
+aidlc doctor [flags]
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
 aidlc map [flags]
 aidlc query [flags] <search terms>
@@ -135,6 +136,22 @@ aidlc <version>
 
 Development builds print `aidlc dev` unless release packaging injects a version.
 
+## `aidlc doctor`
+
+```text
+aidlc doctor [flags]
+```
+
+`doctor` prints plain-text diagnostics for the current CLI installation and a selected repository
+directory. It reports the current version, running executable path, whether `aidlc` is discoverable
+through the current process `PATH`, supported common install-location candidates, whether
+`.ai/Makefile.inc` exists, and whether the root `Makefile` includes that helper when present.
+
+`doctor` does not mutate `PATH`, write files, download release assets, or invoke Bash, Make, git, or
+runtime tools. Healthy diagnostics exit `0`. Installation or Make helper findings exit `1` with
+next steps for sanitized IDE shells and CI, including `AIDLC_BIN` and install-directory guidance.
+Invalid flags or invalid `--dir` values exit `2`.
+
 ## Common Flags
 
 These flags apply to `init` and `update`:
@@ -163,6 +180,12 @@ aidlc update --source local --path /path/to/aidlc --ref main
 | `--check` | For `map`, check whether existing `docs/map/` artifacts are fresh instead of rebuilding them. |
 | `--limit N` | For `query`, maximum ranked rows to print. Default: `10`. |
 | `--shard NAME` | For `query`, search one JSONL shard directly instead of using the SQLite cache. |
+
+## Doctor Flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir DIR` | Repository root to inspect. Default: `.`. |
 
 ## Upgrade Flags
 
@@ -207,7 +230,7 @@ status: installed|skipped|dry-run
 | Code | Meaning |
 | --- | --- |
 | `0` | Success, including forced overwrites, dry runs, completed upgrades, and already-latest upgrade no-ops. |
-| `1` | One or more manifest-managed files conflict with local changes during `init` or `update`. |
+| `1` | One or more manifest-managed files conflict with local changes during `init` or `update`, or `doctor` found installation/Make helper actions. |
 | `2` | Usage, source, fetch, manifest, release lookup, download, checksum, extraction, install, generation, lock, or write error. |
 
 For `aidlc upgrade`, errors exit `2` with an `aidlc upgrade:` stderr prefix.

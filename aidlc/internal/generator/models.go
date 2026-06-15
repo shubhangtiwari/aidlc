@@ -24,6 +24,7 @@ type document struct {
 type modelDefault struct {
 	Model     string
 	Reasoning string
+	Effort    string
 }
 
 type sourceData struct {

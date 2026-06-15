@@ -141,7 +141,7 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.FilesShard,
 			Kind:  "file",
 			Title: record.Path,
-			Body:  strings.Join([]string{record.Path, record.Language, record.ContentHash}, " "),
+			Body:  model.SearchText(record.Path, record.Language, record.ContentHash),
 		})
 	}
 
@@ -155,7 +155,7 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.ImportsShard,
 			Kind:  "import",
 			Title: record.ImportPath,
-			Body:  strings.Join([]string{record.Path, record.Language, record.ImportPath}, " "),
+			Body:  model.SearchText(record.Path, record.Language, record.ImportPath),
 		})
 	}
 
@@ -169,7 +169,7 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.TestsShard,
 			Kind:  "test",
 			Title: record.TargetPath,
-			Body:  strings.Join([]string{record.Path, record.Language, record.TargetPath}, " "),
+			Body:  model.SearchText(record.Path, record.Language, record.TargetPath),
 		})
 	}
 
@@ -183,7 +183,7 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.BlueprintsShard,
 			Kind:  "blueprint",
 			Title: strings.Join([]string{record.Module, record.Section}, " "),
-			Body:  strings.Join([]string{record.Path, record.Module, record.Section, record.Text}, " "),
+			Body:  model.SearchText(record.Path, record.Module, record.Section, record.Text),
 		})
 	}
 
@@ -197,7 +197,7 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.DocsShard,
 			Kind:  record.Kind,
 			Title: record.Title,
-			Body:  strings.Join([]string{record.Path, record.Kind, record.Title, record.Text}, " "),
+			Body:  model.SearchText(record.Path, record.Kind, record.Title, record.Text),
 		})
 	}
 
@@ -211,11 +211,58 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 			Shard: model.ChangesShard,
 			Kind:  record.Kind,
 			Title: strings.Join([]string{record.ID, record.Title, record.Status}, " "),
-			Body:  strings.Join([]string{record.Path, record.Kind, record.ID, record.Title, record.Status, record.Text}, " "),
+			Body:  model.SearchText(record.Path, record.Kind, record.ID, record.Title, record.Status, record.Text),
+		})
+	}
+
+	sourceChunks, err := readShard[model.SourceChunkRecord](mapDir, model.SourceChunksShard)
+	if err != nil {
+		return nil, err
+	}
+	for _, record := range sourceChunks {
+		entries = append(entries, indexEntry{
+			Path:  record.Path,
+			Shard: model.SourceChunksShard,
+			Kind:  "source_chunk",
+			Title: record.Path,
+			Body: model.SearchText(
+				record.Path,
+				record.Language,
+				fmt.Sprintf("%d", record.StartLine),
+				fmt.Sprintf("%d", record.EndLine),
+				record.Text,
+			),
+		})
+	}
+
+	symbols, err := readShard[model.SymbolRecord](mapDir, model.SymbolsShard)
+	if err != nil {
+		return nil, err
+	}
+	for _, record := range symbols {
+		entries = append(entries, indexEntry{
+			Path:  record.Path,
+			Shard: model.SymbolsShard,
+			Kind:  "symbol",
+			Title: symbolTitle(record),
+			Body: model.SearchText(
+				record.Path,
+				record.Language,
+				record.Kind,
+				record.Name,
+				record.Receiver,
+				record.Container,
+				fmt.Sprintf("%d", record.StartLine),
+				fmt.Sprintf("%d", record.EndLine),
+			),
 		})
 	}
 
 	return entries, nil
+}
+
+func symbolTitle(record model.SymbolRecord) string {
+	return model.SearchText(record.Kind, record.Receiver, record.Container, record.Name)
 }
 
 func readShard[T any](mapDir, filename string) ([]T, error) {

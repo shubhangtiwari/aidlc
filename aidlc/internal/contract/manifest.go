@@ -18,7 +18,12 @@ type TargetManifest struct {
 }
 
 type WorkspaceRecord struct {
-	IDEs []IDE `json:"ides,omitempty"`
+	IDEs []IDE              `json:"ides,omitempty"`
+	Map  MapWorkspaceRecord `json:"map,omitempty"`
+}
+
+type MapWorkspaceRecord struct {
+	Include []string `json:"include,omitempty"`
 }
 
 type UpstreamRef struct {

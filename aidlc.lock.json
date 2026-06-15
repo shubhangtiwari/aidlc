@@ -12,17 +12,24 @@
       "cursor",
       "copilot",
       "windsurf"
-    ]
+    ],
+    "map": {
+      "include": [
+        ".ai",
+        "aidlc",
+        "docs"
+      ]
+    }
   },
   "generated": {
     "ide": "all",
     "version": "dev",
-    "timestamp": "2026-06-15T01:16:07Z"
+    "timestamp": "2026-07-15T18:36:27Z"
   },
   "files": [
     {
       "path": ".ai/Makefile.inc",
-      "checksum": "sha256:146bf69f9f8dd50821845f1af57e7f7bbfd172f365d43b144c87ebaf3aa3fee1",
+      "checksum": "sha256:c9c84c29114e2fe8f9ea4686ef60dd94799f56790434cd32b8475896a19ff035",
       "mode": "0644"
     },
     {
@@ -32,7 +39,7 @@
     },
     {
       "path": ".ai/models.defaults.toml",
-      "checksum": "sha256:ee2c09497a337e40abb861ab30516815279b5b57cf153a45b34e37adadbfbcc1",
+      "checksum": "sha256:f815ab321dc513750a95407686dbaa1a73368f06e317a142343ec68887eca1cd",
       "mode": "0644"
     },
     {
@@ -112,7 +119,7 @@
     },
     {
       "path": ".ai/repo-map-protocol.md",
-      "checksum": "sha256:29166e3737b832ea73aed37edefc277fadbadf9cad8926c9753cf94dcd63eda3",
+      "checksum": "sha256:9e7318039771b5392165accab076ff0fde795e1ed181cbe4bcf5b98831271465",
       "mode": "0644"
     },
     {
