@@ -61,6 +61,84 @@ func TestCheckStalenessDetectsChangedMissingAndAddedFiles(t *testing.T) {
 	assertPaths(t, "Added", status.Added, []string{"added.go"})
 }
 
+func TestCheckStalenessWithOptionsUsesIncludedFiles(t *testing.T) {
+	root := t.TempDir()
+	testutil.WriteFile(t, root, "README.md", "# Root\n")
+	testutil.WriteFile(t, root, "aidlc/main.go", "package main\n")
+	testutil.WriteFile(t, root, "ignored/ignored.go", "package ignored\n")
+
+	options := ScanOptions{Include: []string{"aidlc"}}
+	shards, err := ScanDirWithOptions(root, options)
+	if err != nil {
+		t.Fatalf("ScanDirWithOptions() error = %v", err)
+	}
+	if err := WriteIndexWithOptions(filepath.Join(root, model.MapDir), *shards, options); err != nil {
+		t.Fatalf("WriteIndexWithOptions() error = %v", err)
+	}
+
+	testutil.WriteFile(t, root, "ignored/ignored.go", "package ignored\nfunc ignored() {}\n")
+	status, err := CheckStalenessWithOptions(root, options)
+	if err != nil {
+		t.Fatalf("CheckStalenessWithOptions() error = %v", err)
+	}
+	if !status.Fresh {
+		t.Fatalf("Fresh = false, status = %#v", status)
+	}
+
+	testutil.WriteFile(t, root, "aidlc/main.go", "package main\nfunc main() {}\n")
+	status, err = CheckStalenessWithOptions(root, options)
+	if err != nil {
+		t.Fatalf("CheckStalenessWithOptions() error = %v", err)
+	}
+	if status.Fresh {
+		t.Fatal("Fresh = true, want stale")
+	}
+	assertPaths(t, "Changed", status.Changed, []string{"aidlc/main.go"})
+}
+
+func TestCheckStalenessWithOptionsDetectsIncludeMismatch(t *testing.T) {
+	root := t.TempDir()
+	testutil.WriteFile(t, root, "aidlc/main.go", "package main\n")
+	testutil.WriteFile(t, root, "docs/ARCHITECTURE.md", "# Architecture\n")
+
+	indexOptions := ScanOptions{Include: []string{"aidlc"}}
+	shards, err := ScanDirWithOptions(root, indexOptions)
+	if err != nil {
+		t.Fatalf("ScanDirWithOptions() error = %v", err)
+	}
+	if err := WriteIndexWithOptions(filepath.Join(root, model.MapDir), *shards, indexOptions); err != nil {
+		t.Fatalf("WriteIndexWithOptions() error = %v", err)
+	}
+
+	status, err := CheckStalenessWithOptions(root, ScanOptions{Include: []string{"aidlc", "docs"}})
+	if err != nil {
+		t.Fatalf("CheckStalenessWithOptions() error = %v", err)
+	}
+	if status.Fresh || !status.IncludeMismatch {
+		t.Fatalf("status = %#v, want include mismatch stale", status)
+	}
+}
+
+func TestWriteIndexWithOptionsRecordsInclude(t *testing.T) {
+	root := t.TempDir()
+	testutil.WriteFile(t, root, "aidlc/main.go", "package main\n")
+	options := ScanOptions{Include: []string{"aidlc"}}
+
+	shards, err := ScanDirWithOptions(root, options)
+	if err != nil {
+		t.Fatalf("ScanDirWithOptions() error = %v", err)
+	}
+	if err := WriteIndexWithOptions(filepath.Join(root, model.MapDir), *shards, options); err != nil {
+		t.Fatalf("WriteIndexWithOptions() error = %v", err)
+	}
+
+	manifest, err := ReadIndex(filepath.Join(root, model.MapDir))
+	if err != nil {
+		t.Fatalf("ReadIndex() error = %v", err)
+	}
+	assertPaths(t, "Include", manifest.Include, []string{"aidlc"})
+}
+
 func TestCheckStalenessMissingIndexIsStale(t *testing.T) {
 	root := t.TempDir()
 	testutil.WriteFile(t, root, "main.go", "package main\n")

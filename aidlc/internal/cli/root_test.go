@@ -89,7 +89,7 @@ func TestRepoMapIntegrationRecallAndFallbackSuperset(t *testing.T) {
 	root := copyRepoMapFixture(t)
 
 	var stdout, stderr bytes.Buffer
-	code := Run(context.Background(), []string{"map", "--dir", root}, &stdout, &stderr)
+	code := Run(context.Background(), []string{"map", "--dir", root, "--include", "docs,internal,pkg"}, &stdout, &stderr)
 	if code != contract.ExitOK {
 		t.Fatalf("aidlc map code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
 	}

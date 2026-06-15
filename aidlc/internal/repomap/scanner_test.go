@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
 func TestScanDirFixtureRepo(t *testing.T) {
@@ -67,6 +68,58 @@ func TestWriteShardsUsesDeterministicJSONL(t *testing.T) {
 	}
 }
 
+func TestScanDirWithOptionsDescendsOnlyIncludedDirsAndRootFiles(t *testing.T) {
+	root := t.TempDir()
+	testutil.WriteFile(t, root, "README.md", "# Root\n")
+	testutil.WriteFile(t, root, "aidlc/main.go", "package main\n")
+	testutil.WriteFile(t, root, "docs/spec/1000000000-change.md", "---\nstatus: approved\n---\n")
+	testutil.WriteFile(t, root, "extra/ignored.go", "package extra\n")
+	testutil.WriteFile(t, root, ".venv/site.py", "print('skip')\n")
+	testutil.WriteFile(t, root, ".cursor/state.json", "{}\n")
+	testutil.WriteFile(t, root, ".codex/log.txt", "skip\n")
+	testutil.WriteFile(t, root, ".claude/log.txt", "skip\n")
+	testutil.WriteFile(t, root, "node_modules/pkg/index.js", "skip\n")
+	testutil.WriteFile(t, root, "vendor/pkg/file.go", "package vendor\n")
+	testutil.WriteFile(t, root, "docs/map/index.json", "{}\n")
+
+	shards, err := ScanDirWithOptions(root, ScanOptions{Include: []string{"docs", "aidlc"}})
+	if err != nil {
+		t.Fatalf("ScanDirWithOptions() error = %v", err)
+	}
+
+	assertFile(t, shards.Files, "README.md", "markdown")
+	assertFile(t, shards.Files, "aidlc/main.go", "go")
+	assertFile(t, shards.Files, "docs/spec/1000000000-change.md", "markdown")
+	assertNoFile(t, shards.Files, "extra/ignored.go")
+	assertNoFile(t, shards.Files, ".venv/site.py")
+	assertNoFile(t, shards.Files, ".cursor/state.json")
+	assertNoFile(t, shards.Files, ".codex/log.txt")
+	assertNoFile(t, shards.Files, ".claude/log.txt")
+	assertNoFile(t, shards.Files, "node_modules/pkg/index.js")
+	assertNoFile(t, shards.Files, "vendor/pkg/file.go")
+	assertNoFile(t, shards.Files, "docs/map/index.json")
+}
+
+func TestDetectIncludeCandidatesExcludesGeneratedDependencyAndAgentDirs(t *testing.T) {
+	root := t.TempDir()
+	for _, dir := range []string{
+		".ai", "aidlc", "docs", "src",
+		".venv", ".claude", ".cursor", ".codex",
+		"node_modules", "vendor", "build", "dist", ".cache",
+	} {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(dir)), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", dir, err)
+		}
+	}
+	testutil.WriteFile(t, root, "README.md", "# Root\n")
+
+	got, err := DetectIncludeCandidates(root)
+	if err != nil {
+		t.Fatalf("DetectIncludeCandidates() error = %v", err)
+	}
+	assertPaths(t, "candidates", got, []string{".ai", "aidlc", "docs", "src"})
+}
+
 func assertFile(t *testing.T, records []model.FileRecord, path, language string) {
 	t.Helper()
 	for _, record := range records {
@@ -75,6 +128,15 @@ func assertFile(t *testing.T, records []model.FileRecord, path, language string)
 		}
 	}
 	t.Fatalf("missing file record %s/%s in %#v", path, language, records)
+}
+
+func assertNoFile(t *testing.T, records []model.FileRecord, path string) {
+	t.Helper()
+	for _, record := range records {
+		if record.Path == path {
+			t.Fatalf("unexpected file record %s in %#v", path, records)
+		}
+	}
 }
 
 func assertImport(t *testing.T, records []model.ImportRecord, path, importPath string) {

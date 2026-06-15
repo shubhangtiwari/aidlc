@@ -37,7 +37,8 @@ template payload delivery files under `.ai/`.
   `ChangeRecord` are deterministic JSONL record contracts. Shards use LF line endings, stable sort
   keys, and a trailing newline.
 - `model.IndexMeta` declares schema version, `docs/map`, `index.json`, `repo-map.sqlite`, and all
-  shard filenames.
+  shard filenames. `IndexMeta.Include` records the normalized folder whitelist used to generate the
+  map so `aidlc map --check` can report mismatches between saved lock state and generated output.
 - `model.CacheBuilder` builds a derived cache from a map directory without exposing the concrete
   SQLite implementation to application command code.
 - `model.Querier` returns ranked `model.QueryResult` values with path, score, and snippet fields.
@@ -45,6 +46,9 @@ template payload delivery files under `.ai/`.
   injected querier also supports `QueryShard`.
 - `repomap.NewFallbackQuerier` implements JSONL linear-scan query semantics and returns a correct
   path superset when the SQLite cache is unavailable or shard filtering is requested.
+- `ScanOptions.Include` is the scanner and staleness contract for repo-map folder whitelists.
+  Include entries are normalized slash-relative directory paths. Map generation descends only into
+  whitelisted folders while still scanning regular files at the repository root.
 
 ## Owned State
 
@@ -62,10 +66,19 @@ Target repositories may contain generated repo-specific map state under `docs/ma
 The JSONL shards and `index.json` are canonical generated artifacts intended to be committed in the
 target repository. `repo-map.sqlite` is a local derived cache and is ignored by `docs/map/.gitignore`.
 The `.ai/` tree remains static delivery and guidance; it does not persist repo-specific map state.
+The root `aidlc.lock.json` owns the saved `workspace.map.include` whitelist; `docs/map/index.json`
+owns the include list used for the generated artifacts. A difference between those lists makes the
+map stale.
 
 ## Integration Boundaries
 
 - Filesystem walking reads target repository files and skips `docs/map/` generated artifacts.
+  Whitelisted scans prune descent to confirmed include roots and their descendants, plus any
+  ancestors needed to reach those roots. Root-level regular files are still indexed even when a
+  folder whitelist is present.
+- Candidate detection considers only direct child directories of the map root and excludes generated,
+  dependency, virtualenv, cache, VCS, and IDE-agent output directories such as `.git`, `.claude`,
+  `.codex`, `.cursor`, `.venv`, `node_modules`, `vendor`, `build`, `dist`, and `target`.
 - `modernc.org/sqlite` is isolated to `aidlc/internal/repomap/cache` for pure-Go SQLite/FTS5 cache
   creation and querying.
 - Concrete SQLite cache construction is allowed in `aidlc/internal/cli` only as composition-root
@@ -77,9 +90,10 @@ The `.ai/` tree remains static delivery and guidance; it does not persist repo-s
 
 ## Test Gates
 
-- `make aidlc-test` covers model determinism, scanner extraction, staleness checks, query engine
-  behavior, JSONL fallback, SQLite cache build/query behavior, map/query command parsing, root CLI
-  routing, and the integration acceptance metric.
+- `make aidlc-test` covers model determinism, scanner extraction, include normalization, whitelisted
+  descent with root-file indexing, candidate detection exclusions, staleness checks including include
+  mismatch stale output, query engine behavior, JSONL fallback, SQLite cache build/query behavior,
+  map/query command parsing, root CLI routing, and the integration acceptance metric.
 - The integration acceptance gate runs `aidlc map` on the fixture repository, queries through the
   SQLite FTS path, and asserts mean recall@10 is at least 0.7 across at least 10 labeled queries.
 - A separate fallback subtest removes the derived SQLite cache and asserts JSONL fallback results

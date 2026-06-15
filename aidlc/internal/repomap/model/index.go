@@ -30,6 +30,7 @@ type IndexMeta struct {
 	IndexFile     string         `json:"index_file"`
 	SQLiteFile    string         `json:"sqlite_file"`
 	Shards        ShardFilenames `json:"shards"`
+	Include       []string       `json:"include,omitempty"`
 }
 
 func DefaultShardFilenames() ShardFilenames {

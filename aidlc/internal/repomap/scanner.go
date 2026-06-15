@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
@@ -21,7 +22,15 @@ type Shards struct {
 }
 
 func ScanDir(root string) (*Shards, error) {
-	scanner := scanner{root: root}
+	return ScanDirWithOptions(root, ScanOptions{})
+}
+
+func ScanDirWithOptions(root string, options ScanOptions) (*Shards, error) {
+	include, err := NormalizeInclude(options.Include)
+	if err != nil {
+		return nil, err
+	}
+	scanner := scanner{root: root, include: include}
 	if err := scanner.scan(); err != nil {
 		return nil, err
 	}
@@ -64,8 +73,9 @@ func WriteShards(mapDir string, shards Shards) error {
 }
 
 type scanner struct {
-	root   string
-	shards Shards
+	root    string
+	include []string
+	shards  Shards
 }
 
 func (s *scanner) scan() error {
@@ -73,8 +83,19 @@ func (s *scanner) scan() error {
 		if err != nil {
 			return err
 		}
+		rel, err := filepath.Rel(s.root, path)
+		if err != nil {
+			return fmt.Errorf("relativize %s: %w", path, err)
+		}
+		rel = filepath.ToSlash(rel)
 		if entry.IsDir() {
-			if shouldSkipDir(entry.Name()) {
+			if rel == "." {
+				return nil
+			}
+			if shouldSkipDir(entry.Name()) || shouldSkipPath(rel) {
+				return filepath.SkipDir
+			}
+			if len(s.include) > 0 && !includeAllowsDir(s.include, rel) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -83,12 +104,7 @@ func (s *scanner) scan() error {
 			return nil
 		}
 
-		rel, err := filepath.Rel(s.root, path)
-		if err != nil {
-			return fmt.Errorf("relativize %s: %w", path, err)
-		}
-		rel = filepath.ToSlash(rel)
-		if shouldSkipFile(rel) {
+		if shouldSkipFile(rel) || (len(s.include) > 0 && !isRootFile(rel) && !includeContainsFile(s.include, rel)) {
 			return nil
 		}
 
@@ -114,17 +130,76 @@ func (s *scanner) scan() error {
 	})
 }
 
+func DetectIncludeCandidates(root string) ([]string, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, fmt.Errorf("read map root: %w", err)
+	}
+
+	candidates := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if shouldSkipDir(name) || shouldSkipPath(name) {
+			continue
+		}
+		clean, err := NormalizeIncludePath(name)
+		if err != nil {
+			continue
+		}
+		candidates = append(candidates, clean)
+	}
+	sort.Strings(candidates)
+	return candidates, nil
+}
+
 func shouldSkipDir(name string) bool {
 	switch name {
-	case ".git", "node_modules", "vendor", ".idea", ".vscode":
+	case ".git",
+		".claude", ".codex", ".cursor",
+		".idea", ".vscode",
+		".venv", "venv", "env",
+		"node_modules", "vendor",
+		"build", "dist", "out", "target",
+		".cache", "cache", "__pycache__",
+		".pytest_cache", ".mypy_cache", ".ruff_cache",
+		".next":
 		return true
 	default:
 		return false
 	}
 }
 
+func shouldSkipPath(path string) bool {
+	return path == model.MapDir || strings.HasPrefix(path, model.MapDir+"/")
+}
+
 func shouldSkipFile(path string) bool {
 	return strings.HasPrefix(path, model.MapDir+"/")
+}
+
+func includeAllowsDir(include []string, dir string) bool {
+	for _, item := range include {
+		if dir == item || strings.HasPrefix(dir, item+"/") || strings.HasPrefix(item, dir+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func includeContainsFile(include []string, path string) bool {
+	for _, item := range include {
+		if strings.HasPrefix(path, item+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func isRootFile(path string) bool {
+	return !strings.Contains(path, "/")
 }
 
 func countLines(content []byte) int {

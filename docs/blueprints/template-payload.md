@@ -21,7 +21,9 @@ The public payload is a strict allowlist:
 - Static repo-map helper files intentionally listed in `.ai/template-manifest.yaml`:
   `.ai/repo-map-protocol.md`, root `.ai/Makefile.inc`, and `docs/map/.gitignore`.
   `.ai/Makefile.inc` is the shared static Make helper include for repo-map targets and future
-  AIDLC Make helpers; repo-specific generated map state does not live under `.ai/`.
+  AIDLC Make helpers; it exposes optional `AI_MAP_INCLUDE` for non-interactive map bootstrap and
+  CI environments that need to choose the repo-map folder whitelist explicitly. Repo-specific
+  generated map state does not live under `.ai/`.
 - Reference architecture profiles under `.ai/references/architectures/**`, intentionally listed
   file-by-file in `.ai/template-manifest.yaml`, because `init-architecture` depends on them in
   initialized repositories.
@@ -54,8 +56,12 @@ implementation artifacts for this repository and must remain excluded from paylo
 Repo-map protocol guidance is public payload and applies to all agent roles. Agents must use the
 repo map as the first discovery mechanism, query it before conventional file discovery, and read
 real files before making claims or edits. When writes are allowed, the main session is responsible
-for creating missing maps and refreshing stale maps before role delegation. Conventional discovery
-fallback is allowed only when the map is unavailable, insufficient, or cannot answer the question.
+for creating missing maps and refreshing stale maps before role delegation. The first interactive
+map run confirms detected include folders and saves them to `aidlc.lock.json`; later runs reuse that
+saved whitelist. CI and other non-interactive first-run environments should pass
+`AI_MAP_INCLUDE=".ai,aidlc,docs"` or another explicit comma-separated folder list. Conventional
+discovery fallback is allowed only when the map is unavailable, insufficient, or cannot answer the
+question.
 
 ## Read-only Paths
 
@@ -99,6 +105,9 @@ explicitly narrows a starter exception:
   roots, including `.ai/**` guidance and the public starter `docs/spec/README.md`.
 - Payload updates may refresh repo-map-first exploration guidance in initialized roots, including
   `.ai/README.md`, `.ai/repo-map-protocol.md`, and persona guidance under `.ai/personas/**`.
+- Payload updates may refresh `.ai/Makefile.inc` to add helper variables such as `AI_MAP_INCLUDE`,
+  but they must not overwrite or reset consumer-chosen repo-map lock state in
+  `aidlc.lock.json.workspace.map.include`.
 - Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
   `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
 
@@ -112,4 +121,5 @@ Validation must preserve the explicit `docs/spec/README.md` manifest include, th
 `docs/spec/[0-9]*-*.md` exclusions, and the prohibition on broad `docs/**` payload copying.
 Coverage must include mapped manifest entries, path normalization for both source and target paths,
 private path rejection for target paths, duplicate target rejection, destination-path lock tracking,
-and the prohibition on broad license directory copying.
+repo-map helper payload membership, preservation of consumer lock whitelist choices during payload
+updates, and the prohibition on broad license directory copying.

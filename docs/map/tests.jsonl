@@ -9,15 +9,13 @@
 {"path":"aidlc/internal/install/checksums_test.go","language":"go","target_path":"aidlc/internal/install/checksums.go"}
 {"path":"aidlc/internal/install/platform_test.go","language":"go","target_path":"aidlc/internal/install/platform.go"}
 {"path":"aidlc/internal/install/upgrade_test.go","language":"go","target_path":"aidlc/internal/install/upgrade.go"}
-{"path":"aidlc/internal/repomap/cache/builder_test.go","language":"go","target_path":"aidlc/internal/repomap/cache/builder.go"}
-{"path":"aidlc/internal/repomap/cache/probe_test.go","language":"go","target_path":"aidlc/internal/repomap/cache/probe.go"}
-{"path":"aidlc/internal/repomap/cache/query_test.go","language":"go","target_path":"aidlc/internal/repomap/cache/query.go"}
 {"path":"aidlc/internal/repomap/docs_test.go","language":"go","target_path":"aidlc/internal/repomap/docs.go"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","target_path":"aidlc/internal/repomap/fallback.go"}
 {"path":"aidlc/internal/repomap/imports_test.go","language":"go","target_path":"aidlc/internal/repomap/imports.go"}
 {"path":"aidlc/internal/repomap/model/hash_test.go","language":"go","target_path":"aidlc/internal/repomap/model/hash.go"}
 {"path":"aidlc/internal/repomap/model/jsonl_test.go","language":"go","target_path":"aidlc/internal/repomap/model/jsonl.go"}
 {"path":"aidlc/internal/repomap/model/record_test.go","language":"go","target_path":"aidlc/internal/repomap/model/record.go"}
+{"path":"aidlc/internal/repomap/options_test.go","language":"go","target_path":"aidlc/internal/repomap/options.go"}
 {"path":"aidlc/internal/repomap/queryengine_test.go","language":"go","target_path":"aidlc/internal/repomap/queryengine.go"}
 {"path":"aidlc/internal/repomap/scanner_test.go","language":"go","target_path":"aidlc/internal/repomap/scanner.go"}
 {"path":"aidlc/internal/repomap/staleness_test.go","language":"go","target_path":"aidlc/internal/repomap/staleness.go"}

@@ -44,12 +44,21 @@ It does not own root template source files except by reading the public template
 ## Cross-package Contracts
 
 - Commands: `init`, `map`, `query`, `update`, `upgrade`, and `version`.
-- `aidlc map [--dir DIR] [--check]` builds the repository navigation index for `DIR` (default
-  `.`). A normal run scans the target repository, writes deterministic JSONL shards and
+- `aidlc map [--dir DIR] [--include DIR[,DIR...]] [--check]` builds the repository navigation
+  index for `DIR` (default `.`). A normal run scans the target repository using the saved
+  `workspace.map.include` whitelist from `aidlc.lock.json`, writes deterministic JSONL shards and
   `docs/map/index.json`, rebuilds the derived `docs/map/repo-map.sqlite` cache, prints a stable
-  plain-text summary, and exits `0`. `--check` compares `docs/map/index.json` content hashes to the
-  current files, prints `repo map: fresh` or a deterministic stale report, exits `0` when fresh,
-  exits `1` when stale, and exits `2` for invalid usage or unreadable map state.
+  plain-text summary, and exits `0`. `--include` normalizes, saves, and uses an explicit
+  comma-separated folder whitelist. On the first interactive run without a saved whitelist, the
+  command detects candidate root folders, asks the user to confirm them, saves the confirmed list,
+  and then builds the map. On later runs it reuses the saved whitelist without prompting. A
+  non-interactive first run without `--include` exits `2` with deterministic guidance.
+- `aidlc map --check` is read-only. It rejects `--include`, requires a saved
+  `workspace.map.include` whitelist, does not prompt, does not write `aidlc.lock.json`, and compares
+  the current files under the saved whitelist to `docs/map/index.json`. It prints
+  `repo map: fresh` or a deterministic stale report, exits `0` when fresh, exits `1` when stale,
+  and exits `2` for invalid usage or unreadable map state. A mismatch between the saved whitelist
+  and the include list recorded in `docs/map/index.json` is stale output.
 - `aidlc query [--dir DIR] [--limit N] [--shard NAME] <search terms>` queries the repo map for
   `DIR` (default `.`) and prints ranked tab-separated rows as `<path>\t<score>\t<snippet>`.
   `--limit` defaults to `10`; negative limits and empty search terms exit `2`. Without `--shard`,
@@ -87,11 +96,14 @@ It does not own root template source files except by reading the public template
 - Supported IDEs: `claude`, `codex`, `cursor`, `copilot`, `windsurf`, and aggregate `all`.
 - Target lock: root `aidlc.lock.json` records schema version, upstream source/ref/commit,
   authoritative `workspace.ides`, generated IDE metadata, tracked payload paths, file checksums,
-  file modes, and command metadata such as source kind and local source path. `workspace.ides`
-  stores concrete IDE identifiers only, de-duplicated in canonical supported IDE order; `all`
-  expands to every concrete IDE before persistence. Tracked payload paths are destination paths:
-  the AIDLC repository root `LICENSE` payload is tracked in target repositories as
-  `licenses/aidlc.md`, leaving any consumer root `LICENSE` outside AIDLC ownership.
+  file modes, repo-map whitelist state under `workspace.map.include`, and command metadata such as
+  source kind and local source path. `workspace.ides` stores concrete IDE identifiers only,
+  de-duplicated in canonical supported IDE order; `all` expands to every concrete IDE before
+  persistence. `workspace.map.include` stores normalized slash-relative folder paths used by
+  `aidlc map` and `aidlc map --check`; explicit include writes preserve existing upstream,
+  generated, files, workspace IDE, metadata, and unknown lock fields. Tracked payload paths are
+  destination paths: the AIDLC repository root `LICENSE` payload is tracked in target repositories
+  as `licenses/aidlc.md`, leaving any consumer root `LICENSE` outside AIDLC ownership.
 - Legacy fallback: when `aidlc.lock.json` is absent, `.aidlc/manifest.json` may supply
   `workspace.ides`; if that field is absent, `generated.ide` is used, with `generated.ide: all`
   expanded to every concrete IDE. Root `aidlc.lock.json` takes precedence when both files exist.
@@ -124,16 +136,18 @@ generated IDE files such as `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`,
 `.github/copilot-instructions.md`, and `.windsurfrules`. Target repositories may also receive
 repo-specific generated map artifacts from `aidlc map` under `docs/map/`: committed canonical JSONL
 shards and `docs/map/index.json`, plus the ignored derived cache `docs/map/repo-map.sqlite`. The
-consumer repository root `LICENSE` is not owned by AIDLC after license relocation; init and update
-must not create, overwrite, delete, or track it as the active AIDLC license payload. The root lock
-owns workspace IDE selections, tracked payload checksums, generation metadata, and update source
-metadata. Legacy `.aidlc/manifest.json` may still be read for compatibility but is no longer the
-authoritative write target. During conflicted init, the partial root lock records only accepted
-upstream payload files plus generation/workspace metadata; conflicted payload paths are excluded
-from tracked clean file entries. Forced init and forced update may replace divergent public payload
-destination files and then record those overwritten paths as clean tracked files in
-`aidlc.lock.json`. Removed-upstream files, private paths, unknown local files, and local-only files
-remain outside forced deletion or overwrite behavior.
+saved map whitelist in `aidlc.lock.json` is authoritative for subsequent map builds and read-only
+freshness checks. The consumer repository root `LICENSE` is not owned by AIDLC after license
+relocation; init and update must not create, overwrite, delete, or track it as the active AIDLC
+license payload. The root lock owns workspace IDE selections, map include selections, tracked
+payload checksums, generation metadata, and update source metadata. Legacy `.aidlc/manifest.json`
+may still be read for compatibility but is no longer the authoritative write target. During
+conflicted init, the partial root lock records only accepted upstream payload files plus
+generation/workspace metadata; conflicted payload paths are excluded from tracked clean file
+entries. Forced init and forced update may replace divergent public payload destination files and
+then record those overwritten paths as clean tracked files in `aidlc.lock.json`. Removed-upstream
+files, private paths, unknown local files, and local-only files remain outside forced deletion or
+overwrite behavior.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
@@ -204,6 +218,8 @@ overwrite output rows, exit `0` on successful forced overwrites, lock tracking o
 payload paths, regenerated requested or persisted IDE files, private path exclusion, dry-run force
 read-only behavior, unchanged non-forced conflict behavior, map/query root CLI help and routing,
 repo-map build output with `docs/map/` JSONL shards, `index.json`, and derived SQLite cache,
-staleness exit codes, SQLite FTS recall@10 of at least 0.7 across the labeled fixture queries, JSONL
-fallback superset behavior for the same queries, and `make aidlc-release-check` coverage proving the
-SQLite dependency does not break CGO-disabled cross-compilation.
+saved map whitelist persistence and reuse, first-run map include confirmation, non-interactive
+first-run guidance, read-only `aidlc map --check` behavior, include mismatch stale output,
+staleness exit codes, SQLite FTS recall@10 of at least 0.7 across the labeled fixture queries,
+JSONL fallback superset behavior for the same queries, and `make aidlc-release-check` coverage
+proving the SQLite dependency does not break CGO-disabled cross-compilation.
