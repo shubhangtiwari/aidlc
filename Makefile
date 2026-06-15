@@ -21,6 +21,8 @@ BASH ?= bash
 INIT_ARG := $(word 2,$(MAKECMDGOALS))
 FINALIZE_ARGS := $(filter-out finalize-spec,$(MAKECMDGOALS))
 
+-include .ai/Makefile.inc
+
 help:
 	@echo "usage:"
 	@echo "  make init <claude|codex|cursor|copilot|windsurf|all>   # generate IDE entrypoints from .ai/"

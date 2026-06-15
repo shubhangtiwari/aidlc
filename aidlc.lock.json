@@ -17,9 +17,14 @@
   "generated": {
     "ide": "all",
     "version": "dev",
-    "timestamp": "2026-06-10T20:09:55Z"
+    "timestamp": "2026-06-15T00:39:42Z"
   },
   "files": [
+    {
+      "path": ".ai/Makefile.inc",
+      "checksum": "sha256:146bf69f9f8dd50821845f1af57e7f7bbfd172f365d43b144c87ebaf3aa3fee1",
+      "mode": "0644"
+    },
     {
       "path": ".ai/README.md",
       "checksum": "sha256:753ecafdbcca467865928c4c7e39a23d98ac9b65e81b3eaa59954278f36f6f9f",
@@ -106,6 +111,11 @@
       "mode": "0644"
     },
     {
+      "path": ".ai/repo-map-protocol.md",
+      "checksum": "sha256:90107ed8da7ac7a0737d17ad887a36c34d9c53017527d754cd5537440cbad8e9",
+      "mode": "0644"
+    },
+    {
       "path": ".ai/scripts/finalize_spec.sh",
       "checksum": "sha256:79e4208758a9024b102719b0fb804fbe8c54aab856939b7ab0ed972cc57ce754",
       "mode": "0755"
@@ -122,7 +132,7 @@
     },
     {
       "path": ".ai/skills/init-architecture.md",
-      "checksum": "sha256:4cf349287e000b78f80fbc0de6da9f94bbb59ca0b52b2f25c00ad440c6a0b9f9",
+      "checksum": "sha256:d126efbac30fabb7037034325b5641c02d84798f12790031cef963d885f3227c",
       "mode": "0644"
     },
     {
@@ -148,6 +158,11 @@
     {
       "path": "docs/blueprints/README.md",
       "checksum": "sha256:d892606a91ff6f4ec15867714c3cb0a46162453be63c2d7e4baca42900bfe3ae",
+      "mode": "0644"
+    },
+    {
+      "path": "docs/map/.gitignore",
+      "checksum": "sha256:7d2c8e8d01cb6b57d7ec3e7f121bdda9ad2900f5011868f5f48a9331804724ce",
       "mode": "0644"
     },
     {

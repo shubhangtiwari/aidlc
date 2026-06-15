@@ -11,6 +11,8 @@ are performed by the generated agent harness after `aidlc init <ide>` has create
 
 ```text
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
+aidlc map [flags]
+aidlc query [flags] <search terms>
 aidlc update [flags]
 aidlc upgrade [flags]
 aidlc version
@@ -47,6 +49,36 @@ requested IDE files, writes an honest partial lock, and exits `1`.
 With `--force`, conflicting public payload destinations become explicit overwrite decisions.
 Forced runs replace those divergent payload files, record them as clean tracked files in
 `aidlc.lock.json`, and exit `0` when no non-force error occurs.
+
+## `aidlc map`
+
+```text
+aidlc map [flags]
+```
+
+`map` builds the repository navigation index under `docs/map/` for the selected repository root.
+By default it scans the current directory, writes deterministic JSONL shards, writes
+`docs/map/index.json`, rebuilds the derived `docs/map/repo-map.sqlite` query cache, prints a stable
+plain-text summary, and exits `0`.
+
+With `--check`, `map` does not rebuild artifacts. It compares the content hashes in
+`docs/map/index.json` with the current files, prints `repo map: fresh` when the map is current or a
+deterministic stale report when it is not, exits `0` when fresh, exits `1` when stale, and exits `2`
+for invalid usage or unreadable map state.
+
+## `aidlc query`
+
+```text
+aidlc query [flags] <search terms>
+```
+
+`query` searches the repository map for the selected repository root and prints ranked
+tab-separated rows as `<path>\t<score>\t<snippet>`. It uses `docs/map/repo-map.sqlite` when present
+and falls back to a JSONL scan of `docs/map/` artifacts when the cache is absent. `--shard` forces
+the JSONL path for one shard.
+
+Successful queries exit `0`, including empty result sets, which print no rows. Empty search terms,
+negative limits, invalid usage, or unreadable map state exit `2`.
 
 ## `aidlc update`
 
@@ -122,6 +154,15 @@ Local source mode is intended for development and tests:
 aidlc init codex --source local --path /path/to/aidlc
 aidlc update --source local --path /path/to/aidlc --ref main
 ```
+
+## Map and Query Flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir DIR` | Repository root to map or query. Default: `.`. |
+| `--check` | For `map`, check whether existing `docs/map/` artifacts are fresh instead of rebuilding them. |
+| `--limit N` | For `query`, maximum ranked rows to print. Default: `10`. |
+| `--shard NAME` | For `query`, search one JSONL shard directly instead of using the SQLite cache. |
 
 ## Upgrade Flags
 

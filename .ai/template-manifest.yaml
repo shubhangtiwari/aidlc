@@ -18,6 +18,8 @@ payload:
     - .ai/references/architectures/tiered-service/blueprint-template.md
     - .ai/references/ci/github-finalize-spec.yml
     - .ai/references/ci/gitlab-finalize-spec.yml
+    - .ai/repo-map-protocol.md
+    - .ai/Makefile.inc
     - .ai/scripts/finalize_spec.sh
     - .ai/skills/architecture-diagrams.md
     - .ai/skills/classify-change.md
@@ -27,6 +29,7 @@ payload:
     - .ai/templates/spec.md
     - docs/adr/README.md
     - docs/blueprints/README.md
+    - docs/map/.gitignore
     - docs/spec/README.md
     - source: LICENSE
       target: licenses/aidlc.md
@@ -35,6 +38,9 @@ payload:
     - docs/adr/[0-9]*-*.md
     - docs/blueprints/aidlc.md
     - docs/blueprints/template-payload.md
+    - docs/map/*.jsonl
+    - docs/map/index.json
+    - docs/map/repo-map.sqlite
     - docs/ARCHITECTURE.md
     - docs/architecture/**
     - aidlc/**

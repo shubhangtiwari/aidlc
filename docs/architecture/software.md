@@ -18,6 +18,11 @@ governed by `docs/blueprints/template-payload.md`.
 ## Dependency Direction
 
 - Interface may depend on application and contracts.
+- Composition-root exception: `aidlc/internal/cli` may import infrastructure implementations only
+  to bind concrete adapters to application/contract interfaces at command construction time. This
+  exception is limited to dependency assembly; CLI code must not contain business logic,
+  persistence logic, scanning/query behavior, or direct infrastructure operations beyond
+  constructing and passing dependencies.
 - Application may depend on contracts, payload policy, and infrastructure interfaces.
 - Contracts and payload policy must not depend on interface, application orchestration, or
   infrastructure packages.

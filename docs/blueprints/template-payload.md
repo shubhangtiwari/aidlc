@@ -18,6 +18,10 @@ copied to initialized or updated consumer repositories.
 The public payload is a strict allowlist:
 
 - `.ai/**` files intentionally listed in `.ai/template-manifest.yaml`.
+- Static repo-map helper files intentionally listed in `.ai/template-manifest.yaml`:
+  `.ai/repo-map-protocol.md`, root `.ai/Makefile.inc`, and `docs/map/.gitignore`.
+  `.ai/Makefile.inc` is the shared static Make helper include for repo-map targets and future
+  AIDLC Make helpers; repo-specific generated map state does not live under `.ai/`.
 - Reference architecture profiles under `.ai/references/architectures/**`, intentionally listed
   file-by-file in `.ai/template-manifest.yaml`, because `init-architecture` depends on them in
   initialized repositories.
@@ -57,6 +61,8 @@ explicitly narrows a starter exception:
 - non-public `docs/blueprints/*.md`
 - `docs/ARCHITECTURE.md`
 - `docs/architecture/**`
+- generated repo-map state: `docs/map/*.jsonl`, `docs/map/index.json`, and
+  `docs/map/repo-map.sqlite`
 - `aidlc/**`
 - `.github/**`
 - `release/**`, `dist/**`, `build/**`

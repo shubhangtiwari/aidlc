@@ -1,6 +1,6 @@
 ---
 name: init-architecture
-description: Initializes or refreshes repository architecture documentation by analyzing the codebase and recommending a reference profile. Use when the user asks to initialize the project, initialize architecture, bootstrap governance, set up layer rules, or when docs/ARCHITECTURE.md is missing, empty, or still the generic template without project-specific facts.
+description: Initializes or refreshes repository architecture documentation, module blueprints, and repo-map artifacts by analyzing the codebase and recommending a reference profile. Use when the user asks to initialize the project, initialize architecture, bootstrap governance, set up layer rules, generate blueprints, generate the repo map, or when docs/ARCHITECTURE.md is missing, empty, or still the generic template without project-specific facts.
 ---
 
 # Skill: Initialize Architecture
@@ -53,6 +53,14 @@ Read both when picking a profile.
 
 Read: `docs/ARCHITECTURE.md`, `docs/architecture/*`, ADR titles, blueprints, `.ai/`, `Makefile`.
 
+### Blueprint and repo-map readiness
+
+- Identify owned source modules/packages that need concrete blueprints. Use manifest boundaries,
+  package roots, service/app directories, and existing blueprints as evidence. Do not create one
+  blueprint per incidental folder.
+- Check whether `.ai/Makefile.inc` exists and whether the root `Makefile` already includes it.
+  Record whether `make ai-map` can be run after writes.
+
 ### Git and CI
 
 - `[ -d .git ]` — required for Phase 5 pipeline bootstrap.
@@ -71,6 +79,21 @@ Present **three options**:
 | **C — Define new** | Greenfield, unique stack, or blend |
 
 For **A**, rank top 1–3 references with confidence (high / medium / low) and why.
+
+## Onboarding flow to present before writes
+
+Before Phase 3 writes, clearly state the initialization steps that will run so the user sees the
+process as an onboarding flow:
+
+1. Confirm the architecture profile choice.
+2. Create or refine `docs/ARCHITECTURE.md` and any domain layer docs under `docs/architecture/`.
+3. Generate or refresh concrete module blueprints for real source modules.
+4. Ensure root Makefile integration by adding `-include .ai/Makefile.inc` exactly once to an
+   existing root `Makefile`, or by creating a minimal root `Makefile` when none exists.
+5. Generate the repo map with `make ai-map`, then verify freshness with `make ai-map-check`.
+6. Wire or confirm post-merge `finalize-spec` CI when the repository is a git checkout.
+7. Run the validation gates and record completed, skipped, or failed steps in the Initialization
+   record.
 
 ## Phase 3 — Compose (after user approval)
 
@@ -98,11 +121,64 @@ chosen profile. Rules:
 New ADRs use `docs/adr/<epoch>-<slug>.md` with heading `# ADR-<epoch>: <title>` (`date +%s` for
 epoch). See `docs/adr/README.md`.
 
+### Generate concrete module blueprints
+
+Create or update concrete `docs/blueprints/<module>.md` files during initialization when source
+modules/packages are identifiable from repository evidence.
+
+Rules:
+
+- Use the chosen profile's `blueprint-template.md` as the shape, adapted with real package purpose,
+  boundary, layer map, contracts, owned state, integrations, and test gates.
+- For `polyglot-monorepo`, create one blueprint per clear package/domain root rather than one
+  generic monorepo blueprint. Use the per-domain profile template when a package clearly maps to
+  tiered-service, data-engineering, or data-science.
+- For `minimal-tooling`, create only blueprints for real governance/tooling modules already present;
+  otherwise record `blueprints skipped (no source modules detected)`.
+- Do not overwrite substantial existing blueprints without confirming whether to refine them.
+- Do not invent modules for empty or speculative paths. If evidence is insufficient, list blueprint
+  candidates in the Initialization record instead of creating boilerplate.
+
+Record generated, refreshed, skipped, and candidate blueprints in `docs/ARCHITECTURE.md` under the
+**Initialization record**.
+
 ## Phase 4 — Post-write
 
-Remind the user to run `make init all`. Suggest module blueprints under `docs/blueprints/`.
+Remind the user to run `make init all` only after any source `.ai/` changes are complete. Module
+blueprints should already be generated or explicitly recorded as skipped/candidates.
 
-Record in **Initialization record** whether Phase 5 ran, was skipped, or CI already had finalize.
+Record in **Initialization record** whether blueprint generation, repo-map generation, and Phase 5
+ran, were skipped, or were already present.
+
+### Wire and generate the repo map
+
+After architecture docs and blueprints are written, generate the navigation map when the repo-map
+helper is available:
+
+1. If `.ai/Makefile.inc` exists, ensure the root `Makefile` contains this include exactly once:
+
+   ```make
+   -include .ai/Makefile.inc
+   ```
+
+   Preserve existing governance targets and unrelated Makefile content.
+2. If no root `Makefile` exists, create a minimal root `Makefile` containing `-include
+   .ai/Makefile.inc` and detected `install`, `run`, and `test` targets. Use the detection table in
+   **Populate Makefile project targets** for recipes. If a target genuinely does not apply, keep the
+   target and print a one-line explanation.
+3. Run `make ai-map` from the repository root.
+4. Run `make ai-map-check` to confirm the generated map is fresh.
+5. Record the result in `docs/ARCHITECTURE.md` under **Initialization record**.
+
+Generated map rules:
+
+- `docs/map/*.jsonl` and `docs/map/index.json` are canonical generated repo-specific artifacts.
+- `docs/map/repo-map.sqlite` is a derived local cache and must remain ignored.
+- Never edit `docs/map/` files by hand; regenerate them with `make ai-map`.
+- Never persist repo-specific map state under `.ai/`.
+- If `.ai/Makefile.inc` is missing, `aidlc` is unavailable, or `make ai-map` fails for an
+  environment reason, do not improvise with ad hoc commands. Record `repo map skipped` with the
+  concrete reason and tell the user which prerequisite is missing.
 
 ### Populate Makefile project targets
 

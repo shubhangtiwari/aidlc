@@ -20,6 +20,7 @@ files for Codex, Claude, Cursor, Copilot, and Windsurf.
 - [Agents](#agents)
 - [Skills](#skills)
 - [CLI Commands](#cli-commands)
+- [Repository Map](#repository-map)
 - [Maintainer Notes](#maintainer-notes)
 - [License](#license)
 
@@ -203,6 +204,8 @@ Skills define procedure. Personas define authority.
 
 ```text
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
+aidlc map [flags]
+aidlc query [flags] <search terms>
 aidlc update [flags]
 aidlc upgrade [flags]
 aidlc version
@@ -210,6 +213,29 @@ aidlc version
 
 For CLI options, flags, output format, and exit codes, see the native CLI reference:
 [aidlc/README.md](aidlc/README.md).
+
+## Repository Map
+
+`aidlc map` builds a compact navigation index that helps agents find relevant files before reading
+source. The map is for every agent role, including the main session, architect, implementer, and
+reviewer. It writes repo-specific map artifacts under `docs/map/`, not `.ai/`:
+
+- `docs/map/*.jsonl` and `docs/map/index.json` are the canonical map files.
+- `docs/map/repo-map.sqlite` is a derived local query cache and is ignored by git.
+
+After initialization wires `.ai/Makefile.inc` into the project Makefile, use the Make targets from
+the governed repository root:
+
+```sh
+make ai-map
+make ai-map-check
+make ai-query AI_QUERY="auth middleware"
+```
+
+Use `make ai-map` after meaningful file or blueprint changes. Use `make ai-map-check` in a
+pre-flight or CI-style check when you need to know whether the committed map is stale. Use
+`make ai-query` at the start of an agent task to get a small ranked list of files to inspect, then
+read the real files before editing.
 
 ## Maintainer Notes
 
