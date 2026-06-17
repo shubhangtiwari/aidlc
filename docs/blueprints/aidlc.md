@@ -43,7 +43,7 @@ It does not own root template source files except by reading the public template
 
 ## Cross-package Contracts
 
-- Commands: `init`, `map`, `query`, `update`, `upgrade`, and `version`.
+- Commands: `doctor`, `init`, `map`, `query`, `update`, `upgrade`, and `version`.
 - `aidlc map [--dir DIR] [--include DIR[,DIR...]] [--check]` builds the repository navigation
   index for `DIR` (default `.`). A normal run scans the target repository using the saved
   `workspace.map.include` whitelist from `aidlc.lock.json`, writes deterministic JSONL shards and
@@ -117,8 +117,23 @@ It does not own root template source files except by reading the public template
   Cursor rule rendering is part of that generated guidance contract: spec-gate text must follow the
   portable scope-resolution rule for nested initialized AIDLC roots, including scope-local
   `docs/spec/<epoch>-<slug>.md` ownership and parent-scope refusal for files owned by nested scopes.
+- `aidlc doctor [--dir DIR]` reports deterministic local diagnostics without mutating user or
+  repository state. It prints the current version, running executable path, selected repository
+  directory, whether `aidlc` is discoverable through the current process `PATH`, executable status
+  for common install candidates including the Windows installer default
+  `%LOCALAPPDATA%\Programs\aidlc\bin`, and `.ai/Makefile.inc` plus root Makefile include status. It
+  exits `0` when no action is needed, `1` when PATH or Make helper findings are present, and `2`
+  for invalid usage. Findings include sanitized-shell and CI guidance, including `AIDLC_BIN` and
+  installer PATH next steps.
 - Repository `make init <ide>` and `make update` targets are thin wrappers around the native CLI.
-  They do not define a separate Bash compatibility contract.
+  Public `.ai/Makefile.inc` repo-map helpers resolve `aidlc` through explicit `AIDLC_BIN`, then
+  `command -v aidlc`, then supported common install locations including
+  `$LOCALAPPDATA/Programs/aidlc/bin/aidlc.exe`, `$HOME/.local/bin`, `$HOME/bin`,
+  `/opt/homebrew/bin`, and `/usr/local/bin` on Unix-like systems, with Windows executable variants
+  where supported by the shell. `make ai-map`, `make ai-map-check`, `make ai-query`, and
+  `make ai-doctor` share that resolver. Resolver failure exits `2` before invoking a helper command
+  and prints guidance for `AIDLC_BIN`, `make ai-doctor`, Unix `AIDLC_INSTALL_DIR`, and Windows user
+  PATH behavior. These targets do not define a separate Bash compatibility contract.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
   Successful forced init/update overwrites exit `0`; `--force` does not downgrade usage, source,
   fetch, manifest, generation, lock, write, or upgrade errors.
@@ -151,9 +166,15 @@ overwrite behavior.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
-The Unix shell installer owns only the installed `aidlc` executable at the resolved install
-directory. When `AIDLC_INSTALL_DIR` is unset, that destination is `/usr/local/bin/aidlc`; when
-`AIDLC_INSTALL_DIR` is set, ownership is limited to `aidlc` inside that caller-provided directory.
+`aidlc doctor` owns no repository, installer, PATH, shell configuration, network, or payload state.
+The Unix shell installer owns only the installed `aidlc` executable at the selected install
+directory. `AIDLC_INSTALL_DIR` remains the highest-priority override; otherwise the installer
+chooses a writable `/usr/local/bin` destination when available and falls back to
+`$HOME/.local/bin`. It checks PATH membership and prints guidance, but it does not edit shell
+dotfiles or invoke `sudo`. The Windows PowerShell installer owns the installed `aidlc.exe` under the
+selected install directory, defaulting to the user-local app bin directory
+`$LOCALAPPDATA\Programs\aidlc\bin`, and may update only the current user's PATH. It does not update
+machine PATH or target repository payload state.
 
 ## Integration Boundaries
 
@@ -163,10 +184,16 @@ directory. When `AIDLC_INSTALL_DIR` is unset, that destination is `/usr/local/bi
   still use native filesystem, archive, checksum, and rendering logic and avoid shelling out.
 - GitHub release artifacts and checksum files are consumed by shell and PowerShell installers.
 - The Unix shell installer downloads release artifacts, verifies them against `checksums.txt`, and
-  writes the `aidlc` executable to `/usr/local/bin` by default. It does not elevate privileges
-  itself; users who lack write permission to the default destination may invoke the installer shell
-  with elevated permissions. `AIDLC_INSTALL_DIR` remains the supported override for user-writable or
-  custom destinations.
+  writes the `aidlc` executable to `AIDLC_INSTALL_DIR` when set, otherwise to writable
+  `/usr/local/bin` or the user-local fallback `$HOME/.local/bin`. It does not elevate privileges
+  itself and does not edit shell dotfiles. After installation it checks whether the selected
+  directory is on PATH and prints deterministic verification or next-step guidance, including
+  `AIDLC_INSTALL_DIR`, shell PATH configuration, and `AIDLC_BIN=<installed path> make <target>`.
+- The Windows PowerShell installer downloads release artifacts, verifies them against
+  `checksums.txt`, and writes `aidlc.exe` to `AIDLC_INSTALL_DIR` when set, otherwise to
+  `$LOCALAPPDATA\Programs\aidlc\bin`. It attempts a user-scoped PATH update, reports whether the
+  path was already present, updated, or not changed, and prints deterministic new-terminal/IDE
+  restart, manual user PATH, and `AIDLC_BIN` guidance.
 - `aidlc upgrade` uses native GitHub release metadata and release asset downloads for CLI binary
   replacement, reusing `checksums.txt` verification and the existing release artifact naming
   scheme: `aidlc_<os>_<arch>.tar.gz` for Darwin/Linux, `aidlc_windows_<arch>.zip` for Windows, and
@@ -208,10 +235,14 @@ normalized tracked payload paths; license relocation to `licenses/aidlc.md`; pre
 consumer root `LICENSE`; mapped target lock entries; historical `LICENSE` update behavior where the
 old tracked root path is reported as removed upstream without deletion; release asset selection for
 supported platforms; release verification of the Unix shell installer default destination and
-`AIDLC_INSTALL_DIR` override contract without network access; checksum verification before binary
-replacement; dry-run behavior without
+`AIDLC_INSTALL_DIR` override contract without network access; Unix installer fallback destination
+and PATH guidance; Windows installer user-local default destination, user PATH update behavior, and
+restart/manual guidance; Make helper `AIDLC_BIN`, PATH, common-location, and missing-binary failure
+resolution; checksum verification before binary replacement; dry-run behavior without
 archive downloads or destination writes; already-latest no-op behavior; upgrade command help and
-root CLI routing; packaged-binary `aidlc upgrade --help` smoke coverage; and rendered governance
+root CLI routing; `aidlc doctor` help, routing, deterministic output, Make helper diagnostics, and
+exit semantics; Windows installer default common-location discovery for sanitized PATH shells;
+packaged-binary `aidlc upgrade --help` and `aidlc doctor --help` smoke coverage; and rendered governance
 guidance parity where hardcoded spec-gate text exists. Cursor guidance tests must cover native Go
 generation for scope-aware spec ownership invariants. Forced init/update coverage must prove
 overwrite output rows, exit `0` on successful forced overwrites, lock tracking of overwritten public

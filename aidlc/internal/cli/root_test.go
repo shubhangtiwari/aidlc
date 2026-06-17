@@ -19,6 +19,7 @@ func TestRootHelpListsCommands(t *testing.T) {
 		t.Fatalf("root help code = %d", code)
 	}
 	for _, want := range []string{
+		"aidlc doctor [flags]",
 		"aidlc map [flags]",
 		"aidlc query [flags] <search terms>",
 		"aidlc upgrade [flags]",
@@ -38,6 +39,7 @@ func TestRootRoutesMapAndQueryHelp(t *testing.T) {
 		args []string
 		want string
 	}{
+		{name: "doctor", args: []string{"doctor", "--help"}, want: "Usage: aidlc doctor [flags]"},
 		{name: "map", args: []string{"map", "--help"}, want: "Usage: aidlc map [flags]"},
 		{name: "query", args: []string{"query", "--help"}, want: "Usage: aidlc query [flags] <search terms>"},
 	} {
@@ -79,6 +81,9 @@ func TestRootUnknownCommandStillExitsUsage(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "aidlc upgrade [flags]") {
 		t.Fatalf("stderr root help missing upgrade:\n%s", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "aidlc doctor [flags]") {
+		t.Fatalf("stderr root help missing doctor:\n%s", stderr.String())
 	}
 	if stdout.Len() != 0 {
 		t.Fatalf("stdout = %q, want empty", stdout.String())

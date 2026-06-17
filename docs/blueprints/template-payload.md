@@ -22,8 +22,13 @@ The public payload is a strict allowlist:
   `.ai/repo-map-protocol.md`, root `.ai/Makefile.inc`, and `docs/map/.gitignore`.
   `.ai/Makefile.inc` is the shared static Make helper include for repo-map targets and future
   AIDLC Make helpers; it exposes optional `AI_MAP_INCLUDE` for non-interactive map bootstrap and
-  CI environments that need to choose the repo-map folder whitelist explicitly. Repo-specific
-  generated map state does not live under `.ai/`.
+  CI environments that need to choose the repo-map folder whitelist explicitly. It also owns the
+  public Make helper `aidlc` resolver: explicit `AIDLC_BIN` wins, then the current shell `PATH`,
+  then supported common install locations such as `$LOCALAPPDATA/Programs/aidlc/bin/aidlc.exe`,
+  `$HOME/.local/bin`, `$HOME/bin`, `/opt/homebrew/bin`, and `/usr/local/bin` with Windows
+  executable variants where relevant. The repo-map helpers and `make ai-doctor` share this
+  resolver, and missing-binary failures print deterministic installer, PATH, `AIDLC_BIN`, and
+  doctor guidance before exiting. Repo-specific generated map state does not live under `.ai/`.
 - Reference architecture profiles under `.ai/references/architectures/**`, intentionally listed
   file-by-file in `.ai/template-manifest.yaml`, because `init-architecture` depends on them in
   initialized repositories.
@@ -106,8 +111,9 @@ explicitly narrows a starter exception:
 - Payload updates may refresh repo-map-first exploration guidance in initialized roots, including
   `.ai/README.md`, `.ai/repo-map-protocol.md`, and persona guidance under `.ai/personas/**`.
 - Payload updates may refresh `.ai/Makefile.inc` to add helper variables such as `AI_MAP_INCLUDE`,
-  but they must not overwrite or reset consumer-chosen repo-map lock state in
-  `aidlc.lock.json.workspace.map.include`.
+  update `aidlc` discovery behavior, and expose helper targets such as `ai-doctor`, but they must
+  not overwrite or reset consumer-chosen repo-map lock state in
+  `aidlc.lock.json.workspace.map.include` or modify a consumer root Makefile include line.
 - Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
   `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
 
@@ -121,5 +127,8 @@ Validation must preserve the explicit `docs/spec/README.md` manifest include, th
 `docs/spec/[0-9]*-*.md` exclusions, and the prohibition on broad `docs/**` payload copying.
 Coverage must include mapped manifest entries, path normalization for both source and target paths,
 private path rejection for target paths, duplicate target rejection, destination-path lock tracking,
-repo-map helper payload membership, preservation of consumer lock whitelist choices during payload
-updates, and the prohibition on broad license directory copying.
+repo-map helper payload membership, robust Make helper discovery and `ai-doctor` payload behavior,
+including the Windows installer default LocalAppData fallback under sanitized PATH,
+preservation of consumer lock whitelist choices during payload updates, no mutation of consumer
+root Makefile includes during payload updates, and the prohibition on broad license directory
+copying.
