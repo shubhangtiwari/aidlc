@@ -104,7 +104,7 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Language, record.ContentHash}, " "),
+				SearchText: model.SearchText(record.Path, record.Language, record.ContentHash),
 				Snippet:    strings.Join([]string{record.Language, record.ContentHash}, " "),
 			})
 		}
@@ -118,7 +118,7 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Language, record.ImportPath}, " "),
+				SearchText: model.SearchText(record.Path, record.Language, record.ImportPath),
 				Snippet:    record.ImportPath,
 			})
 		}
@@ -132,7 +132,7 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Language, record.TargetPath}, " "),
+				SearchText: model.SearchText(record.Path, record.Language, record.TargetPath),
 				Snippet:    record.TargetPath,
 			})
 		}
@@ -146,7 +146,7 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Module, record.Section, record.Text}, " "),
+				SearchText: model.SearchText(record.Path, record.Module, record.Section, record.Text),
 				Snippet:    strings.Join([]string{record.Module, record.Section}, " "),
 			})
 		}
@@ -160,7 +160,7 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Kind, record.Title, record.Text}, " "),
+				SearchText: model.SearchText(record.Path, record.Kind, record.Title, record.Text),
 				Snippet:    record.Title,
 			})
 		}
@@ -174,8 +174,28 @@ func (q *FallbackQuerier) loadShard(name string) ([]fallbackEntry, error) {
 		for _, record := range records {
 			entries = append(entries, fallbackEntry{
 				Path:       record.Path,
-				SearchText: strings.Join([]string{record.Path, record.Kind, record.ID, record.Title, record.Status, record.Text}, " "),
+				SearchText: model.SearchText(record.Path, record.Kind, record.ID, record.Title, record.Status, record.Text),
 				Snippet:    strings.Join([]string{record.ID, record.Title, record.Status}, " "),
+			})
+		}
+		return entries, nil
+	case model.SourceChunksShard:
+		records, err := readFallbackShard[model.SourceChunkRecord](q.mapDir, name)
+		if err != nil {
+			return nil, err
+		}
+		entries := make([]fallbackEntry, 0, len(records))
+		for _, record := range records {
+			entries = append(entries, fallbackEntry{
+				Path: record.Path,
+				SearchText: model.SearchText(
+					record.Path,
+					record.Language,
+					fmt.Sprintf("%d", record.StartLine),
+					fmt.Sprintf("%d", record.EndLine),
+					record.Text,
+				),
+				Snippet: record.Text,
 			})
 		}
 		return entries, nil
@@ -222,6 +242,7 @@ func allShardNames() []string {
 		model.BlueprintsShard,
 		model.DocsShard,
 		model.ChangesShard,
+		model.SourceChunksShard,
 	}
 }
 
@@ -234,15 +255,7 @@ func normalizeShard(shard string) string {
 }
 
 func queryTerms(query string) []string {
-	fields := strings.Fields(strings.ToLower(query))
-	terms := make([]string, 0, len(fields))
-	for _, field := range fields {
-		field = strings.Trim(field, `"'`)
-		if field != "" {
-			terms = append(terms, field)
-		}
-	}
-	return terms
+	return model.QueryTerms(query)
 }
 
 func matchScore(text string, terms []string) float64 {

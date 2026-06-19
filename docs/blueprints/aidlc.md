@@ -63,8 +63,10 @@ It does not own root template source files except by reading the public template
   `DIR` (default `.`) and prints ranked tab-separated rows as `<path>\t<score>\t<snippet>`.
   `--limit` defaults to `10`; negative limits and empty search terms exit `2`. Without `--shard`,
   query uses `docs/map/repo-map.sqlite` when present and falls back to JSONL linear scan when the
-  cache is absent. `--shard` forces JSONL fallback for the selected shard. Successful empty result
-  sets exit `0` with no rows.
+  cache is absent. Query text is normalized for lexical matching so question-shaped searches drop
+  connector noise while preserving code-shaped terms; the public output format and exit behavior do
+  not change. `--shard` forces JSONL fallback for the selected shard. Successful empty result sets
+  exit `0` with no rows.
 - Map/query dependency boundary: command orchestration accepts `repomap/model` interfaces for cache
   building and querying. The CLI root wires the concrete SQLite implementation into those
   interfaces as a narrow composition-root exception; application command code must not import
@@ -150,19 +152,19 @@ receive `aidlc.lock.json`, public template payload files including `licenses/aid
 generated IDE files such as `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, `.claude/**`,
 `.github/copilot-instructions.md`, and `.windsurfrules`. Target repositories may also receive
 repo-specific generated map artifacts from `aidlc map` under `docs/map/`: committed canonical JSONL
-shards and `docs/map/index.json`, plus the ignored derived cache `docs/map/repo-map.sqlite`. The
-saved map whitelist in `aidlc.lock.json` is authoritative for subsequent map builds and read-only
-freshness checks. The consumer repository root `LICENSE` is not owned by AIDLC after license
-relocation; init and update must not create, overwrite, delete, or track it as the active AIDLC
-license payload. The root lock owns workspace IDE selections, map include selections, tracked
-payload checksums, generation metadata, and update source metadata. Legacy `.aidlc/manifest.json`
-may still be read for compatibility but is no longer the authoritative write target. During
-conflicted init, the partial root lock records only accepted upstream payload files plus
-generation/workspace metadata; conflicted payload paths are excluded from tracked clean file
-entries. Forced init and forced update may replace divergent public payload destination files and
-then record those overwritten paths as clean tracked files in `aidlc.lock.json`. Removed-upstream
-files, private paths, unknown local files, and local-only files remain outside forced deletion or
-overwrite behavior.
+shards including `docs/map/source_chunks.jsonl` and `docs/map/index.json`, plus the ignored derived
+cache `docs/map/repo-map.sqlite`. The saved map whitelist in `aidlc.lock.json` is authoritative for
+subsequent map builds and read-only freshness checks. The consumer repository root `LICENSE` is not
+owned by AIDLC after license relocation; init and update must not create, overwrite, delete, or
+track it as the active AIDLC license payload. The root lock owns workspace IDE selections, map
+include selections, tracked payload checksums, generation metadata, and update source metadata.
+Legacy `.aidlc/manifest.json` may still be read for compatibility but is no longer the authoritative
+write target. During conflicted init, the partial root lock records only accepted upstream payload
+files plus generation/workspace metadata; conflicted payload paths are excluded from tracked clean
+file entries. Forced init and forced update may replace divergent public payload destination files
+and then record those overwritten paths as clean tracked files in `aidlc.lock.json`.
+Removed-upstream files, private paths, unknown local files, and local-only files remain outside
+forced deletion or overwrite behavior.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
@@ -251,6 +253,7 @@ read-only behavior, unchanged non-forced conflict behavior, map/query root CLI h
 repo-map build output with `docs/map/` JSONL shards, `index.json`, and derived SQLite cache,
 saved map whitelist persistence and reuse, first-run map include confirmation, non-interactive
 first-run guidance, read-only `aidlc map --check` behavior, include mismatch stale output,
-staleness exit codes, SQLite FTS recall@10 of at least 0.7 across the labeled fixture queries,
-JSONL fallback superset behavior for the same queries, and `make aidlc-release-check` coverage
-proving the SQLite dependency does not break CGO-disabled cross-compilation.
+staleness exit codes, SQLite FTS recall@10 of at least 0.7 across the labeled fixture queries with
+representative natural-language and question-shaped code queries, JSONL fallback superset behavior
+for the same queries, and `make aidlc-release-check` coverage proving the SQLite dependency does
+not break CGO-disabled cross-compilation.

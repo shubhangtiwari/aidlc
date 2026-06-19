@@ -27,6 +27,9 @@ func TestBuilderBuildsSQLiteCacheFromJSONLShards(t *testing.T) {
 	writeShard(t, mapDir, model.BlueprintsShard, []model.BlueprintRecord{
 		{Path: "docs/blueprints/auth.md", Module: "auth", Section: "Contracts", Text: "login token validator"},
 	})
+	writeShard(t, mapDir, model.SourceChunksShard, []model.SourceChunkRecord{
+		{Path: "internal/auth/service.go", Language: "go", StartLine: 10, EndLine: 24, Text: "func validateBearerToken checks login token claims"},
+	})
 
 	if err := NewBuilder().Build(context.Background(), mapDir); err != nil {
 		t.Fatalf("Build() error = %v", err)
@@ -46,8 +49,26 @@ func TestBuilderBuildsSQLiteCacheFromJSONLShards(t *testing.T) {
 	if err := db.QueryRow(`SELECT count(*) FROM repo_map_fts`).Scan(&count); err != nil {
 		t.Fatalf("count FTS rows: %v", err)
 	}
-	if count != 4 {
-		t.Fatalf("FTS row count = %d, want 4", count)
+	if count != 5 {
+		t.Fatalf("FTS row count = %d, want 5", count)
+	}
+
+	var body string
+	if err := db.QueryRow(`SELECT body FROM repo_map_docs WHERE shard = ? AND kind = ?`, model.SourceChunksShard, "source_chunk").Scan(&body); err != nil {
+		t.Fatalf("select source chunk row: %v", err)
+	}
+	for _, want := range []string{"internal/auth/service.go", "go", "10", "24", "validateBearerToken"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("source chunk body = %q, want substring %q", body, want)
+		}
+	}
+
+	var ftsPath string
+	if err := db.QueryRow(`SELECT path FROM repo_map_fts WHERE repo_map_fts MATCH ?`, `"validateBearerToken"`).Scan(&ftsPath); err != nil {
+		t.Fatalf("query source chunk FTS row: %v", err)
+	}
+	if ftsPath != "internal/auth/service.go" {
+		t.Fatalf("source chunk FTS path = %q, want internal/auth/service.go", ftsPath)
 	}
 }
 

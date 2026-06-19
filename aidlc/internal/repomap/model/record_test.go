@@ -42,9 +42,14 @@ func TestRecordJSONFieldOrder(t *testing.T) {
 			want: `{"path":"docs/spec/1-add.md","kind":"spec","id":"1","title":"Add","status":"approved","text":"body"}`,
 		},
 		{
+			name: "source chunk",
+			in:   SourceChunkRecord{Path: "internal/auth/auth.go", Language: "go", StartLine: 12, EndLine: 18, Text: "func ValidateToken"},
+			want: `{"path":"internal/auth/auth.go","language":"go","start_line":12,"end_line":18,"text":"func ValidateToken"}`,
+		},
+		{
 			name: "index",
 			in:   DefaultIndexMeta(),
-			want: `{"schema_version":1,"map_dir":"docs/map","index_file":"index.json","sqlite_file":"repo-map.sqlite","shards":{"files":"files.jsonl","imports":"imports.jsonl","tests":"tests.jsonl","blueprints":"blueprints.jsonl","docs":"docs.jsonl","changes":"changes.jsonl"}}`,
+			want: `{"schema_version":1,"map_dir":"docs/map","index_file":"index.json","sqlite_file":"repo-map.sqlite","shards":{"files":"files.jsonl","imports":"imports.jsonl","tests":"tests.jsonl","blueprints":"blueprints.jsonl","docs":"docs.jsonl","changes":"changes.jsonl","source_chunks":"source_chunks.jsonl"}}`,
 		},
 		{
 			name: "query result",
@@ -78,6 +83,7 @@ func TestRecordSortKeys(t *testing.T) {
 		{name: "blueprint", in: BlueprintRecord{Path: "docs/blueprints/core.md", Module: "core", Section: "Layer Map"}, want: "docs/blueprints/core.md\x00core\x00Layer Map"},
 		{name: "doc", in: DocRecord{Path: "docs/adr/1.md", Kind: "adr", Title: "Decision"}, want: "adr\x00docs/adr/1.md\x00Decision"},
 		{name: "change", in: ChangeRecord{Path: "docs/spec/1.md", Kind: "spec", ID: "1"}, want: "spec\x001\x00docs/spec/1.md"},
+		{name: "source chunk", in: SourceChunkRecord{Path: "b.go", StartLine: 9, EndLine: 12}, want: "b.go\x000000000009\x000000000012"},
 	}
 
 	for _, tt := range tests {

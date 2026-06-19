@@ -9,7 +9,8 @@
     "tests": "tests.jsonl",
     "blueprints": "blueprints.jsonl",
     "docs": "docs.jsonl",
-    "changes": "changes.jsonl"
+    "changes": "changes.jsonl",
+    "source_chunks": "source_chunks.jsonl"
   },
   "include": [
     ".ai",
@@ -19,7 +20,7 @@
   "files": [
     {
       "path": ".ai/Makefile.inc",
-      "content_hash": "4a8b02dec24da12e071ae80f57f2b9f530f9773a6d90ba0bdc493e35ba267bde"
+      "content_hash": "c9c84c29114e2fe8f9ea4686ef60dd94799f56790434cd32b8475896a19ff035"
     },
     {
       "path": ".ai/README.md",
@@ -159,7 +160,7 @@
     },
     {
       "path": "aidlc/README.md",
-      "content_hash": "efcbb6c6b98a234b28ae0df138e6708e577e967fdc33c8f59ab2f36d44823fd3"
+      "content_hash": "1e897ef767226f3bafcd2a7bf46977de945b66b2d1f7ff7af48c5f8ad357ceb0"
     },
     {
       "path": "aidlc/cmd/aidlc/main.go",
@@ -175,11 +176,19 @@
     },
     {
       "path": "aidlc/internal/cli/root.go",
-      "content_hash": "e87ebd605c771d0a12010fdc23cf76e4d7a46dc20034b38267efae40538c0b95"
+      "content_hash": "d3026bee4f9c2170a223bfd893b0c340d9c0fcfd5b267e4040a3cf847aa53ef2"
     },
     {
       "path": "aidlc/internal/cli/root_test.go",
-      "content_hash": "aa85d51b00a1287bdcec204298adcf1b0328ff09b257310da18d956526918026"
+      "content_hash": "7633b1ea7c0a4f37a28788b93e41f785d94b02099247f5eaff483a735cfa7ffc"
+    },
+    {
+      "path": "aidlc/internal/commands/doctor.go",
+      "content_hash": "5187038f28debc314d0e194f98a8bd0e6368f871b72ca019b6a880d2d8107f5b"
+    },
+    {
+      "path": "aidlc/internal/commands/doctor_test.go",
+      "content_hash": "dfd078e76d51023deeb12cb1a41eacc219c285b496a17cb1c4ab755ddd8bd4c4"
     },
     {
       "path": "aidlc/internal/commands/init.go",
@@ -203,7 +212,7 @@
     },
     {
       "path": "aidlc/internal/commands/query_test.go",
-      "content_hash": "03776ff1ea9c8c3c91c18002560c876400382600845c685e4b8738c9caf051b1"
+      "content_hash": "9951ec8a156e477206554673d848be48878cf4a09851e6146b3dd3b806c99365"
     },
     {
       "path": "aidlc/internal/commands/update.go",
@@ -235,7 +244,7 @@
     },
     {
       "path": "aidlc/internal/contract/options.go",
-      "content_hash": "be6f39d679a756320e038df4166541549227a9ef3bf17f25090351f88388d732"
+      "content_hash": "bc61983e1413df9c4edb9549621dac39d04368733e5dafd4deeaea64bb34bc4b"
     },
     {
       "path": "aidlc/internal/generator/generator.go",
@@ -278,6 +287,14 @@
       "content_hash": "085aae662ed4bc3324a859b6616aa33ea673e81072da4ac456d2552c27e9f5ef"
     },
     {
+      "path": "aidlc/internal/install/discovery.go",
+      "content_hash": "79481b15691182fc4b3bece5f42065cfd29d1f8bbbc5e1619757fd4d47fd3eae"
+    },
+    {
+      "path": "aidlc/internal/install/discovery_test.go",
+      "content_hash": "af01105fbef7045d3d010d1635f9fc429f31cdd8e4da8a7e85e41350a3296fb6"
+    },
+    {
       "path": "aidlc/internal/install/platform.go",
       "content_hash": "a814f73ce15c71155c11d39e5be1bdeebfe060cc6b8f585ad78ad799cf850120"
     },
@@ -298,6 +315,10 @@
       "content_hash": "437c721623d44520236c34a725929807af5247d03d5e947c3f7a0a339fcdce9d"
     },
     {
+      "path": "aidlc/internal/integration/makefile_inc_test.go",
+      "content_hash": "832f060932a2d41387baec0c2eba65410e7223a1ffa4728027805371442e29a1"
+    },
+    {
       "path": "aidlc/internal/integration/windows_paths_test.go",
       "content_hash": "31392fa0a17124ecd720e0737e6f097139413e1b39f2e17bf5f6748a6ce26979"
     },
@@ -315,11 +336,11 @@
     },
     {
       "path": "aidlc/internal/repomap/fallback.go",
-      "content_hash": "ef512944bf89391063830ea635e97417bed69e01b509b39d08e84550fbcb3610"
+      "content_hash": "6676d842ac679ed9f8cc2f0dace4dba389944300f5ca88a9bb2b9b23bbe4134e"
     },
     {
       "path": "aidlc/internal/repomap/fallback_test.go",
-      "content_hash": "734d2c836d5ffe5a4ed9204f035caeb1e57baa188b957d0659217d342178e028"
+      "content_hash": "aacbc50dbf733271a71d382d7a5c880a8ab0112570de7cf8c2caf9cdaba157ab"
     },
     {
       "path": "aidlc/internal/repomap/imports.go",
@@ -343,7 +364,7 @@
     },
     {
       "path": "aidlc/internal/repomap/model/index.go",
-      "content_hash": "20d3f35b3580057a63f3af92b89e93ec36e71c846e5b17fdf5885ee8ec6bfd9a"
+      "content_hash": "a00db8c7f499a059c3321cd309d3cbc0b3e06e39f063217cd2de99377b53371a"
     },
     {
       "path": "aidlc/internal/repomap/model/jsonl.go",
@@ -354,12 +375,20 @@
       "content_hash": "af9566aa287bdf50a444e3b2b56aa77e361b891fe4b398207ec7e60a0ee78b19"
     },
     {
+      "path": "aidlc/internal/repomap/model/querytext.go",
+      "content_hash": "2fb6ec3ca22e53b87d7b461b4182969a51a1458708e326cded680d463d89827d"
+    },
+    {
+      "path": "aidlc/internal/repomap/model/querytext_test.go",
+      "content_hash": "6f54eab7f357d5d5beff8950fbd609ed5e6748e3c8451878a25622bbd42f1c91"
+    },
+    {
       "path": "aidlc/internal/repomap/model/record.go",
-      "content_hash": "06d617a0500f0d954bfbc8fa1a470625393ed123b436d468df8953759cf865fb"
+      "content_hash": "56d85abc10fc8fc84ae5f3fe56dfb232fc845b4d76f041afcf432e9dac6d4e6d"
     },
     {
       "path": "aidlc/internal/repomap/model/record_test.go",
-      "content_hash": "f0a0799a5fc9f4e13a13bcbba21ca8ce2c06680aa7d7be828d82c86e6f0f7903"
+      "content_hash": "9c738ad92ebc8e23c43f2bce2064e6bf58a5a0660fe95862337224e4cba772a7"
     },
     {
       "path": "aidlc/internal/repomap/options.go",
@@ -379,11 +408,19 @@
     },
     {
       "path": "aidlc/internal/repomap/scanner.go",
-      "content_hash": "5ca5d9d0377f9b621476b7fc9645bcb58f05b800a36196bd38c068afdfa9e6f7"
+      "content_hash": "2ccc262e71abc0aa5960e69206c156cc2500e929b77a9d513b9da71733c29853"
     },
     {
       "path": "aidlc/internal/repomap/scanner_test.go",
-      "content_hash": "f8f7fd013f5162620bb7f1da1873e8a0ea05f3940aa6a0377059824be92496d3"
+      "content_hash": "a30794d5361a22bab647b573b0c57ecef02ba8241c82a60c2124cdcf8aa97096"
+    },
+    {
+      "path": "aidlc/internal/repomap/sourcechunks.go",
+      "content_hash": "2f9f73bb1a5d9c844674549e7e4bb0786bd66aa2ed41d97f1dc18043d008a6cc"
+    },
+    {
+      "path": "aidlc/internal/repomap/sourcechunks_test.go",
+      "content_hash": "10aa7671f9c15b2bfe324e6921e005db5aae823da008e79a922411c0c8665c96"
     },
     {
       "path": "aidlc/internal/repomap/staleness.go",
@@ -459,15 +496,15 @@
     },
     {
       "path": "aidlc/scripts/install.ps1",
-      "content_hash": "fc8e177c8a7a5174ebbd8d38dea0ecc50437406484b28b11b7e4e3111d21fc3b"
+      "content_hash": "c12f19450f47b7685b758b3fa997afab69c6e8511e7c2561240201178d4a9602"
     },
     {
       "path": "aidlc/scripts/install.sh",
-      "content_hash": "c6726d3770d2f376cb78e83d0b7902fa592d16531a80a932ff10b864f37a7305"
+      "content_hash": "9174d1f7d081fc4caeca8ba2bc35afa25d63c4cb06c1c3cdbb24c5e200c88196"
     },
     {
       "path": "aidlc/scripts/verify-release.sh",
-      "content_hash": "9a547565b063a37ef20f79ff415c1c3bd9d3575968020eb39868f2349b8f7c3f"
+      "content_hash": "bfd022e003fa2cb7cae4e4ec7d4b63f11addc6089b8cfb9aab2a22160655af50"
     },
     {
       "path": "aidlc/testdata/compat/existing-template/.keep",
@@ -527,7 +564,7 @@
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/internal/auth/auth.go",
-      "content_hash": "a35301cc457a5e6f449d9e575ae96248da222f8bf2a45fe7daacd171ea986bfe"
+      "content_hash": "2d7404964db9ae9157af2ef7878f547a61c914363f383432b77bb852773254f3"
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/internal/auth/auth_test.go",
@@ -535,7 +572,7 @@
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/internal/core/core.go",
-      "content_hash": "66856515a209d9493de44971eed311cc64cad8ff499df88981ba8aa79d46e73a"
+      "content_hash": "1416919639df847f6fc934931fc2b633f4b3d6778ac916183d57abce1ba35ffd"
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/internal/core/core_test.go",
@@ -547,7 +584,7 @@
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/pkg/util/util.go",
-      "content_hash": "11246384b5d20b29482ee52338f648042dc4721b5b40e4032934c1daaffc29b8"
+      "content_hash": "bfaa2326cf1b546a5739193d0618cc61445f6a0f60a33d57278712949a8e93d8"
     },
     {
       "path": "aidlc/testdata/repomap/fixture-repo/pkg/util/util_test.go",
@@ -555,7 +592,7 @@
     },
     {
       "path": "aidlc/testdata/repomap/integration_queries.go",
-      "content_hash": "0047a511d091cdef69dd9d27d51121584d27bba5641b9519f9de9747ff0bd51f"
+      "content_hash": "f7f4d5b39daa0e111d347ac52ae761dfd5f67ee24dfe50acba927d23fbc15c5c"
     },
     {
       "path": "docs/ARCHITECTURE.md",
@@ -591,15 +628,15 @@
     },
     {
       "path": "docs/blueprints/aidlc.md",
-      "content_hash": "106b43f9d18be10bd01552cda4e874386abae3e49275b8437f7b60581246ff41"
+      "content_hash": "45071a18929625c64c8da9ab57f555db3021f8bdcf768ee19e122baba0854b9b"
     },
     {
       "path": "docs/blueprints/repomap.md",
-      "content_hash": "9dde1beb28b6ff29ddec484b5e792b905d49602095609891616b240e8c01fff2"
+      "content_hash": "d4f9634eb77a6da36d9c6e6764f1292b53233cab8ee1e6cb9abfb4e5693f7066"
     },
     {
       "path": "docs/blueprints/template-payload.md",
-      "content_hash": "e37abe6ad4b4cfc27efb1b56992624106bd76936f399cc6ebe3a601ac50069d7"
+      "content_hash": "835c4de4ab3f5ecb2ae91fbbad4f212b4adff07ab8f9214189362ed8e8cc5de5"
     },
     {
       "path": "docs/spec/.in-flight.yaml",
@@ -648,6 +685,14 @@
     {
       "path": "docs/spec/1781499149-map-whitelist.md",
       "content_hash": "b0c1a841c3abb7fa47c131b43a94204c9b0c58b15f5d7f44b14f8766b35a685d"
+    },
+    {
+      "path": "docs/spec/1781627001-install-discovery-robustness.md",
+      "content_hash": "36552ad9c2286f016c4019f770c6c4c4f4459a51a9d9a5a5271c98d118eecb0d"
+    },
+    {
+      "path": "docs/spec/1781806677-improve-repomap-lexical-query.md",
+      "content_hash": "bfc7ccd59e60666d5d0c43cfbb4faca9342b6b6a45ecfa2ad7a4026b2b2081bb"
     },
     {
       "path": "docs/spec/README.md",

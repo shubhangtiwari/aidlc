@@ -13,12 +13,13 @@ import (
 )
 
 type Shards struct {
-	Files      []model.FileRecord
-	Imports    []model.ImportRecord
-	Tests      []model.TestRecord
-	Blueprints []model.BlueprintRecord
-	Docs       []model.DocRecord
-	Changes    []model.ChangeRecord
+	Files        []model.FileRecord
+	Imports      []model.ImportRecord
+	Tests        []model.TestRecord
+	Blueprints   []model.BlueprintRecord
+	Docs         []model.DocRecord
+	Changes      []model.ChangeRecord
+	SourceChunks []model.SourceChunkRecord
 }
 
 func ScanDir(root string) (*Shards, error) {
@@ -53,6 +54,7 @@ func WriteShards(mapDir string, shards Shards) error {
 		{model.BlueprintsShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Blueprints) }},
 		{model.DocsShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Docs) }},
 		{model.ChangesShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Changes) }},
+		{model.SourceChunksShard, func(f *os.File) error { return model.WriteJSONL(f, shards.SourceChunks) }},
 	}
 
 	for _, item := range writes {
@@ -121,6 +123,7 @@ func (s *scanner) scan() error {
 			ContentHash: model.ContentHash(content),
 		})
 		s.shards.Imports = append(s.shards.Imports, ExtractImports(rel, language, string(content))...)
+		s.shards.SourceChunks = append(s.shards.SourceChunks, ExtractSourceChunks(rel, language, string(content))...)
 
 		docRecords, changeRecords, blueprintRecords := ScanDoc(rel, string(content))
 		s.shards.Docs = append(s.shards.Docs, docRecords...)

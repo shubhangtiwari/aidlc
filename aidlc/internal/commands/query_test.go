@@ -79,6 +79,50 @@ func TestRunQueryCLIUsesShardFilteredFallback(t *testing.T) {
 	}
 }
 
+func TestRunQueryCLIHandlesQuestionLikeSourceChunkQuery(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mapDir := filepath.Join(root, filepath.FromSlash(model.MapDir))
+	repomapTestWriteJSONL(t, mapDir, model.SourceChunksShard, []model.SourceChunkRecord{
+		{
+			Path:      "internal/auth/auth.go",
+			Language:  "go",
+			StartLine: 7,
+			EndLine:   9,
+			Text:      "func Authorize(name string) string {\n\treturn core.Greet(NormalizePrincipal(name))\n}",
+		},
+		{
+			Path:      "internal/core/core.go",
+			Language:  "go",
+			StartLine: 5,
+			EndLine:   7,
+			Text:      "func Greet(name string) string {\n\treturn \"hello \" + NormalizeGreetingName(name)\n}",
+		},
+	})
+	if err := cache.NewBuilder().Build(context.Background(), mapDir); err != nil {
+		t.Fatalf("build cache: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := RunQueryCLI(
+		context.Background(),
+		[]string{"--dir", root, "--limit", "5", "where does Authorize NormalizePrincipal Greet?"},
+		&stdout,
+		&stderr,
+		queryTestDependencies(),
+	)
+	if code != contract.ExitOK {
+		t.Fatalf("RunQueryCLI() code = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.HasPrefix(stdout.String(), "internal/auth/auth.go\t") {
+		t.Fatalf("stdout = %q, want auth source chunk first", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Authorize") {
+		t.Fatalf("stdout = %q, want source chunk snippet", stdout.String())
+	}
+}
+
 func TestRunQueryCLIUsageErrors(t *testing.T) {
 	t.Parallel()
 

@@ -82,6 +82,101 @@ func TestFallbackQuerierShardFiltering(t *testing.T) {
 	}
 }
 
+func TestFallbackQuerierUsesSignificantTermsForQuestionInput(t *testing.T) {
+	t.Parallel()
+
+	mapDir := t.TempDir()
+	writeJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/auth.md", Kind: "spec", Title: "Auth spec", Text: "token validation handled by auth service"},
+		{Path: "docs/spec/billing.md", Kind: "spec", Title: "Billing", Text: "invoice payment"},
+	})
+	writeJSONL(t, mapDir, model.SourceChunksShard, []model.SourceChunkRecord{
+		{Path: "internal/auth/service.go", Language: "go", StartLine: 10, EndLine: 12, Text: "func ValidateToken handles validation"},
+	})
+
+	results, err := NewFallbackQuerier(mapDir).Query(context.Background(), "Where is token validation handled?", 10)
+	if err != nil {
+		t.Fatalf("Query() error = %v", err)
+	}
+	want := []string{"docs/spec/auth.md", "internal/auth/service.go"}
+	if got := resultPaths(results); !equalStrings(got, want) {
+		t.Fatalf("paths = %#v, want %#v", got, want)
+	}
+}
+
+func TestFallbackQuerierFindsSourceChunkFromNaturalSpacedIdentifierTerms(t *testing.T) {
+	t.Parallel()
+
+	mapDir := t.TempDir()
+	writeJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/repomap.md", Kind: "spec", Title: "Repo map source chunk extraction", Text: "source chunk extraction plan"},
+	})
+	writeJSONL(t, mapDir, model.SourceChunksShard, []model.SourceChunkRecord{
+		{
+			Path:      "aidlc/internal/repomap/sourcechunks.go",
+			Language:  "go",
+			StartLine: 20,
+			EndLine:   26,
+			Text:      "func ExtractSourceChunks(path, language, content string) []model.SourceChunkRecord",
+		},
+	})
+
+	results, err := NewFallbackQuerier(mapDir).Query(context.Background(), "extract source chunks", 10)
+	if err != nil {
+		t.Fatalf("Query() error = %v", err)
+	}
+	if got, want := resultPaths(results), []string{"aidlc/internal/repomap/sourcechunks.go"}; !containsAll(got, want) {
+		t.Fatalf("paths = %#v, want to contain %#v", got, want)
+	}
+}
+
+func TestFallbackQueryTermsNormalizePunctuationAndStopwords(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		query string
+		want  []string
+	}{
+		{
+			name:  "punctuation",
+			query: "token,validation;cache(query)",
+			want:  []string{"token", "validation", "cache", "query"},
+		},
+		{
+			name:  "question stopwords",
+			query: "Where is token validation handled?",
+			want:  []string{"token", "validation", "handled"},
+		},
+		{
+			name:  "stopwords only",
+			query: "where is the and or",
+			want:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := queryTerms(tt.query); !equalStrings(got, tt.want) {
+				t.Fatalf("queryTerms() = %#v, want %#v", got, tt.want)
+			}
+		})
+	}
+}
+
+func containsAll(got, want []string) bool {
+	set := make(map[string]struct{}, len(got))
+	for _, item := range got {
+		set[item] = struct{}{}
+	}
+	for _, item := range want {
+		if _, ok := set[item]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func TestFallbackQuerierEmptyAndMissingShards(t *testing.T) {
 	t.Parallel()
 
@@ -91,6 +186,14 @@ func TestFallbackQuerierEmptyAndMissingShards(t *testing.T) {
 	}
 	if len(results) != 0 {
 		t.Fatalf("Query() len = %d, want 0", len(results))
+	}
+
+	results, err = NewFallbackQuerier(t.TempDir()).Query(context.Background(), "where is the and or", 10)
+	if err != nil {
+		t.Fatalf("Query(stopwords) error = %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("Query(stopwords) len = %d, want 0", len(results))
 	}
 }
 

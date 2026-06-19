@@ -15,6 +15,9 @@ var IntegrationQueries = []IntegrationQuery{
 	{Text: "Greet accepts name display string", Expected: []string{"docs/blueprints/core.md"}},
 	{Text: "integration boundaries standard library", Expected: []string{"docs/blueprints/core.md"}},
 	{Text: "internal auth", Expected: []string{"internal/auth/auth.go", "internal/auth/auth_test.go"}},
+	{Text: "where does Authorize NormalizePrincipal Greet?", Expected: []string{"internal/auth/auth.go"}},
 	{Text: "internal core", Expected: []string{"internal/core/core.go", "internal/core/core_test.go"}},
+	{Text: "how does Greet NormalizeGreetingName?", Expected: []string{"internal/core/core.go"}},
 	{Text: "pkg util", Expected: []string{"pkg/util/util.go", "pkg/util/util_test.go"}},
+	{Text: "what does StableKey do with parts?", Expected: []string{"pkg/util/util.go"}},
 }
