@@ -31,6 +31,9 @@ func TestScanDirFixtureRepo(t *testing.T) {
 	assertSourceChunk(t, shards.SourceChunks, "internal/auth/auth.go", "Authorize")
 	assertSourceChunk(t, shards.SourceChunks, "internal/core/core.go", "NormalizeGreetingName")
 	assertNoSourceChunk(t, shards.SourceChunks, "docs/spec/1000000000-add-auth.md")
+	assertSymbol(t, shards.Symbols, "internal/auth/auth.go", "type", "SessionPolicy")
+	assertSymbol(t, shards.Symbols, "internal/auth/auth.go", "func", "Authorize")
+	assertSymbol(t, shards.Symbols, "internal/core/core.go", "func", "NormalizeGreetingName")
 
 	for _, file := range shards.Files {
 		if file.Path == "internal/core/core.go" {
@@ -76,6 +79,14 @@ func TestWriteShardsUsesDeterministicJSONL(t *testing.T) {
 	}
 	if string(sourceChunks) != "" {
 		t.Fatalf("source chunks shard = %q, want empty", sourceChunks)
+	}
+
+	symbols, err := os.ReadFile(filepath.Join(dir, model.SymbolsShard))
+	if err != nil {
+		t.Fatalf("read symbols shard: %v", err)
+	}
+	if string(symbols) != "" {
+		t.Fatalf("symbols shard = %q, want empty", symbols)
 	}
 }
 
@@ -219,4 +230,14 @@ func assertNoSourceChunk(t *testing.T, records []model.SourceChunkRecord, path s
 			t.Fatalf("unexpected source chunk %s in %#v", path, records)
 		}
 	}
+}
+
+func assertSymbol(t *testing.T, records []model.SymbolRecord, path, kind, name string) {
+	t.Helper()
+	for _, record := range records {
+		if record.Path == path && record.Kind == kind && record.Name == name {
+			return
+		}
+	}
+	t.Fatalf("missing symbol %s/%s/%s in %#v", path, kind, name, records)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
@@ -127,6 +128,100 @@ func TestFallbackQuerierFindsSourceChunkFromNaturalSpacedIdentifierTerms(t *test
 	}
 	if got, want := resultPaths(results), []string{"aidlc/internal/repomap/sourcechunks.go"}; !containsAll(got, want) {
 		t.Fatalf("paths = %#v, want to contain %#v", got, want)
+	}
+}
+
+func TestFallbackQuerierQueryPlanUsesPathSymbolsAndRelationships(t *testing.T) {
+	t.Parallel()
+
+	includeTests := false
+	mapDir := t.TempDir()
+	writeJSONL(t, mapDir, model.FilesShard, []model.FileRecord{
+		{Path: "internal/auth/service.go", Language: "go", ContentHash: "hash"},
+		{Path: "internal/auth/service_test.go", Language: "go", ContentHash: "hash"},
+		{Path: "internal/core/core.go", Language: "go", ContentHash: "hash"},
+	})
+	writeJSONL(t, mapDir, model.SourceChunksShard, []model.SourceChunkRecord{
+		{Path: "internal/auth/service.go", Language: "go", StartLine: 10, EndLine: 12, Text: "func AuthorizeToken validates auth tokens"},
+		{Path: "internal/core/core.go", Language: "go", StartLine: 3, EndLine: 6, Text: "package core"},
+		{Path: "internal/auth/service_test.go", Language: "go", StartLine: 4, EndLine: 8, Text: "func TestAuthorizeToken"},
+	})
+	writeJSONL(t, mapDir, model.SymbolsShard, []model.SymbolRecord{
+		{Path: "internal/auth/service.go", Language: "go", Kind: "func", Name: "AuthorizeToken", StartLine: 10, EndLine: 12},
+	})
+	writeJSONL(t, mapDir, model.TestsShard, []model.TestRecord{
+		{Path: "internal/auth/service_test.go", Language: "go", TargetPath: "internal/auth/service.go"},
+	})
+	writeJSONL(t, mapDir, model.ImportsShard, []model.ImportRecord{
+		{Path: "internal/core/core.go", Language: "go", ImportPath: "internal/auth"},
+	})
+
+	results, err := NewFallbackQuerier(mapDir).QueryPlan(context.Background(), model.SearchPlanV1{
+		Version:           model.SearchPlanVersion,
+		Terms:             []string{"token"},
+		Symbols:           []string{"AuthorizeToken"},
+		Paths:             []string{"internal/auth/service.go"},
+		Globs:             []string{"internal/auth/*.go"},
+		IncludeTests:      &includeTests,
+		RelationshipDepth: 1,
+		Limit:             10,
+	})
+	if err != nil {
+		t.Fatalf("QueryPlan() error = %v", err)
+	}
+	got := resultPaths(results)
+	if len(got) == 0 || got[0] != "internal/auth/service.go" {
+		t.Fatalf("paths = %#v, want direct exact match first", got)
+	}
+	if containsAll(got, []string{"internal/auth/service_test.go"}) {
+		t.Fatalf("paths = %#v, did not exclude tests", got)
+	}
+	if !containsAll(got, []string{"internal/core/core.go"}) {
+		t.Fatalf("paths = %#v, want related importer", got)
+	}
+	if !strings.HasPrefix(results[0].Snippet, "L") {
+		t.Fatalf("snippet = %q, want line-aware snippet", results[0].Snippet)
+	}
+}
+
+func TestFallbackQuerierQueryPlanUsesRecursiveGlobSegments(t *testing.T) {
+	t.Parallel()
+
+	mapDir := t.TempDir()
+	writeJSONL(t, mapDir, model.FilesShard, []model.FileRecord{
+		{Path: "aidlc/internal/repomap/fallback.go", Language: "go", ContentHash: "hash"},
+		{Path: "aidlc/internal/repomap/cache/query.go", Language: "go", ContentHash: "hash"},
+		{Path: "aidlc/internal/repomap/cache/nested/query.go", Language: "go", ContentHash: "hash"},
+		{Path: "aidlc/internal/repomap/cache/query.txt", Language: "text", ContentHash: "hash"},
+		{Path: "aidlc/internal/commands/query.go", Language: "go", ContentHash: "hash"},
+		{Path: "aidlc/internal/repomap_extra/fallback.go", Language: "go", ContentHash: "hash"},
+	})
+
+	results, err := NewFallbackQuerier(mapDir).QueryPlan(context.Background(), model.SearchPlanV1{
+		Version: model.SearchPlanVersion,
+		Globs:   []string{"aidlc/internal/repomap/**/*.go"},
+		Limit:   10,
+	})
+	if err != nil {
+		t.Fatalf("QueryPlan() error = %v", err)
+	}
+	got := resultPaths(results)
+	want := []string{
+		"aidlc/internal/repomap/cache/nested/query.go",
+		"aidlc/internal/repomap/cache/query.go",
+		"aidlc/internal/repomap/fallback.go",
+	}
+	if !containsAll(got, want) {
+		t.Fatalf("paths = %#v, want to contain %#v", got, want)
+	}
+	for _, excluded := range []string{
+		"aidlc/internal/commands/query.go",
+		"aidlc/internal/repomap/cache/query.txt",
+		"aidlc/internal/repomap_extra/fallback.go",
+	} {
+		if containsAll(got, []string{excluded}) {
+			t.Fatalf("paths = %#v, did not want %s", got, excluded)
+		}
 	}
 }
 

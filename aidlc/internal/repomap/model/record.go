@@ -81,6 +81,27 @@ func (r SourceChunkRecord) SortKey() string {
 	return r.Path + "\x00" + lineSortKey(r.StartLine) + "\x00" + lineSortKey(r.EndLine)
 }
 
+type SymbolRecord struct {
+	Path      string `json:"path"`
+	Language  string `json:"language"`
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Receiver  string `json:"receiver"`
+	Container string `json:"container"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
+}
+
+func (r SymbolRecord) SortKey() string {
+	return r.Path + "\x00" +
+		lineSortKey(r.StartLine) + "\x00" +
+		lineSortKey(r.EndLine) + "\x00" +
+		r.Kind + "\x00" +
+		r.Receiver + "\x00" +
+		r.Container + "\x00" +
+		r.Name
+}
+
 func lineSortKey(line int) string {
 	if line < 0 {
 		line = 0

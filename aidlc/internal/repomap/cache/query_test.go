@@ -2,7 +2,9 @@ package cache
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
@@ -103,6 +105,96 @@ func TestQuerierFindsSourceChunkFromNaturalSpacedIdentifierTerms(t *testing.T) {
 				t.Fatalf("top result for %q = %#v, want sourcechunks.go first", query, results)
 			}
 		})
+	}
+}
+
+func TestQuerierFindsSymbolRecords(t *testing.T) {
+	t.Parallel()
+
+	mapDir := filepath.Join(t.TempDir(), filepath.FromSlash(model.MapDir))
+	writeShard(t, mapDir, model.SymbolsShard, []model.SymbolRecord{
+		{
+			Path:      "internal/auth/principal.go",
+			Language:  "go",
+			Kind:      "method",
+			Name:      "NormalizePrincipal",
+			Receiver:  "Service",
+			Container: "auth",
+			StartLine: 14,
+			EndLine:   20,
+		},
+	})
+	writeShard(t, mapDir, model.FilesShard, []model.FileRecord{
+		{Path: "internal/auth/principal.go", Language: "go", ContentHash: "hash"},
+		{Path: "internal/billing/invoice.go", Language: "go", ContentHash: "hash"},
+	})
+
+	if err := NewBuilder().Build(context.Background(), mapDir); err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+
+	for _, query := range []string{"NormalizePrincipal", "normalize principal"} {
+		t.Run(query, func(t *testing.T) {
+			results, err := NewQuerier(mapDir).Query(context.Background(), query, 5)
+			if err != nil {
+				t.Fatalf("Query() error = %v", err)
+			}
+			if len(results) == 0 || results[0].Path != "internal/auth/principal.go" {
+				t.Fatalf("top result for %q = %#v, want symbol path first", query, results)
+			}
+			if !strings.Contains(results[0].Snippet, "NormalizePrincipal") {
+				t.Fatalf("top result snippet = %q, want symbol name", results[0].Snippet)
+			}
+		})
+	}
+}
+
+func TestBuilderSchemaDoesNotCreateVectorEmbeddingOrModelTables(t *testing.T) {
+	t.Parallel()
+
+	mapDir := filepath.Join(t.TempDir(), filepath.FromSlash(model.MapDir))
+	writeShard(t, mapDir, model.SymbolsShard, []model.SymbolRecord{
+		{Path: "internal/auth/principal.go", Language: "go", Kind: "function", Name: "NormalizePrincipal"},
+	})
+
+	if err := NewBuilder().Build(context.Background(), mapDir); err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+
+	db, err := sql.Open(sqliteDriver, filepath.Join(mapDir, model.SQLiteFilename))
+	if err != nil {
+		t.Fatalf("open sqlite cache: %v", err)
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`
+		SELECT name
+		FROM sqlite_master
+		WHERE type IN ('table', 'view')
+			AND (
+				lower(name) LIKE '%vector%'
+				OR lower(name) LIKE '%embedding%'
+				OR lower(name) LIKE '%model%'
+			)
+		ORDER BY name`)
+	if err != nil {
+		t.Fatalf("query sqlite schema: %v", err)
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatalf("scan sqlite schema row: %v", err)
+		}
+		names = append(names, name)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate sqlite schema rows: %v", err)
+	}
+	if len(names) != 0 {
+		t.Fatalf("unexpected vector/embedding/model schema objects: %#v", names)
 	}
 }
 

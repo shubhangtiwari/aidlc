@@ -15,6 +15,20 @@ func (q fakeQuerier) Query(context.Context, string, int) ([]model.QueryResult, e
 	return q.results, nil
 }
 
+type fakePlanQuerier struct {
+	plan    model.SearchPlanV1
+	results []model.QueryResult
+}
+
+func (q *fakePlanQuerier) Query(context.Context, string, int) ([]model.QueryResult, error) {
+	return nil, nil
+}
+
+func (q *fakePlanQuerier) QueryPlan(_ context.Context, plan model.SearchPlanV1) ([]model.QueryResult, error) {
+	q.plan = plan
+	return q.results, nil
+}
+
 func TestQueryEngineFormatsRankedResultsDeterministically(t *testing.T) {
 	t.Parallel()
 
@@ -89,5 +103,31 @@ func TestQueryEngineRejectsShardFilterWhenQuerierCannotFilter(t *testing.T) {
 	_, err := engine.Query(context.Background(), "auth", 10, model.DocsShard)
 	if err == nil {
 		t.Fatal("Query() error = nil, want shard filtering error")
+	}
+}
+
+func TestQueryEngineExecutesNormalizedSearchPlan(t *testing.T) {
+	t.Parallel()
+
+	querier := &fakePlanQuerier{results: []model.QueryResult{
+		{Path: "internal/auth/service.go", Score: 2, Snippet: "auth"},
+	}}
+	engine := NewQueryEngine(querier)
+	results, err := engine.QueryPlan(context.Background(), model.SearchPlanV1{
+		Version: model.SearchPlanVersion,
+		Terms:   []string{"Auth"},
+		Limit:   200,
+	})
+	if err != nil {
+		t.Fatalf("QueryPlan() error = %v", err)
+	}
+	if len(results) != 1 || results[0].Path != "internal/auth/service.go" {
+		t.Fatalf("QueryPlan() results = %#v, want auth service", results)
+	}
+	if querier.plan.Limit != model.MaxSearchLimit {
+		t.Fatalf("normalized limit = %d, want %d", querier.plan.Limit, model.MaxSearchLimit)
+	}
+	if got, want := querier.plan.Terms, []string{"auth"}; !equalStrings(got, want) {
+		t.Fatalf("normalized terms = %#v, want %#v", got, want)
 	}
 }

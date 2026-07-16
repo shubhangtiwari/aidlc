@@ -20,10 +20,13 @@
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"aidlc map [flags]"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"aidlc query [flags] \u003csearch terms\u003e"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"aidlc upgrade [flags]"}
+{"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"bufio"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"bytes"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"context"}
+{"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"encoding/json"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
+{"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/testdata/repomap"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"os"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"path/filepath"}
 {"path":"aidlc/internal/cli/root_test.go","language":"go","import_path":"strings"}
@@ -126,6 +129,7 @@
 {"path":"aidlc/internal/commands/map_test.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/commands/map_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"context"}
+{"path":"aidlc/internal/commands/query.go","language":"go","import_path":"encoding/json"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"errors"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"flag"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"fmt"}
@@ -134,7 +138,9 @@
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"io"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"os"}
+{"path":"aidlc/internal/commands/query.go","language":"go","import_path":"path"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"path/filepath"}
+{"path":"aidlc/internal/commands/query.go","language":"go","import_path":"sort"}
 {"path":"aidlc/internal/commands/query.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/commands/query_test.go","language":"go","import_path":"bytes"}
 {"path":"aidlc/internal/commands/query_test.go","language":"go","import_path":"context"}
@@ -277,6 +283,7 @@
 {"path":"aidlc/internal/generator/render.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/generator/render.go","language":"go","import_path":"trivial/small intent is confirmed following triage (no spec). Main session does not patch governed source.\\n"}
 {"path":"aidlc/internal/generator/render.go","language":"go","import_path":"{**/*,tests/**,docs/spec/**,docs/blueprints/**,docs/adr/**,docs/ARCHITECTURE.md,docs/architecture/**}"}
+{"path":"aidlc/internal/generator/templates.go","language":"go","import_path":"effort"}
 {"path":"aidlc/internal/generator/templates.go","language":"go","import_path":"fmt"}
 {"path":"aidlc/internal/generator/templates.go","language":"go","import_path":"model"}
 {"path":"aidlc/internal/generator/templates.go","language":"go","import_path":"os"}
@@ -478,9 +485,16 @@
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"fmt"}
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"os"}
+{"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"path"}
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"path/filepath"}
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"sort"}
 {"path":"aidlc/internal/repomap/fallback.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/commands/query.go"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/repomap/cache/nested/query.go"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/repomap/cache/query.go"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/repomap/cache/query.txt"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/repomap/fallback.go"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"aidlc/internal/repomap_extra/fallback.go"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"context"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"docs/blueprints/auth.md"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"docs/spec/auth.md"}
@@ -489,6 +503,7 @@
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"os"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"path/filepath"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"pkg/zeta/zeta.go"}
+{"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/repomap/fallback_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/repomap/imports.go","language":"go","import_path":".go"}
 {"path":"aidlc/internal/repomap/imports.go","language":"go","import_path":".java"}
@@ -534,6 +549,14 @@
 {"path":"aidlc/internal/repomap/model/jsonl_test.go","language":"go","import_path":"bytes"}
 {"path":"aidlc/internal/repomap/model/jsonl_test.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/repomap/model/jsonl_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/model/queryplan.go","language":"go","import_path":"fmt"}
+{"path":"aidlc/internal/repomap/model/queryplan.go","language":"go","import_path":"path"}
+{"path":"aidlc/internal/repomap/model/queryplan.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/model/queryplan_test.go","language":"go","import_path":"Go"}
+{"path":"aidlc/internal/repomap/model/queryplan_test.go","language":"go","import_path":"encoding/json"}
+{"path":"aidlc/internal/repomap/model/queryplan_test.go","language":"go","import_path":"go"}
+{"path":"aidlc/internal/repomap/model/queryplan_test.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/model/queryplan_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/repomap/model/querytext.go","language":"go","import_path":"a"}
 {"path":"aidlc/internal/repomap/model/querytext.go","language":"go","import_path":"be"}
 {"path":"aidlc/internal/repomap/model/querytext.go","language":"go","import_path":"can"}
@@ -569,8 +592,10 @@
 {"path":"aidlc/internal/repomap/model/querytext_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/repomap/model/record.go","language":"go","import_path":"0000000000"}
 {"path":"aidlc/internal/repomap/model/record.go","language":"go","import_path":"strconv"}
+{"path":"aidlc/internal/repomap/model/record_test.go","language":"go","import_path":"bytes"}
 {"path":"aidlc/internal/repomap/model/record_test.go","language":"go","import_path":"encoding/json"}
 {"path":"aidlc/internal/repomap/model/record_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/model/record_test.go","language":"go","import_path":"{\\"}
 {"path":"aidlc/internal/repomap/options.go","language":"go","import_path":".cache"}
 {"path":"aidlc/internal/repomap/options.go","language":"go","import_path":".claude"}
 {"path":"aidlc/internal/repomap/options.go","language":"go","import_path":".codex"}
@@ -618,6 +643,11 @@
 {"path":"aidlc/internal/repomap/queryengine_test.go","language":"go","import_path":"docs/spec/auth.md\\t1.000000\\tspec auth\\n"}
 {"path":"aidlc/internal/repomap/queryengine_test.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
 {"path":"aidlc/internal/repomap/queryengine_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/retrieval.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
+{"path":"aidlc/internal/repomap/retrieval.go","language":"go","import_path":"sort"}
+{"path":"aidlc/internal/repomap/retrieval.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/retrieval_test.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
+{"path":"aidlc/internal/repomap/retrieval_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/repomap/scanner.go","language":"go","import_path":".cache"}
 {"path":"aidlc/internal/repomap/scanner.go","language":"go","import_path":".claude"}
 {"path":"aidlc/internal/repomap/scanner.go","language":"go","import_path":".git"}
@@ -645,6 +675,12 @@
 {"path":"aidlc/internal/repomap/scanner_test.go","language":"go","import_path":"path/filepath"}
 {"path":"aidlc/internal/repomap/scanner_test.go","language":"go","import_path":"strings"}
 {"path":"aidlc/internal/repomap/scanner_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/snippets.go","language":"go","import_path":"fmt"}
+{"path":"aidlc/internal/repomap/snippets.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/snippets.go","language":"go","import_path":"unicode/utf8"}
+{"path":"aidlc/internal/repomap/snippets_test.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/snippets_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/snippets_test.go","language":"go","import_path":"unicode/utf8"}
 {"path":"aidlc/internal/repomap/sourcechunks.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
 {"path":"aidlc/internal/repomap/sourcechunks.go","language":"go","import_path":"go"}
 {"path":"aidlc/internal/repomap/sourcechunks.go","language":"go","import_path":"go-mod"}
@@ -676,6 +712,21 @@
 {"path":"aidlc/internal/repomap/staleness_test.go","language":"go","import_path":"os"}
 {"path":"aidlc/internal/repomap/staleness_test.go","language":"go","import_path":"path/filepath"}
 {"path":"aidlc/internal/repomap/staleness_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"go"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"if"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"java"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"javascript"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"python"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"regexp"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"ruby"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"rust"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"sort"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/symbols.go","language":"go","import_path":"typescript"}
+{"path":"aidlc/internal/repomap/symbols_test.go","language":"go","import_path":"fmt"}
+{"path":"aidlc/internal/repomap/symbols_test.go","language":"go","import_path":"strings"}
+{"path":"aidlc/internal/repomap/symbols_test.go","language":"go","import_path":"testing"}
 {"path":"aidlc/internal/repomap/testlinks.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}
 {"path":"aidlc/internal/repomap/testlinks.go","language":"go","import_path":"go"}
 {"path":"aidlc/internal/repomap/testlinks.go","language":"go","import_path":"java"}
@@ -844,3 +895,4 @@
 {"path":"aidlc/testdata/repomap/fixture-repo/main.go","language":"go","import_path":"fmt"}
 {"path":"aidlc/testdata/repomap/fixture-repo/main.go","language":"go","import_path":"github.com/example/fixture/internal/auth"}
 {"path":"aidlc/testdata/repomap/fixture-repo/pkg/util/util_test.go","language":"go","import_path":"testing"}
+{"path":"aidlc/testdata/repomap/integration_queries.go","language":"go","import_path":"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"}

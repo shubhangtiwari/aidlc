@@ -1,6 +1,7 @@
 package model
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 )
@@ -47,9 +48,14 @@ func TestRecordJSONFieldOrder(t *testing.T) {
 			want: `{"path":"internal/auth/auth.go","language":"go","start_line":12,"end_line":18,"text":"func ValidateToken"}`,
 		},
 		{
+			name: "symbol",
+			in:   SymbolRecord{Path: "internal/auth/auth.go", Language: "go", Kind: "method", Name: "Authorize", Receiver: "Service", Container: "auth", StartLine: 12, EndLine: 18},
+			want: `{"path":"internal/auth/auth.go","language":"go","kind":"method","name":"Authorize","receiver":"Service","container":"auth","start_line":12,"end_line":18}`,
+		},
+		{
 			name: "index",
 			in:   DefaultIndexMeta(),
-			want: `{"schema_version":1,"map_dir":"docs/map","index_file":"index.json","sqlite_file":"repo-map.sqlite","shards":{"files":"files.jsonl","imports":"imports.jsonl","tests":"tests.jsonl","blueprints":"blueprints.jsonl","docs":"docs.jsonl","changes":"changes.jsonl","source_chunks":"source_chunks.jsonl"}}`,
+			want: `{"schema_version":1,"map_dir":"docs/map","index_file":"index.json","sqlite_file":"repo-map.sqlite","shards":{"files":"files.jsonl","imports":"imports.jsonl","tests":"tests.jsonl","blueprints":"blueprints.jsonl","docs":"docs.jsonl","changes":"changes.jsonl","source_chunks":"source_chunks.jsonl","symbols":"symbols.jsonl"}}`,
 		},
 		{
 			name: "query result",
@@ -71,6 +77,25 @@ func TestRecordJSONFieldOrder(t *testing.T) {
 	}
 }
 
+func TestSymbolRecordJSONLDeterministicOrder(t *testing.T) {
+	records := []SymbolRecord{
+		{Path: "b.go", Language: "go", Kind: "func", Name: "Beta", StartLine: 20, EndLine: 25},
+		{Path: "a.go", Language: "go", Kind: "method", Name: "Alpha", Receiver: "Service", Container: "auth", StartLine: 3, EndLine: 9},
+	}
+
+	var buf bytes.Buffer
+	if err := WriteJSONL(&buf, records); err != nil {
+		t.Fatalf("WriteJSONL() error = %v", err)
+	}
+
+	want := "" +
+		"{\"path\":\"a.go\",\"language\":\"go\",\"kind\":\"method\",\"name\":\"Alpha\",\"receiver\":\"Service\",\"container\":\"auth\",\"start_line\":3,\"end_line\":9}\n" +
+		"{\"path\":\"b.go\",\"language\":\"go\",\"kind\":\"func\",\"name\":\"Beta\",\"receiver\":\"\",\"container\":\"\",\"start_line\":20,\"end_line\":25}\n"
+	if got := buf.String(); got != want {
+		t.Fatalf("WriteJSONL() = %q, want %q", got, want)
+	}
+}
+
 func TestRecordSortKeys(t *testing.T) {
 	tests := []struct {
 		name string
@@ -84,6 +109,7 @@ func TestRecordSortKeys(t *testing.T) {
 		{name: "doc", in: DocRecord{Path: "docs/adr/1.md", Kind: "adr", Title: "Decision"}, want: "adr\x00docs/adr/1.md\x00Decision"},
 		{name: "change", in: ChangeRecord{Path: "docs/spec/1.md", Kind: "spec", ID: "1"}, want: "spec\x001\x00docs/spec/1.md"},
 		{name: "source chunk", in: SourceChunkRecord{Path: "b.go", StartLine: 9, EndLine: 12}, want: "b.go\x000000000009\x000000000012"},
+		{name: "symbol", in: SymbolRecord{Path: "b.go", Kind: "func", Name: "Build", StartLine: 9, EndLine: 12}, want: "b.go\x000000000009\x000000000012\x00func\x00\x00\x00Build"},
 	}
 
 	for _, tt := range tests {

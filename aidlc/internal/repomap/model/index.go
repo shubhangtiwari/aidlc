@@ -14,6 +14,7 @@ const (
 	DocsShard         = "docs.jsonl"
 	ChangesShard      = "changes.jsonl"
 	SourceChunksShard = "source_chunks.jsonl"
+	SymbolsShard      = "symbols.jsonl"
 )
 
 type ShardFilenames struct {
@@ -24,6 +25,7 @@ type ShardFilenames struct {
 	Docs         string `json:"docs"`
 	Changes      string `json:"changes"`
 	SourceChunks string `json:"source_chunks"`
+	Symbols      string `json:"symbols"`
 }
 
 type IndexMeta struct {
@@ -44,6 +46,20 @@ func DefaultShardFilenames() ShardFilenames {
 		Docs:         DocsShard,
 		Changes:      ChangesShard,
 		SourceChunks: SourceChunksShard,
+		Symbols:      SymbolsShard,
+	}
+}
+
+func KnownShardNames() []string {
+	return []string{
+		FilesShard,
+		ImportsShard,
+		TestsShard,
+		BlueprintsShard,
+		DocsShard,
+		ChangesShard,
+		SourceChunksShard,
+		SymbolsShard,
 	}
 }
 

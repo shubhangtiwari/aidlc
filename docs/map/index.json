@@ -10,7 +10,8 @@
     "blueprints": "blueprints.jsonl",
     "docs": "docs.jsonl",
     "changes": "changes.jsonl",
-    "source_chunks": "source_chunks.jsonl"
+    "source_chunks": "source_chunks.jsonl",
+    "symbols": "symbols.jsonl"
   },
   "include": [
     ".ai",
@@ -28,7 +29,7 @@
     },
     {
       "path": ".ai/models.defaults.toml",
-      "content_hash": "ee2c09497a337e40abb861ab30516815279b5b57cf153a45b34e37adadbfbcc1"
+      "content_hash": "f815ab321dc513750a95407686dbaa1a73368f06e317a142343ec68887eca1cd"
     },
     {
       "path": ".ai/personas/architect.md",
@@ -156,7 +157,7 @@
     },
     {
       "path": "aidlc.lock.json",
-      "content_hash": "e2bb66a17938451bcdf5526d770e4f4611f24f834459e0853dade918e3eb853b"
+      "content_hash": "869528b7d8dcba038b74a7714d1621a4d15dae8b638f43ec5da7d7e3ce6ac61a"
     },
     {
       "path": "aidlc/README.md",
@@ -180,7 +181,7 @@
     },
     {
       "path": "aidlc/internal/cli/root_test.go",
-      "content_hash": "7633b1ea7c0a4f37a28788b93e41f785d94b02099247f5eaff483a735cfa7ffc"
+      "content_hash": "e17b489c1dc2b9bc389320143713a3f11b540da301858068d76492dcf718b9b9"
     },
     {
       "path": "aidlc/internal/commands/doctor.go",
@@ -208,11 +209,11 @@
     },
     {
       "path": "aidlc/internal/commands/query.go",
-      "content_hash": "5b3bb9c763c8a56bd7d2c9902d3745c7f1c27149195a640b88fd61a75a570219"
+      "content_hash": "78ed55f728abf4874f39a1c22b12bb9582a90a2dcd3bda74f156ba97d9c8fb4a"
     },
     {
       "path": "aidlc/internal/commands/query_test.go",
-      "content_hash": "9951ec8a156e477206554673d848be48878cf4a09851e6146b3dd3b806c99365"
+      "content_hash": "9e1ecaef74d09cb0d25d999252722c850ed361af320a8af93b81f842fba5d3c4"
     },
     {
       "path": "aidlc/internal/commands/update.go",
@@ -252,7 +253,7 @@
     },
     {
       "path": "aidlc/internal/generator/generator_test.go",
-      "content_hash": "db448c268e97b461db2cf6584122180bd7bedff3a88af7710f8e4a158916a7d3"
+      "content_hash": "6e6dec10e619bf07945be8af6ffb8d3f2b3546ec02a7d6d68ba2a3a07f21518c"
     },
     {
       "path": "aidlc/internal/generator/ide.go",
@@ -260,7 +261,7 @@
     },
     {
       "path": "aidlc/internal/generator/models.go",
-      "content_hash": "d412526b03e9f2563c7f5598b61a94f2d2ee424d29d40cedee1bf4ebba2d5136"
+      "content_hash": "5779e89d736573361e2132a75daa059a46bc6c4bea4676073a5d99c25e900c14"
     },
     {
       "path": "aidlc/internal/generator/project_facts.go",
@@ -272,11 +273,11 @@
     },
     {
       "path": "aidlc/internal/generator/render.go",
-      "content_hash": "b26a5518d913e2cd2bb3f45fbcde5671e677b1749d8e14933bb4a231970690d8"
+      "content_hash": "fd9348b04b926a8ddde2afa494e37dcf56ffa7cc87a319fd5c7828e5fedd243b"
     },
     {
       "path": "aidlc/internal/generator/templates.go",
-      "content_hash": "198b4eddf32e96fbdbe1815e7059ffafc6449526c5d4e6b2c1e1157b44472286"
+      "content_hash": "a7b9e788b2f78ef49a7de3cc34dc0de3ea6b9e734eecec3b94d26a53317d20f8"
     },
     {
       "path": "aidlc/internal/install/checksums.go",
@@ -336,11 +337,11 @@
     },
     {
       "path": "aidlc/internal/repomap/fallback.go",
-      "content_hash": "6676d842ac679ed9f8cc2f0dace4dba389944300f5ca88a9bb2b9b23bbe4134e"
+      "content_hash": "a799f25ef7fef6d1683ac00d5fc023cc598ab4f21279dd6f27bee9b488210131"
     },
     {
       "path": "aidlc/internal/repomap/fallback_test.go",
-      "content_hash": "aacbc50dbf733271a71d382d7a5c880a8ab0112570de7cf8c2caf9cdaba157ab"
+      "content_hash": "da0b327d22bf84de1d276132fc305ee6a757dbde9ea6f99e9863278171549146"
     },
     {
       "path": "aidlc/internal/repomap/imports.go",
@@ -364,7 +365,7 @@
     },
     {
       "path": "aidlc/internal/repomap/model/index.go",
-      "content_hash": "a00db8c7f499a059c3321cd309d3cbc0b3e06e39f063217cd2de99377b53371a"
+      "content_hash": "cda1f7a3cd614d9b86f95f5dfad867dd4e3a02a8d8f9938433b1fd7dbe34e347"
     },
     {
       "path": "aidlc/internal/repomap/model/jsonl.go",
@@ -373,6 +374,14 @@
     {
       "path": "aidlc/internal/repomap/model/jsonl_test.go",
       "content_hash": "af9566aa287bdf50a444e3b2b56aa77e361b891fe4b398207ec7e60a0ee78b19"
+    },
+    {
+      "path": "aidlc/internal/repomap/model/queryplan.go",
+      "content_hash": "53a4cacb76d93d401b4a08bae192ec44e632cf91cce7065943a3dd88062e9d28"
+    },
+    {
+      "path": "aidlc/internal/repomap/model/queryplan_test.go",
+      "content_hash": "e2e1d7dbcdecb176376bc81a24f000f4281ebb9b7c503105ab125cfc67d7dd4a"
     },
     {
       "path": "aidlc/internal/repomap/model/querytext.go",
@@ -384,11 +393,11 @@
     },
     {
       "path": "aidlc/internal/repomap/model/record.go",
-      "content_hash": "56d85abc10fc8fc84ae5f3fe56dfb232fc845b4d76f041afcf432e9dac6d4e6d"
+      "content_hash": "bf4802ac925f9d7cdfc5ed4a478f6141fb405ab8a1dfe9391afe2830f41b3ab9"
     },
     {
       "path": "aidlc/internal/repomap/model/record_test.go",
-      "content_hash": "9c738ad92ebc8e23c43f2bce2064e6bf58a5a0660fe95862337224e4cba772a7"
+      "content_hash": "b0208eb5c1da9268f05bccadf724944825ae1fcf08ae63416bc149e4d2a3ad16"
     },
     {
       "path": "aidlc/internal/repomap/options.go",
@@ -400,19 +409,35 @@
     },
     {
       "path": "aidlc/internal/repomap/queryengine.go",
-      "content_hash": "9bca724c4b27bf8162109476019383cf96f478d6a5d97937482d8522e339a16e"
+      "content_hash": "d1a10a75679fa965094f1083f5942558042280d5958e1562ca408d4e58267c45"
     },
     {
       "path": "aidlc/internal/repomap/queryengine_test.go",
-      "content_hash": "ef690dde1f0e7f78896bb0f6feea8c0ea358575766d771dca9462ce6f06f47d1"
+      "content_hash": "f928a0450cb17064ea95452c1ffccdc88fb391c73a5674d7d1f4a3f54bc7df3f"
+    },
+    {
+      "path": "aidlc/internal/repomap/retrieval.go",
+      "content_hash": "cc780963287eb0bcf4ded0f71f32996858ec508349f0058e19704d2ac922583f"
+    },
+    {
+      "path": "aidlc/internal/repomap/retrieval_test.go",
+      "content_hash": "01b5f5d35badaffce8f57ac1af9e289cfc2ad0137063bcbaf7f06b45538b4767"
     },
     {
       "path": "aidlc/internal/repomap/scanner.go",
-      "content_hash": "2ccc262e71abc0aa5960e69206c156cc2500e929b77a9d513b9da71733c29853"
+      "content_hash": "29d4144db9c3a20311ada62fe6749cc228eefce88926bf327d28ab3a23a74140"
     },
     {
       "path": "aidlc/internal/repomap/scanner_test.go",
-      "content_hash": "a30794d5361a22bab647b573b0c57ecef02ba8241c82a60c2124cdcf8aa97096"
+      "content_hash": "40254e132e25b1fd9d093e72a8ccda49702b66f02f363e4d12c3080b95064caa"
+    },
+    {
+      "path": "aidlc/internal/repomap/snippets.go",
+      "content_hash": "786bb8e4562c7d7436da26133c926a67b0b4a5a3fb74696f7b4406040d7c4840"
+    },
+    {
+      "path": "aidlc/internal/repomap/snippets_test.go",
+      "content_hash": "0c5f2094b4afa1b04b40216aa6bac2805b694e837cab80b701b751522aa83097"
     },
     {
       "path": "aidlc/internal/repomap/sourcechunks.go",
@@ -429,6 +454,14 @@
     {
       "path": "aidlc/internal/repomap/staleness_test.go",
       "content_hash": "9078c2559129900af9f902646bd487ed0e876c0be9d2b8e8baf9c2d18661f93d"
+    },
+    {
+      "path": "aidlc/internal/repomap/symbols.go",
+      "content_hash": "83faa1d65f7d92ae0cd1b85c2b85e7e98c89c6c1d351c849e0cef1f049b39983"
+    },
+    {
+      "path": "aidlc/internal/repomap/symbols_test.go",
+      "content_hash": "65f008880f34a32858f625a3d79c1cab1fdc251c6edc02fb8cd50deb034af2aa"
     },
     {
       "path": "aidlc/internal/repomap/testlinks.go",
@@ -592,7 +625,7 @@
     },
     {
       "path": "aidlc/testdata/repomap/integration_queries.go",
-      "content_hash": "f7f4d5b39daa0e111d347ac52ae761dfd5f67ee24dfe50acba927d23fbc15c5c"
+      "content_hash": "a86de3b8d47c4cf4d3a37fe9311266b1798d57194d7898678c7516234fb44722"
     },
     {
       "path": "docs/ARCHITECTURE.md",
@@ -609,6 +642,10 @@
     {
       "path": "docs/adr/1781478129-embed-sqlite-repomap.md",
       "content_hash": "dfe74acae6b3a500a9a5b17c38019316da9070c88e8262d26bbbe3f2df7ccfea"
+    },
+    {
+      "path": "docs/adr/1784130102-code-aware-repomap-retrieval.md",
+      "content_hash": "d601f46ccf0f045d3ed67eed8eb3ff00a3778a95daa13478f66c63f5e485fa8c"
     },
     {
       "path": "docs/adr/README.md",
@@ -628,15 +665,19 @@
     },
     {
       "path": "docs/blueprints/aidlc.md",
-      "content_hash": "45071a18929625c64c8da9ab57f555db3021f8bdcf768ee19e122baba0854b9b"
+      "content_hash": "91e38c4862248c0c3da796e43de9de4084d765c9826f57b945d12ed2a736389e"
     },
     {
       "path": "docs/blueprints/repomap.md",
-      "content_hash": "d4f9634eb77a6da36d9c6e6764f1292b53233cab8ee1e6cb9abfb4e5693f7066"
+      "content_hash": "cbfa28268ab3538ea0249b6d8ae1cb842298d8873fcbaf7f8079fca2a8204dd7"
     },
     {
       "path": "docs/blueprints/template-payload.md",
-      "content_hash": "835c4de4ab3f5ecb2ae91fbbad4f212b4adff07ab8f9214189362ed8e8cc5de5"
+      "content_hash": "85501b321e1a88b980016f26d88587f6646e20f57cd3e0d726a42705c4c77917"
+    },
+    {
+      "path": "docs/repomap-query-plan.md",
+      "content_hash": "f70435d9b3c5edfb83ca2be785be2bb55d2b0c2aae0c556dc025507e433253fc"
     },
     {
       "path": "docs/spec/.in-flight.yaml",
@@ -693,6 +734,14 @@
     {
       "path": "docs/spec/1781806677-improve-repomap-lexical-query.md",
       "content_hash": "bfc7ccd59e60666d5d0c43cfbb4faca9342b6b6a45ecfa2ad7a4026b2b2081bb"
+    },
+    {
+      "path": "docs/spec/1784130102-code-aware-repomap-retrieval.md",
+      "content_hash": "dcfc6cfd742cc777eff97d89898e388290ea3bfd9f0a0d5c47455cceeafdec14"
+    },
+    {
+      "path": "docs/spec/1784139665-persona-model-defaults.md",
+      "content_hash": "e0d5a0a55c2df02d590a19b0c8ca4e850b55f4db2b725a57fce5cb8483d98be2"
     },
     {
       "path": "docs/spec/README.md",

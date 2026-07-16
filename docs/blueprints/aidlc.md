@@ -44,6 +44,10 @@ It does not own root template source files except by reading the public template
 ## Cross-package Contracts
 
 - Commands: `doctor`, `init`, `map`, `query`, `update`, `upgrade`, and `version`.
+- Native persona rendering consumes `.ai/models.defaults.toml` by IDE and persona. Codex renders
+  `model` directly and translates source `reasoning` to `model_reasoning_effort`; Claude Code
+  renders `model` and source `effort` as agent-frontmatter `effort`; Cursor renders `model` only
+  and has no effort field. Empty or absent source values omit their corresponding generated field.
 - `aidlc map [--dir DIR] [--include DIR[,DIR...]] [--check]` builds the repository navigation
   index for `DIR` (default `.`). A normal run scans the target repository using the saved
   `workspace.map.include` whitelist from `aidlc.lock.json`, writes deterministic JSONL shards and
@@ -61,12 +65,23 @@ It does not own root template source files except by reading the public template
   and the include list recorded in `docs/map/index.json` is stale output.
 - `aidlc query [--dir DIR] [--limit N] [--shard NAME] <search terms>` queries the repo map for
   `DIR` (default `.`) and prints ranked tab-separated rows as `<path>\t<score>\t<snippet>`.
-  `--limit` defaults to `10`; negative limits and empty search terms exit `2`. Without `--shard`,
-  query uses `docs/map/repo-map.sqlite` when present and falls back to JSONL linear scan when the
-  cache is absent. Query text is normalized for lexical matching so question-shaped searches drop
-  connector noise while preserving code-shaped terms; the public output format and exit behavior do
-  not change. `--shard` forces JSONL fallback for the selected shard. Successful empty result sets
-  exit `0` with no rows.
+  `--limit` defaults to `10`; negative limits and empty search terms exit `2`. Raw text compiles to
+  the public `SearchPlanV1` contract internally while preserving simple CLI behavior. Without
+  `--shard`, query uses `docs/map/repo-map.sqlite` when present and falls back to JSONL linear scan
+  when the cache is absent. Query text is normalized for lexical matching so question-shaped
+  searches drop connector noise while preserving code-shaped terms; the public output format and
+  exit behavior do not change. `--shard` forces JSONL fallback for the selected shard. Successful
+  empty result sets exit `0` with no rows.
+- `aidlc query --plan-json JSON` and `aidlc query --plan-file PATH` execute public
+  `SearchPlanV1` input with version, question, terms, phrases, symbols, paths, globs, languages,
+  shards, include-tests hint, relationship depth, and limit. Plan parsing rejects malformed JSON,
+  multiple JSON values, unsupported versions, absolute paths, parent traversal, malformed globs,
+  unknown shards, invalid relationship depth, and invalid raw-text/plan flag combinations with
+  deterministic exit `2` errors. Recursive `**` globs match zero or more complete path segments.
+  Structured plan output uses the same tab-separated result rows as raw text. When the SQLite cache
+  is present, plan execution is hybrid: SQLite FTS handles text channels while deterministic JSONL
+  channels handle paths, recursive globs, symbols, source chunks, imports, and test links. It is not
+  fallback-only unless the cache is absent or unusable.
 - Map/query dependency boundary: command orchestration accepts `repomap/model` interfaces for cache
   building and querying. The CLI root wires the concrete SQLite implementation into those
   interfaces as a narrow composition-root exception; application command code must not import
@@ -152,9 +167,10 @@ receive `aidlc.lock.json`, public template payload files including `licenses/aid
 generated IDE files such as `AGENTS.md`, `CLAUDE.md`, `.codex/**`, `.cursor/**`, `.claude/**`,
 `.github/copilot-instructions.md`, and `.windsurfrules`. Target repositories may also receive
 repo-specific generated map artifacts from `aidlc map` under `docs/map/`: committed canonical JSONL
-shards including `docs/map/source_chunks.jsonl` and `docs/map/index.json`, plus the ignored derived
-cache `docs/map/repo-map.sqlite`. The saved map whitelist in `aidlc.lock.json` is authoritative for
-subsequent map builds and read-only freshness checks. The consumer repository root `LICENSE` is not
+shards including `docs/map/source_chunks.jsonl`, `docs/map/symbols.jsonl`, and `docs/map/index.json`,
+plus the ignored derived cache `docs/map/repo-map.sqlite`. The saved map whitelist in
+`aidlc.lock.json` is authoritative for subsequent map builds and read-only freshness checks. The
+consumer repository root `LICENSE` is not
 owned by AIDLC after license relocation; init and update must not create, overwrite, delete, or
 track it as the active AIDLC license payload. The root lock owns workspace IDE selections, map
 include selections, tracked payload checksums, generation metadata, and update source metadata.
@@ -204,7 +220,9 @@ machine PATH or target repository payload state.
   cross-platform static binary packaging, checksums, and GitHub release asset upload.
 - `modernc.org/sqlite` is embedded only through `aidlc/internal/repomap/cache` to provide the local
   FTS5 query cache. The dependency must remain pure Go and compatible with CGO-disabled release
-  builds.
+  builds. Repo-map query execution must not introduce embeddings, vector tables, model runtimes,
+  network services, parser dependencies, language servers, search subprocesses, or external search
+  engine runtimes.
 - The interface-layer `aidlc/internal/cli` package may bind `aidlc/internal/repomap/cache`
   implementations into `repomap/model` interfaces as the CLI composition root. This exception does
   not allow application packages to import cache or SQLite packages directly.
@@ -229,6 +247,10 @@ machine PATH or target repository payload state.
 - `make test`
 - `make validate-governance`
 
+Persona rendering coverage must assert the exact architect, implementer, and reviewer model and
+effort mappings for Codex and Claude Code, model-only `composer-2.5` output for all Cursor roles,
+and omission of generated fields for empty or absent optional source values.
+
 Coverage must include partial init conflicts that still write safe payload files, generated IDE
 files, and an honest root lock; root `aidlc.lock.json` workspace IDE persistence; legacy manifest
 fallback and migration timing; update regeneration of only selected IDE surfaces; unchanged update
@@ -250,10 +272,15 @@ generation for scope-aware spec ownership invariants. Forced init/update coverag
 overwrite output rows, exit `0` on successful forced overwrites, lock tracking of overwritten public
 payload paths, regenerated requested or persisted IDE files, private path exclusion, dry-run force
 read-only behavior, unchanged non-forced conflict behavior, map/query root CLI help and routing,
-repo-map build output with `docs/map/` JSONL shards, `index.json`, and derived SQLite cache,
+query plan CLI coverage for `--plan-json`, `--plan-file`, malformed plan validation, invalid flag
+combinations, and unchanged tab-separated output rows, repo-map build output with `docs/map/` JSONL
+shards including `source_chunks.jsonl` and `symbols.jsonl`, `index.json`, and derived SQLite cache,
 saved map whitelist persistence and reuse, first-run map include confirmation, non-interactive
 first-run guidance, read-only `aidlc map --check` behavior, include mismatch stale output,
-staleness exit codes, SQLite FTS recall@10 of at least 0.7 across the labeled fixture queries with
-representative natural-language and question-shaped code queries, JSONL fallback superset behavior
-for the same queries, and `make aidlc-release-check` coverage proving the SQLite dependency does
-not break CGO-disabled cross-compilation.
+staleness exit codes, structured plan recall@10 of at least 0.85 across at least 14 labeled fixture
+queries, raw text recall@10 of at least 0.70 across the same representative natural-language and
+question-shaped code queries, compact `--limit 10` output at least 30 percent smaller than the
+source-heavy baseline while preserving expected paths, JSONL fallback superset behavior for the
+same queries, map artifact regeneration coverage, and `make aidlc-release-check` coverage proving
+the SQLite dependency does not break CGO-disabled cross-compilation and no model, vector, parser,
+network-service, or search-engine runtime dependency is introduced.

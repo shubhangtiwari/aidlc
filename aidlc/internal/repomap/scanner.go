@@ -20,6 +20,7 @@ type Shards struct {
 	Docs         []model.DocRecord
 	Changes      []model.ChangeRecord
 	SourceChunks []model.SourceChunkRecord
+	Symbols      []model.SymbolRecord
 }
 
 func ScanDir(root string) (*Shards, error) {
@@ -55,6 +56,7 @@ func WriteShards(mapDir string, shards Shards) error {
 		{model.DocsShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Docs) }},
 		{model.ChangesShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Changes) }},
 		{model.SourceChunksShard, func(f *os.File) error { return model.WriteJSONL(f, shards.SourceChunks) }},
+		{model.SymbolsShard, func(f *os.File) error { return model.WriteJSONL(f, shards.Symbols) }},
 	}
 
 	for _, item := range writes {
@@ -124,6 +126,7 @@ func (s *scanner) scan() error {
 		})
 		s.shards.Imports = append(s.shards.Imports, ExtractImports(rel, language, string(content))...)
 		s.shards.SourceChunks = append(s.shards.SourceChunks, ExtractSourceChunks(rel, language, string(content))...)
+		s.shards.Symbols = append(s.shards.Symbols, ExtractSymbols(rel, language, string(content))...)
 
 		docRecords, changeRecords, blueprintRecords := ScanDoc(rel, string(content))
 		s.shards.Docs = append(s.shards.Docs, docRecords...)

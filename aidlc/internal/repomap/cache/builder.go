@@ -235,7 +235,34 @@ func loadEntries(mapDir string) ([]indexEntry, error) {
 		})
 	}
 
+	symbols, err := readShard[model.SymbolRecord](mapDir, model.SymbolsShard)
+	if err != nil {
+		return nil, err
+	}
+	for _, record := range symbols {
+		entries = append(entries, indexEntry{
+			Path:  record.Path,
+			Shard: model.SymbolsShard,
+			Kind:  "symbol",
+			Title: symbolTitle(record),
+			Body: model.SearchText(
+				record.Path,
+				record.Language,
+				record.Kind,
+				record.Name,
+				record.Receiver,
+				record.Container,
+				fmt.Sprintf("%d", record.StartLine),
+				fmt.Sprintf("%d", record.EndLine),
+			),
+		})
+	}
+
 	return entries, nil
+}
+
+func symbolTitle(record model.SymbolRecord) string {
+	return model.SearchText(record.Kind, record.Receiver, record.Container, record.Name)
 }
 
 func readShard[T any](mapDir, filename string) ([]T, error) {
