@@ -108,17 +108,22 @@ func RunUpdate(ctx context.Context, opts contract.UpdateOptions) (CommandResult,
 	}
 
 	ides := updateWorkspaceIDEs(previous)
+	var generatedProjections []contract.GeneratedProjection
 	if len(ides) > 0 {
 		generatedFiles, err := generator.Generate(generator.Options{TargetDir: opts.TargetDir, IDEs: ides})
 		if err != nil {
 			return result, err
 		}
 		result.Generated = append(result.Generated, generatedFiles.Written...)
+		generatedProjections = generatedFiles.Projections
 	}
 
 	generated := contract.GenerationRecord{IDE: contract.IDEAll, Version: CurrentVersion()}
 	if previous != nil {
 		generated = previous.Generated
+	}
+	if len(ides) > 0 {
+		generated.Projections = generatedProjections
 	}
 	manifest := templatesync.ManifestFromPlan(plan, generated, commandMetadata(contract.CommandUpdate, opts.Source))
 	manifest.Workspace.IDEs = ides

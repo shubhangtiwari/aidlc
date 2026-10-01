@@ -15,6 +15,7 @@ func TestSearchPlanV1JSONFieldOrder(t *testing.T) {
 		Phrases:           []string{"token validation"},
 		Symbols:           []string{"Authorize"},
 		Paths:             []string{"aidlc/internal/auth/auth.go"},
+		ExactSearch:       &ExactSearchPlan{Enabled: true, Literals: []string{"Authorize("}, Paths: []string{"aidlc/internal/auth"}},
 		Globs:             []string{"aidlc/internal/**/*.go"},
 		Languages:         []string{"go"},
 		Shards:            []string{SourceChunksShard},
@@ -26,7 +27,7 @@ func TestSearchPlanV1JSONFieldOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal() error = %v", err)
 	}
-	want := `{"version":1,"question":"Where is auth checked?","terms":["auth","checked"],"phrases":["token validation"],"symbols":["Authorize"],"paths":["aidlc/internal/auth/auth.go"],"globs":["aidlc/internal/**/*.go"],"languages":["go"],"shards":["source_chunks.jsonl"],"include_tests":false,"relationship_depth":2,"limit":25}`
+	want := `{"version":1,"question":"Where is auth checked?","terms":["auth","checked"],"phrases":["token validation"],"symbols":["Authorize"],"paths":["aidlc/internal/auth/auth.go"],"exact_search":{"enabled":true,"literals":["Authorize("],"paths":["aidlc/internal/auth"]},"globs":["aidlc/internal/**/*.go"],"languages":["go"],"shards":["source_chunks.jsonl"],"include_tests":false,"relationship_depth":2,"limit":25}`
 	if string(got) != want {
 		t.Fatalf("Marshal() = %s, want %s", got, want)
 	}
@@ -40,7 +41,12 @@ func TestSearchPlanNormalizeDefaultsAndCleans(t *testing.T) {
 		Phrases:  []string{" token validation ", "token validation"},
 		Symbols:  []string{" Authorize ", "Authorize"},
 		Paths:    []string{"b.go", "a.go", "b.go"},
-		Globs:    []string{"aidlc/**/*.go"},
+		ExactSearch: &ExactSearchPlan{
+			Enabled:  true,
+			Literals: []string{" Generate( ", "Generate("},
+			Paths:    []string{"aidlc/internal/generator", "aidlc/internal/generator"},
+		},
+		Globs: []string{"aidlc/**/*.go"},
 		Languages: []string{
 			" Go ",
 			"go",
@@ -59,6 +65,14 @@ func TestSearchPlanNormalizeDefaultsAndCleans(t *testing.T) {
 	assertStrings(t, "Phrases", plan.Phrases, []string{"token validation"})
 	assertStrings(t, "Symbols", plan.Symbols, []string{"Authorize"})
 	assertStrings(t, "Paths", plan.Paths, []string{"b.go", "a.go"})
+	if plan.ExactSearch == nil {
+		t.Fatal("ExactSearch = nil")
+	}
+	assertStrings(t, "ExactSearch.Literals", plan.ExactSearch.Literals, []string{"Generate("})
+	assertStrings(t, "ExactSearch.Paths", plan.ExactSearch.Paths, []string{"aidlc/internal/generator"})
+	if plan.ExactSearch.MaxResults != DefaultExactSearchMaxResults {
+		t.Fatalf("ExactSearch.MaxResults = %d, want %d", plan.ExactSearch.MaxResults, DefaultExactSearchMaxResults)
+	}
 	assertStrings(t, "Globs", plan.Globs, []string{"aidlc/**/*.go"})
 	assertStrings(t, "Languages", plan.Languages, []string{"go"})
 	assertStrings(t, "Shards", plan.Shards, []string{SourceChunksShard})
@@ -86,6 +100,20 @@ func TestCompileRawSearchPlan(t *testing.T) {
 	if plan.Limit != DefaultSearchLimit {
 		t.Fatalf("Limit = %d, want %d", plan.Limit, DefaultSearchLimit)
 	}
+	if plan.ExactSearch != nil {
+		t.Fatalf("ExactSearch = %#v, want nil for low-signal raw query", plan.ExactSearch)
+	}
+}
+
+func TestCompileRawSearchPlanEnablesExactSearchForHighSignalQuery(t *testing.T) {
+	plan, err := CompileRawSearchPlan("Where is Generate( used?", 0)
+	if err != nil {
+		t.Fatalf("CompileRawSearchPlan() error = %v", err)
+	}
+	if plan.ExactSearch == nil || !plan.ExactSearch.Enabled {
+		t.Fatalf("ExactSearch = %#v, want enabled", plan.ExactSearch)
+	}
+	assertStrings(t, "ExactSearch.Literals", plan.ExactSearch.Literals, []string{"Generate("})
 }
 
 func TestSearchPlanValidationRejectsInvalidInput(t *testing.T) {
@@ -128,6 +156,11 @@ func TestSearchPlanValidationRejectsInvalidInput(t *testing.T) {
 			name: "shard",
 			plan: SearchPlanV1{Version: 1, Shards: []string{"missing"}},
 			want: "unknown repo-map shard",
+		},
+		{
+			name: "exact search path",
+			plan: SearchPlanV1{Version: 1, ExactSearch: &ExactSearchPlan{Enabled: true, Paths: []string{"aidlc/internal/*.go"}}},
+			want: "metacharacters",
 		},
 		{
 			name: "relationship depth",

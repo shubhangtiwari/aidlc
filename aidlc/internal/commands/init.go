@@ -142,7 +142,9 @@ func RunInit(ctx context.Context, opts contract.InitOptions) (CommandResult, err
 	}
 	result.Generated = append(result.Generated, generated.Written...)
 
-	manifest := templatesync.ManifestFromAcceptedPlan(plan, generationRecord(opts.IDE), commandMetadata(contract.CommandInit, opts.Source))
+	record := generationRecord(opts.IDE)
+	record.Projections = generated.Projections
+	manifest := templatesync.ManifestFromAcceptedPlan(plan, record, commandMetadata(contract.CommandInit, opts.Source))
 	selection, err := initWorkspaceIDEs(previous, opts.IDE)
 	if err != nil {
 		return result, err

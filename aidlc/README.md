@@ -14,8 +14,11 @@ aidlc doctor [flags]
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
 aidlc map [flags]
 aidlc query [flags] <search terms>
+aidlc skill <install|list|remove> [flags]
 aidlc update [flags]
 aidlc upgrade [flags]
+aidlc validate [flags]
+aidlc benchmark retrieval [flags]
 aidlc version
 ```
 
@@ -75,11 +78,69 @@ aidlc query [flags] <search terms>
 
 `query` searches the repository map for the selected repository root and prints ranked
 tab-separated rows as `<path>\t<score>\t<snippet>`. It uses `docs/map/repo-map.sqlite` when present
-and falls back to a JSONL scan of `docs/map/` artifacts when the cache is absent. `--shard` forces
-the JSONL path for one shard.
+and falls back to a JSONL scan of `docs/map/` artifacts when the cache is absent or raw cache
+retrieval returns no useful rows while fallback has matches. `--shard` forces the JSONL path for
+one shard.
+
+Raw query text and structured plans may use optional bounded exact search when they contain
+high-signal path, symbol, or literal clues. Exact search uses local `rg` when it is available,
+passes fixed-string arguments directly without a shell, validates slash-relative path hints, and
+falls back to map results with diagnostics when `rg` is missing, times out, or truncates output.
+`--diagnostics` writes those notes to stderr. `--format json` returns JSON rows and may include the
+same diagnostics.
 
 Successful queries exit `0`, including empty result sets, which print no rows. Empty search terms,
 negative limits, invalid usage, or unreadable map state exit `2`.
+
+## `aidlc skill`
+
+```text
+aidlc skill install [--dir DIR] LOCAL_DIR
+aidlc skill list [--dir DIR] [--format text|json]
+aidlc skill remove [--dir DIR] NAME
+```
+
+`skill install` copies a validated local skill tree into `.ai/skills/installed/<name>/` without
+executing files or following symlinks. `LOCAL_DIR` must contain `SKILL.md` with frontmatter `name`
+and `description`; the name must be slash-safe kebab-case and match the source directory name.
+
+Installed skills are consumer-owned local state. `aidlc init` and `aidlc update` preserve installed
+sources, including `update --force`, and project them into native skill folders for Codex, Cursor,
+and Claude Code. Copilot and Windsurf receive root guidance only. `skill remove` deletes the
+installed source and only generated native projections whose checksums still match the lock record;
+manual projection edits are preserved and reported.
+
+## `aidlc validate`
+
+```text
+aidlc validate [--dir DIR] [--spec PATH] [--task-record PATH] [--base REV] \
+  [--changed-file PATH ...] [--high-risk] [--format text|json]
+```
+
+`validate` is a read-only governance evidence check. It can verify that a supplied spec is approved,
+changed files stay inside the selected scope and approved spec, a task record matches the v1 schema,
+the task record digest matches the current dirty-tree contents of owned files, and check/review
+evidence points at the current revision and digest. With `--high-risk`, validation requires both an
+approved spec and a task record with review evidence.
+
+Validation does not authenticate human approval, prove model review quality, prove host write
+isolation, or compute real LLM tokens or cost. It reports only artifacts the local CLI can inspect.
+Passing validation exits `0`, validation failures exit `1`, and usage or unreadable state exits `2`.
+
+## `aidlc benchmark`
+
+```text
+aidlc benchmark retrieval [--dir DIR] --queries PATH [--output PATH]
+```
+
+`benchmark retrieval` runs deterministic local retrieval fixtures and emits a v1 benchmark record as
+JSON. The record includes command, revision when available, dirty-tree content digest for the query
+set, expected and matched paths, recall@10, precision@10, critical misses, repeated reads, retries,
+output bytes, output words, source-heavy baseline bytes, compact reduction, and optional
+host-reported token or cost fields when a host provides them.
+
+When `--output` is set, the file must not already exist and is written inside the selected
+repository. Without `--output`, the JSON record is printed to stdout.
 
 ## `aidlc update`
 
@@ -97,7 +158,8 @@ reported but not deleted from the target repository.
 
 With `--force`, otherwise conflicting public payload destinations become overwrite decisions.
 Forced update still never deletes files removed upstream and never overwrites private paths,
-local-only files, or files outside `.ai/template-manifest.yaml`.
+local-only files, installed skill sources, task evidence, or files outside
+`.ai/template-manifest.yaml`.
 
 ## `aidlc upgrade`
 
@@ -180,6 +242,35 @@ aidlc update --source local --path /path/to/aidlc --ref main
 | `--check` | For `map`, check whether existing `docs/map/` artifacts are fresh instead of rebuilding them. |
 | `--limit N` | For `query`, maximum ranked rows to print. Default: `10`. |
 | `--shard NAME` | For `query`, search one JSONL shard directly instead of using the SQLite cache. |
+| `--diagnostics` | For `query`, write retrieval diagnostics and omission notes to stderr. |
+| `--format tsv|json` | For `query`, choose TSV rows or JSON output. |
+
+## Skill Flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir DIR` | Repository root for installed skill state. Default: `.`. |
+| `--format text|json` | For `skill list`, choose text rows or JSON output. |
+
+## Validate Flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir DIR` | Repository root to validate. Default: `.`. |
+| `--spec PATH` | Approved spec path, slash-relative to `--dir`. |
+| `--task-record PATH` | Task record JSON evidence path, slash-relative to `--dir`. |
+| `--base REV` | Git revision for changed-file discovery. |
+| `--changed-file PATH` | Changed file path to validate; may be repeated. |
+| `--high-risk` | Require approved spec and task record review evidence. |
+| `--format text|json` | Choose text or JSON validation output. |
+
+## Benchmark Flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir DIR` | Repository root to benchmark. Default: `.`. |
+| `--queries PATH` | JSON retrieval query fixture path, slash-relative to `--dir`. |
+| `--output PATH` | Optional new JSON output path, slash-relative to `--dir`. |
 
 ## Doctor Flags
 
@@ -230,7 +321,7 @@ status: installed|skipped|dry-run
 | Code | Meaning |
 | --- | --- |
 | `0` | Success, including forced overwrites, dry runs, completed upgrades, and already-latest upgrade no-ops. |
-| `1` | One or more manifest-managed files conflict with local changes during `init` or `update`, or `doctor` found installation/Make helper actions. |
+| `1` | One or more manifest-managed files conflict with local changes during `init` or `update`, `validate` found evidence failures, or `doctor` found installation/Make helper actions. |
 | `2` | Usage, source, fetch, manifest, release lookup, download, checksum, extraction, install, generation, lock, or write error. |
 
 For `aidlc upgrade`, errors exit `2` with an `aidlc upgrade:` stderr prefix.

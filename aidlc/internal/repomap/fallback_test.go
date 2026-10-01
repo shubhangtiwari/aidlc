@@ -131,6 +131,30 @@ func TestFallbackQuerierFindsSourceChunkFromNaturalSpacedIdentifierTerms(t *test
 	}
 }
 
+func TestFallbackQuerierRawResultsRankByScoreThenPath(t *testing.T) {
+	t.Parallel()
+
+	mapDir := t.TempDir()
+	writeJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "z/partial.md", Kind: "doc", Title: "Partial", Text: "auth only"},
+		{Path: "b/full.md", Kind: "doc", Title: "Full", Text: "auth token"},
+		{Path: "a/full.md", Kind: "doc", Title: "Full", Text: "token auth"},
+	})
+
+	results, err := NewFallbackQuerier(mapDir).Query(context.Background(), "auth token", 10)
+	if err != nil {
+		t.Fatalf("Query() error = %v", err)
+	}
+	got := resultPaths(results)
+	want := []string{"a/full.md", "b/full.md", "z/partial.md"}
+	if !equalStrings(got, want) {
+		t.Fatalf("paths = %#v, want %#v", got, want)
+	}
+	if results[0].Score <= results[2].Score {
+		t.Fatalf("scores = %#v, want complete matches above partial", results)
+	}
+}
+
 func TestFallbackQuerierQueryPlanUsesPathSymbolsAndRelationships(t *testing.T) {
 	t.Parallel()
 

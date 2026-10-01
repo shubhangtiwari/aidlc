@@ -21,7 +21,7 @@ work_packages:
   - id: WP-M0
     title: Shared models and contracts
     domain: software
-    layer: models
+    layer: contracts
     depends_on: []
     wave: 0
     files: []

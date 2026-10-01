@@ -139,8 +139,12 @@ flowchart TB
   Start["💬 Request"] --> Scope["🧭 Clarify"]
   Scope --> Classify{"🏷️ Classify risk"}
 
-  Classify -->|Trivial / Small| SmallIntent["📝 Inline intent"]
+  Classify -->|Trivial direct| DirectBuild["🛠️ Direct execute"]
+  Classify -->|Small low-risk| SmallIntent["📝 Direct intent"]
+  Classify -->|Unclear| Investigate["🔎 Bounded investigation"]
+  Investigate --> Classify
   SmallIntent --> SmallBuild["🛠️ Bounded edit"]
+  DirectBuild --> SmallGate["✅ Gates + blueprint sanity"]
   SmallBuild --> SmallGate["✅ Gates + blueprint sanity"]
   SmallGate --> Done["📦 Done"]
 
@@ -157,7 +161,7 @@ flowchart TB
   classDef done fill:#ecfdf3,stroke:#2f9e44,color:#12351d,stroke-width:1px;
 
   class Start,Scope,Classify intake;
-  class SmallIntent,SmallBuild,SmallGate small;
+  class DirectBuild,SmallIntent,SmallBuild,SmallGate,Investigate small;
   class Spec,Approve,Work,SpecGate,Review spec;
   class Done done;
 ```
@@ -182,11 +186,11 @@ AIDLC defines three delegable personas:
 | Agent | Role |
 | --- | --- |
 | `architect` | Plans medium, large, or uncertain work. Writes specs and approval briefs; does not implement. |
-| `implementer` | Applies approved plans within assigned files, layers, and work packages. Performs blueprint sanity checks. |
+| `implementer` | Applies approved plans or delegated small changes within assigned files, layers, and work packages. Performs blueprint sanity checks. |
 | `reviewer` | Validates medium and large implementation diffs against the spec, layer rules, and blueprints. |
 
-The main agent coordinates the flow: classify, route, enforce the spec gate, and report the final
-state.
+The main agent coordinates the flow: classify, route, enforce the spec gate for medium and
+high-risk work, and report the final state.
 
 ## Skills
 
@@ -206,8 +210,11 @@ Skills define procedure. Personas define authority.
 aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]
 aidlc map [flags]
 aidlc query [flags] <search terms>
+aidlc skill <install|list|remove> [flags]
 aidlc update [flags]
 aidlc upgrade [flags]
+aidlc validate [flags]
+aidlc benchmark retrieval [flags]
 aidlc version
 ```
 
@@ -230,12 +237,17 @@ the governed repository root:
 make ai-map
 make ai-map-check
 make ai-query AI_QUERY="auth middleware"
+make ai-validate
+make ai-benchmark AI_BENCHMARK_ARGS="retrieval --dir . --queries docs/tasks/queries.json"
 ```
 
 Use `make ai-map` after meaningful file or blueprint changes. Use `make ai-map-check` in a
 pre-flight or CI-style check when you need to know whether the committed map is stale. Use
 `make ai-query` at the start of an agent task to get a small ranked list of files to inspect, then
-read the real files before editing.
+read the real files before editing. `make ai-validate` runs the local executable validation checks;
+it is useful evidence for approved-spec and high-risk workflows when paired with a task record.
+`make ai-benchmark` is opt-in and runs whichever benchmark arguments you pass through
+`AI_BENCHMARK_ARGS`.
 
 ## Maintainer Notes
 

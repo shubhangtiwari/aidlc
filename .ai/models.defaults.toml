@@ -1,44 +1,23 @@
-# Persona model defaults — read by aidlc init at generation time.
-# Empty model, reasoning, or effort = do not emit that field for the IDE.
-# Use exact strings from each IDE's model picker if these differ in your account.
-
-# Cursor: composer-2.5 for all personas — other Cursor models billed at 2x for this org.
+# Persona model defaults read by aidlc init at generation time.
+# Empty or absent model, reasoning, or effort means "inherit the host default".
+# Set values here only when a repository intentionally opts into a specific IDE model.
 
 [cursor.architect]
-model = "composer-2.5"
 
 [cursor.implementer]
-model = "composer-2.5"
 
 [cursor.reviewer]
-model = "composer-2.5"
-
-# Codex: role-specific GPT-5.6 defaults with xhigh reasoning.
 
 [codex.architect]
-model = "gpt-5.6-sol"
-reasoning = "xhigh"
 
 [codex.implementer]
-model = "gpt-5.6-luna"
-reasoning = "xhigh"
 
 [codex.reviewer]
-model = "gpt-5.6-sol"
-reasoning = "xhigh"
-
-# Claude Code subagents use provider-specific effort defaults.
 
 [claude.architect]
-model = "claude-fable-5"
-effort = "xhigh"
 
 [claude.implementer]
-model = "claude-sonnet-5"
-effort = "high"
 
 [claude.reviewer]
-model = "claude-opus-4-8"
-effort = "xhigh"
 
 # copilot.* and windsurf.* intentionally absent — generator emits no model lines.

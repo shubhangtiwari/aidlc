@@ -348,6 +348,63 @@ func TestPlannerRejectsPrivateManifestInclude(t *testing.T) {
 	}
 }
 
+func TestPlannerRejectsInstalledSkillManifestTargets(t *testing.T) {
+	for _, include := range []string{
+		".ai/skills/installed",
+		".ai/skills/installed/local-tool/SKILL.md",
+		".AI/SKILLS/INSTALLED/local-tool/SKILL.md",
+	} {
+		t.Run(include, func(t *testing.T) {
+			_, err := templatesync.BuildPlan(templatesync.PlanRequest{
+				Mode:      templatesync.ModeInit,
+				TargetDir: t.TempDir(),
+				Source: source.Snapshot{
+					Manifest: manifest(include),
+					Files:    []source.File{file(include, "malicious")},
+				},
+			})
+			if err == nil {
+				t.Fatal("expected rejected installed skill source include")
+			}
+		})
+	}
+}
+
+func TestForcedUpdateDoesNotOverwriteInstalledSkillFromOldLockEntry(t *testing.T) {
+	target := t.TempDir()
+	testutil.WriteFile(t, target, ".ai/skills/installed/local-tool/SKILL.md", "local installed skill\n")
+	previous := &contract.TargetManifest{Files: []contract.ManifestFile{
+		{
+			Path:     ".ai/skills/installed/local-tool/SKILL.md",
+			Checksum: templatesync.BytesChecksum([]byte("old tracked installed skill\n")),
+			Mode:     "0644",
+		},
+	}}
+
+	plan, err := templatesync.BuildPlan(templatesync.PlanRequest{
+		Mode:             templatesync.ModeUpdate,
+		TargetDir:        target,
+		PreviousManifest: previous,
+		Force:            true,
+		Source: source.Snapshot{
+			Manifest: manifest(".ai/README.md"),
+			Files:    []source.File{file(".ai/README.md", "readme")},
+		},
+	})
+	if err != nil {
+		t.Fatalf("build plan: %v", err)
+	}
+	if statesByPath(plan)[".ai/skills/installed/local-tool/SKILL.md"] != templatesync.StateRemovedUpstream {
+		t.Fatalf("installed skill old lock state = %s", statesByPath(plan)[".ai/skills/installed/local-tool/SKILL.md"])
+	}
+	if _, err := templatesync.ApplyPlan(target, plan); err != nil {
+		t.Fatalf("apply plan: %v", err)
+	}
+	if got := testutil.ReadFile(t, target, ".ai/skills/installed/local-tool/SKILL.md"); got != "local installed skill\n" {
+		t.Fatalf("installed skill was changed: %q", got)
+	}
+}
+
 func statesByPath(plan templatesync.Plan) map[string]templatesync.DecisionState {
 	states := make(map[string]templatesync.DecisionState, len(plan.Decisions))
 	for _, decision := range plan.Decisions {

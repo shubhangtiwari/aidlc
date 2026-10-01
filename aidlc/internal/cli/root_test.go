@@ -22,10 +22,13 @@ func TestRootHelpListsCommands(t *testing.T) {
 		t.Fatalf("root help code = %d", code)
 	}
 	for _, want := range []string{
+		"aidlc benchmark <retrieval> [flags]",
 		"aidlc doctor [flags]",
 		"aidlc map [flags]",
 		"aidlc query [flags] <search terms>",
+		"aidlc skill <install|list|remove> [flags]",
 		"aidlc upgrade [flags]",
+		"aidlc validate [flags]",
 	} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Fatalf("root help missing %q:\n%s", want, stdout.String())
@@ -42,9 +45,12 @@ func TestRootRoutesMapAndQueryHelp(t *testing.T) {
 		args []string
 		want string
 	}{
+		{name: "benchmark", args: []string{"benchmark", "--help"}, want: "Usage: aidlc benchmark <retrieval> [flags]"},
 		{name: "doctor", args: []string{"doctor", "--help"}, want: "Usage: aidlc doctor [flags]"},
 		{name: "map", args: []string{"map", "--help"}, want: "Usage: aidlc map [flags]"},
 		{name: "query", args: []string{"query", "--help"}, want: "Usage: aidlc query [flags] <search terms>"},
+		{name: "skill", args: []string{"skill", "--help"}, want: "Usage:"},
+		{name: "validate", args: []string{"validate", "--help"}, want: "Usage: aidlc validate [--dir DIR]"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
@@ -56,6 +62,83 @@ func TestRootRoutesMapAndQueryHelp(t *testing.T) {
 				t.Fatalf("stdout missing %q:\n%s", tc.want, stdout.String())
 			}
 		})
+	}
+}
+
+func TestRootInstalledSkillLifecycleThroughInitUpdateAndRemove(t *testing.T) {
+	sourceRoot := sourceRepositoryRoot(t)
+	target := t.TempDir()
+	skillSource := createRootSkillSource(t, "local-tool")
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(target); err != nil {
+		t.Fatalf("chdir target: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(oldWD); err != nil {
+			t.Fatalf("restore wd: %v", err)
+		}
+	})
+
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), []string{"init", "all", "--source", "local", "--path", sourceRoot, "--ref", "v1"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("init all code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = Run(context.Background(), []string{"skill", "install", "--dir", target, skillSource}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("skill install code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	assertRootFileContains(t, target, ".ai/skills/installed/local-tool/SKILL.md", "Root local tool skill")
+
+	stdout.Reset()
+	stderr.Reset()
+	code = Run(context.Background(), []string{"init", "all", "--source", "local", "--path", sourceRoot, "--ref", "v1"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("second init all code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	for _, path := range []string{
+		".codex/skills/local-tool/SKILL.md",
+		".cursor/skills/local-tool/SKILL.md",
+		".claude/skills/local-tool/SKILL.md",
+	} {
+		assertRootFileContains(t, target, path, "Root local tool skill")
+	}
+	assertRootMissing(t, target, ".github/skills/local-tool/SKILL.md")
+	assertRootMissing(t, target, ".windsurf/skills/local-tool/SKILL.md")
+
+	rewriteRootFile(t, target, ".ai/skills/installed/local-tool/SKILL.md", "---\nname: local-tool\ndescription: Locally edited skill\n---\n\nConsumer-owned installed edits.\n")
+	for _, args := range [][]string{
+		{"update", "--source", "local", "--path", sourceRoot, "--ref", "v2"},
+		{"update", "--force", "--source", "local", "--path", sourceRoot, "--ref", "v3"},
+	} {
+		stdout.Reset()
+		stderr.Reset()
+		code = Run(context.Background(), args, &stdout, &stderr)
+		if code != contract.ExitOK {
+			t.Fatalf("aidlc %s code = %d, stderr = %q, stdout = %q", strings.Join(args, " "), code, stderr.String(), stdout.String())
+		}
+		assertRootFileContains(t, target, ".ai/skills/installed/local-tool/SKILL.md", "Consumer-owned installed edits.")
+	}
+
+	rewriteRootFile(t, target, ".cursor/skills/local-tool/SKILL.md", "manual cursor edit\n")
+	stdout.Reset()
+	stderr.Reset()
+	code = Run(context.Background(), []string{"skill", "remove", "--dir", target, "local-tool"}, &stdout, &stderr)
+	if code != contract.ExitOK {
+		t.Fatalf("skill remove code = %d, stderr = %q, stdout = %q", code, stderr.String(), stdout.String())
+	}
+	assertRootMissing(t, target, ".ai/skills/installed/local-tool/SKILL.md")
+	assertRootMissing(t, target, ".codex/skills/local-tool/SKILL.md")
+	assertRootMissing(t, target, ".claude/skills/local-tool/SKILL.md")
+	assertRootFileContains(t, target, ".cursor/skills/local-tool/SKILL.md", "manual cursor edit")
+	if !strings.Contains(stdout.String(), "preserved cursor .cursor/skills/local-tool/SKILL.md diverged") {
+		t.Fatalf("remove output did not report preserved cursor projection:\n%s", stdout.String())
 	}
 }
 
@@ -284,7 +367,8 @@ func sourceHeavyTextByPath(t testing.TB, mapDir string) map[string]string {
 
 func sourceHeavyResultBytes(paths []string, textByPath map[string]string) int {
 	var b strings.Builder
-	for _, path := range paths {
+	for _, resultPath := range paths {
+		path := normalizeResultPath(resultPath)
 		text := strings.TrimSpace(textByPath[path])
 		if text == "" {
 			text = path
@@ -304,9 +388,13 @@ func queryResultPaths(output string) []string {
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		paths = append(paths, fields[0])
+		paths = append(paths, normalizeResultPath(fields[0]))
 	}
 	return paths
+}
+
+func normalizeResultPath(value string) string {
+	return strings.TrimPrefix(filepath.ToSlash(value), "./")
 }
 
 func recallAtK(results []string, expected []string) float64 {
@@ -346,4 +434,52 @@ func missingExpected(results []string, expected []string) []string {
 		}
 	}
 	return missing
+}
+
+func sourceRepositoryRoot(t testing.TB) string {
+	t.Helper()
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatalf("resolve source repository root: %v", err)
+	}
+	return root
+}
+
+func createRootSkillSource(t testing.TB, name string) string {
+	t.Helper()
+	root := filepath.Join(t.TempDir(), name)
+	rewriteRootFile(t, root, "SKILL.md", "---\nname: "+name+"\ndescription: Root local tool skill\n---\n\nUse the root local tool.\n")
+	rewriteRootFile(t, root, "assets/prompt.txt", "prompt\n")
+	return root
+}
+
+func rewriteRootFile(t testing.TB, root, rel, content string) {
+	t.Helper()
+	path := filepath.Join(root, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", rel, err)
+	}
+}
+
+func assertRootFileContains(t testing.TB, root, rel, want string) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	if err != nil {
+		t.Fatalf("read %s: %v", rel, err)
+	}
+	if !strings.Contains(string(data), want) {
+		t.Fatalf("%s missing %q:\n%s", rel, want, string(data))
+	}
+}
+
+func assertRootMissing(t testing.TB, root, rel string) {
+	t.Helper()
+	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(rel))); err == nil {
+		t.Fatalf("expected %s to be absent", rel)
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("stat %s: %v", rel, err)
+	}
 }

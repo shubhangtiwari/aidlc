@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/skills"
 )
 
 func loadSourceData(root string) (sourceData, error) {
@@ -21,6 +23,10 @@ func loadSourceData(root string) (sourceData, error) {
 	if err != nil {
 		return sourceData{}, err
 	}
+	installed, err := loadInstalled(root)
+	if err != nil {
+		return sourceData{}, err
+	}
 	sharedBody, err := loadSharedBody(filepath.Join(root, ".ai", "README.md"))
 	if err != nil {
 		return sourceData{}, err
@@ -33,9 +39,43 @@ func loadSourceData(root string) (sourceData, error) {
 		Facts:         facts,
 		Personas:      personas,
 		Skills:        skills,
+		Installed:     installed,
 		ModelDefaults: defaults,
 		SharedBody:    sharedBody,
 	}, nil
+}
+
+func loadInstalled(root string) ([]installedSkill, error) {
+	loaded, err := skills.LoadInstalledSkills(root)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]installedSkill, 0, len(loaded))
+	for _, skill := range loaded {
+		item := installedSkill{
+			Name:        skill.Name,
+			Description: skill.Description,
+			Source:      skill.Source,
+			Dirs:        append([]string(nil), skill.Dirs...),
+			Files:       make([]installedFile, 0, len(skill.Files)),
+		}
+		for _, file := range skill.Files {
+			mode := fmt.Sprintf("%04o", file.Mode.Perm())
+			if file.Mode.Perm() == 0 {
+				mode = "0644"
+			}
+			item.Files = append(item.Files, installedFile{
+				Path:    file.Path,
+				Content: append([]byte(nil), file.Content...),
+				Mode:    mode,
+			})
+		}
+		out = append(out, item)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Name < out[j].Name
+	})
+	return out, nil
 }
 
 func loadDocuments(dir string) ([]document, error) {

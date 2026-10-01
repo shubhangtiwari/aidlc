@@ -1,29 +1,27 @@
 # Repo-Map Agent Protocol
 
-This repository may provide an agent navigation map under `docs/map/`. The map is the first
-discovery mechanism for finding likely files; it is not a replacement for reading source, tests,
-specs, or blueprints. It is available to every agent role, including the main session, architect,
-implementer, and reviewer.
+This repository may provide an agent navigation map under `docs/map/`. The map is a structural
+navigation aid, not proof. It is useful for unknown-location work, module discovery, and relationship
+questions; exact filenames, symbols, literals, and obvious paths may also be checked with bounded
+local exact search such as `rg` before or alongside map queries.
 
 ## Operating Rules
 
-1. Before broad source exploration, consult the repo map with `make ai-query AI_QUERY="<task terms>"`
-   or `aidlc query "<task terms>"`. Do this before broad conventional discovery tools such as
-   `rg --files`, `find`, tree listings, or speculative file reads.
-2. Treat query results as navigation hints only. Open and read the real files before making any
-   edit, review finding, or architectural claim.
-3. If the map is missing or stale and the user has not requested a read-only session, the main
-   session must regenerate it with `make ai-map`, then verify with the read-only
-   `make ai-map-check`, then query again. On the first interactive run, `make ai-map` detects
-   candidate folders, asks for confirmation, saves the confirmed include list to
-   `aidlc.lock.json`, and then builds the map. Later runs reuse the saved include list without
-   prompting.
-4. Fall back to conventional exploration only when the map is missing and cannot be generated,
-   map commands fail, query results do not include useful paths, or the needed information is not
-   represented in the map. State the fallback reason.
-5. Do not edit generated files in `docs/map/` by hand. Regenerate them from the repository state.
-6. Do not persist repo-specific map state under `.ai/`. The `.ai/` tree is static delivery and
-   operating guidance; `docs/map/` is the per-repository navigation aid state.
+1. For structural discovery, consult the map with `make ai-query AI_QUERY="<task terms>"` or
+   `aidlc query "<task terms>"` before broad tree listings or speculative reads.
+2. For concrete clues, use bounded exact/path search directly when it is the shortest honest route.
+   Keep searches local, fixed-string when possible, and scoped to likely paths. Record when exact
+   search or the map omitted relevant regions.
+3. Treat all query results as hints. Open and read live source, tests, specs, ADRs, and blueprints
+   before editing, reviewing, or making architectural claims.
+4. If the map is missing or stale and the task needs structural discovery, the main session may
+   regenerate it with `make ai-map` and verify with read-only `make ai-map-check`, unless the user
+   requested a read-only session. On a first non-interactive run, pass `AI_MAP_INCLUDE`.
+5. Fall back to conventional exploration when the map is unavailable, stale, insufficient, fails, or
+   does not model the evidence needed. State the fallback reason when it affects confidence.
+6. Do not edit generated files in `docs/map/` by hand. Regenerate them from repository state.
+7. Do not persist repo-specific map state under `.ai/`. Static guidance lives in `.ai/`;
+   per-repository navigation state lives under `docs/map/` and the root lock.
 
 ## Makefile Integration
 

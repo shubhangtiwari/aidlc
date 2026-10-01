@@ -3,6 +3,8 @@ AI_MAP_INCLUDE ?=
 AI_QUERY ?=
 AI_QUERY_LIMIT ?= 10
 AI_QUERY_SHARD ?=
+AI_VALIDATE_ARGS ?=
+AI_BENCHMARK_ARGS ?=
 AIDLC_SYSTEM_BIN_DIRS ?= /opt/homebrew/bin /usr/local/bin
 
 AIDLC_RESOLVE = aidlc_bin="$$( \
@@ -42,7 +44,7 @@ if [ -z "$$aidlc_bin" ]; then \
 	exit 2; \
 fi
 
-.PHONY: ai-map ai-map-check ai-query ai-doctor
+.PHONY: ai-map ai-map-check ai-query ai-doctor ai-validate ai-benchmark
 
 ai-map:
 	@$(AIDLC_RESOLVE); \
@@ -70,3 +72,11 @@ ai-doctor:
 		exit 2; \
 	fi; \
 	"$$aidlc_bin" doctor --dir "$(AI_MAP_DIR)"
+
+ai-validate:
+	@$(AIDLC_RESOLVE); \
+	"$$aidlc_bin" validate --dir "$(AI_MAP_DIR)" $(AI_VALIDATE_ARGS)
+
+ai-benchmark:
+	@$(AIDLC_RESOLVE); \
+	"$$aidlc_bin" benchmark $(AI_BENCHMARK_ARGS)

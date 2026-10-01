@@ -11,7 +11,7 @@
 # Project targets:
 #   install        Download Go dependencies for the isolated aidlc module.
 #   run            Run the local aidlc CLI help from the isolated Go module.
-#   test           Run the repository governance and aidlc gates.
+#   test           Run the repository governance, validation, and aidlc gates.
 
 .PHONY: help init update finalize-spec install run test validate-governance \
         aidlc-test aidlc-release-check claude codex cursor copilot windsurf all
@@ -32,6 +32,8 @@ help:
 	@echo "  make aidlc-test          # run Go tests for the isolated aidlc module"
 	@echo "  make aidlc-release-check # validate aidlc release packaging prerequisites"
 	@echo "  make validate-governance # validate governance docs and public payload manifest"
+	@echo "  make ai-validate         # run executable governance validation through aidlc"
+	@echo "  make ai-benchmark        # run an aidlc benchmark command; pass AI_BENCHMARK_ARGS"
 	@echo "  make install   # download Go dependencies for the isolated aidlc module"
 	@echo "  make run       # run the local aidlc CLI help"
 	@echo "  make test      # run the repository governance and aidlc gates"
@@ -105,6 +107,10 @@ validate-governance:
 	@test -f aidlc/go.mod
 	@test ! -f go.mod
 	@test ! -f go.sum
+	@AIDLC_TMP="$$(mktemp -d)"; \
+	trap 'rm -rf "$$AIDLC_TMP"' EXIT; \
+	(cd aidlc && go build -o "$$AIDLC_TMP/aidlc" ./cmd/aidlc) && \
+	$(MAKE) ai-validate AIDLC_BIN="$$AIDLC_TMP/aidlc"
 	@$(MAKE) init codex ARGS="--dry-run"
 	@$(MAKE) update ARGS="--dry-run"
 

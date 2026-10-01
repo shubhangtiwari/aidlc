@@ -1,262 +1,85 @@
-# `.ai/` — Project-Agnostic AI Guidance
+# `.ai/` — Portable AI Guidance
 
-This directory holds only project-agnostic guidance for AI assistants: how they should code, what
-skills they have, and which personas they can adopt. It carries no project-specific facts.
+This directory contains project-agnostic operating guidance for AI assistants. Project facts live in
+`docs/ARCHITECTURE.md`, `docs/architecture/`, `docs/blueprints/`, specs, ADRs, and the root
+`Makefile`. Do not edit generated IDE files by hand; regenerate them with `aidlc init <ide>` or the
+repository wrapper.
 
-Project-specific facts live in canonical project files generated or curated after fork:
+## Directory Contract
 
-- Architecture style, layer rules, execution model → `docs/ARCHITECTURE.md` and
-  `docs/architecture/<domain>.md` (created by the `init-architecture` skill).
-- Module-specific contracts, owned state, and read-only paths → module blueprints under
-  `docs/blueprints/`.
-- Test gates and standard commands → `Makefile`.
-- Persona model defaults per IDE → `.ai/models.defaults.toml` (projected by `aidlc init <ide>` or
-  this repository's `make init <ide>` wrapper).
-
-The native `aidlc init <ide>` generator reads `.ai/` and optionally enriches output from a project
-manifest when one is detected at the repo root. Run `aidlc init <ide>` without a manifest to project
-governance only; re-run after adding a language/runtime manifest to refresh toolchain facts. In this
-repository, `make init <ide>` remains a thin wrapper around the native CLI.
-**Do not edit generated IDE files by hand.**
-
-## Files in this directory
-
-- `models.defaults.toml` — model and reasoning defaults for cursor, codex, claude.
-- `personas/` — operating modes for AI agents.
-  - `architect.md` — plans, work packages, DAG; never edits without instruction.
-  - `implementer.md` — WP-scoped edits within layer rules.
-  - `reviewer.md` — validates layer purity, spec, and WP `done_when`.
-- `skills/` — task playbooks (projected per IDE by `make init <ide>`).
-  - `architecture-diagrams.md` — create and review architecture diagrams using UML, Mermaid, C4,
-    PlantUML, and related standards.
-  - `classify-change.md` — mandatory tier triage in the main session before governed implementation.
-  - `init-architecture.md` — analyze repo and write `docs/ARCHITECTURE.md`.
-  - `orchestrate-spec.md` — parallel implementer waves from spec work packages.
-- `templates/` — spec drafting template; approval brief template (chat-only, for architect).
-- `references/architectures/` — reference profiles for the `init-architecture` skill.
-- `scripts/` — maintenance scripts (`finalize_spec.sh`).
-
-## Model defaults
-
-Edit `.ai/models.defaults.toml` to change which model each IDE uses for each persona, then run
-`make init <ide>` to regenerate agent files.
-
-## Responsibility Boundaries
-
-- **Personas define authority:** who plans, who changes files, who reviews, what each role must
-  refuse, when work escalates, and which quality bar applies before handoff.
-- **Skills define procedure:** reusable task playbooks in `.ai/skills/`. Skills do not define
-  authority — personas and Hard Rules do.
-- **Docs define truth:** architecture, specs, ADRs, blueprints, and manifests hold project facts.
+- `models.defaults.toml` — optional model and effort defaults. Empty or absent fields mean inherit
+  the host default.
+- `personas/` — role authority: architect plans, implementer edits, reviewer checks finished
+  high-risk work.
+- `skills/` — reusable playbooks. Bundled skills are payload-owned; `.ai/skills/installed/**` is
+  local consumer-owned state and must be preserved by init/update, including force updates.
+- `templates/` — spec, task-record, and approval-brief templates.
+- `repo-map-protocol.md` — navigation rules for map, exact, and conventional discovery.
+- `references/` and `scripts/` — public reference material and maintenance helpers listed in the
+  template manifest.
 
 <!-- INIT:BEGIN -->
 <!-- Everything below this marker is copied verbatim into per-IDE entrypoints by aidlc init. -->
 
-## Main agent delegation
+## Main Agent Contract
 
-Portable governance for the main session. Persona bodies live in `.ai/personas/`. Skills live in
-`.ai/skills/`. Architecture lives in `docs/ARCHITECTURE.md` and `docs/architecture/` once
-`init-architecture` has run; before then there is no governed source tree.
+Use the user's request as authorization for low-risk reversible work. Ask only when an answer would
+change scope, route, risk, or approval. For governed work, state the intended route before the first
+state-changing action and keep evidence grounded in live files.
 
-### Clarify before acting
+An **AIDLC scope root** is the invocation root, or a nested directory below it, that contains both
+`.ai/README.md` and `docs/spec/README.md`. For each affected path, walk upward to the invocation
+root and use the nearest scope root. A parent scope must not claim files owned by a nested scope.
+Medium, large, or still-uncertain work spanning multiple scopes needs one approved spec per scope.
 
-Before classifying or delegating, restate the request in your own terms and surface any ambiguity.
-If the goal, scope, target files, success criteria, or tier is genuinely unclear — and the gap
-would change which path you take below — ask the user a focused question first. Prefer one or two
-sharp questions over a list; do not ask about details you can determine by reading the repo. Skip
-clarification only when the request is unambiguous or the user has already answered. This step
-runs before the spec gate and before any tool call that changes state.
+## Discovery
 
-### Spec gate
+Follow `.ai/repo-map-protocol.md`. Use map queries for structural discovery when available, and use
+bounded exact/path search for concrete filenames, symbols, or literals. Query results are hints; read
+the real source, tests, specs, ADRs, and blueprints before editing or reviewing.
 
-The main agent must **not** edit governed paths directly when tier is medium, large, or uncertain,
-or when the user asks to implement, fix, add, refactor, or ship without an approved spec. User goal
-verbs do **not** waive the spec gate.
+## Routing
 
-### Scope resolution
+Run skill `classify-change` before governed implementation. It produces a Triage record with one of
+these `next` routes:
 
-Governance is resolved from the **invocation root**: the AIDLC root where the current agent session
-or prompt started. An **AIDLC scope root** is the invocation root or a directory below it that
-contains both `.ai/README.md` and `docs/spec/README.md`. Generated IDE files such as `AGENTS.md`,
-`.codex/**`, `.cursor/**`, or `CLAUDE.md` are not scope markers.
+- `direct-execute` — trivial, reversible, no contract/state/topology/integration impact. The primary
+  agent may edit directly after stating intent.
+- `direct-intent` — small low-risk work where a short inline intent improves visibility. Proceed
+  after posting intent unless new evidence raises risk.
+- `bounded-investigation` — read-only investigation can resolve tier or scope. Reclassify after the
+  bounded read.
+- `draft-spec` — medium, large, high-risk, or still-uncertain work. Delegate `architect`; wait for
+  explicit user approval; flip only `status: draft` to `status: approved`; then delegate
+  `implementer`; run `reviewer` before reporting complete or merging.
+- `ask-user` — one or two focused questions whose answers materially change route or scope.
 
-For each affected path, resolve the owning scope by walking from the path's directory upward to the
-invocation root and selecting the nearest AIDLC scope root. If no nested scope is found, fall back to
-the invocation root. Paths outside the invocation root are outside this governed workflow unless the
-user explicitly changes the invocation scope or starts a separate governed session there.
+Tier by semantic risk, not raw file count. Public behavior is a signal to size by blast radius, not
+an automatic spec trigger. Schemas, module contracts, owned state, integration boundaries, workflow
+topology, graph topology, coordination cost, rollback risk, and user impact drive risk. Multi-file
+mechanical work may be small; a one-file contract or state change may need a spec.
 
-Medium, large, or uncertain requests that map affected files to multiple AIDLC scope roots require
-one draft spec per resolved scope. Each scoped spec lives at
-`docs/spec/<epoch>-<slug>.md` relative to that scope and may include only files owned by that scope.
-A parent scoped spec must not claim files below a nested initialized AIDLC scope. One approval brief
-may summarize multiple scoped draft specs for the same user request, but implementation and review
-treat each approved scoped spec as its own governing artifact.
+## Persona Chain
 
-### Repo-map-first exploration
+Use personas by reference instead of copying their bodies into root prompts:
 
-When `.ai/repo-map-protocol.md` is present, it is mandatory for the main session and every persona.
-Use the repo map as the first discovery mechanism before broad repository exploration.
+- `architect` (`.ai/personas/architect.md`) writes scope-local specs and approval briefs for
+  `draft-spec` work.
+- `implementer` (`.ai/personas/implementer.md`) edits within an approved spec or an allowed
+  low-risk route, runs the required Make gates, and performs blueprint sanity.
+- `reviewer` (`.ai/personas/reviewer.md`) is mandatory for approved-spec work and optional only when
+  the user explicitly asks for review of low-risk work.
 
-1. **Bootstrap missing maps:** If `docs/map/index.json` or the canonical `docs/map/*.jsonl` shards
-   are missing and the user has not requested a read-only session, the main session must create the
-   map before broad exploration. Ensure the root `Makefile` includes `-include .ai/Makefile.inc`
-   exactly once, creating a minimal root `Makefile` with that include if none exists, then run
-   `make ai-map` and `make ai-map-check`. This setup is configuration/tooling work and does not
-   require governed triage.
-2. **Query before conventional discovery:** Before using broad conventional discovery tools such as
-   `rg --files`, `find`, tree listings, or speculative file reads, run
-   `make ai-query AI_QUERY="<task terms>"` from the invocation root. Use conventional tools only for
-   direct reads of identified files, for verification, or when the map cannot answer the question.
-3. **Fallback explicitly:** Fall back to conventional exploration only when the map is missing and
-   cannot be generated, `make ai-map` / `make ai-query` fails, the query returns no useful paths, or
-   the needed information is not represented in the map. State the reason for fallback.
-4. **Map is navigation, not evidence:** Query results are hints. Read the real source, tests,
-   specs, ADRs, and blueprints before editing, reviewing, or making architectural claims.
-
-### Before any state-changing tool call
-
-1. **Choose the path:**
-   - **Configuration / tooling / Q&A** (`Makefile` when not a contract, `.ai/`, IDE
-     config, dependencies, exploration) → main agent may proceed (no triage).
-   - **Governed code or contracts** (project source tree, `tests/`, `docs/blueprints/`,
-     `docs/adr/`, `docs/spec/`, `docs/ARCHITECTURE.md`, `docs/architecture/`) → **triage first**
-     (below), then the persona chain. The main session **must not** patch governed source or tests —
-     only `implementer` (or a delegated WP implementer) applies those edits.
-2. **Triage (governed only):** main session applies skill **`classify-change`** (read the playbook;
-   post a **Triage record** in chat) before inline intent, spec drafting, or `implementer`. Do not
-   delegate triage to `architect`. Route from `next`: `inline-intent` | `draft-spec` | `ask-user`.
-   When `next` is `draft-spec`, **delegate `architect`** automatically for planning. See Hard Rule 7.
-3. **Classify by semantic risk,** not raw file count alone. File count, line count, and directory
-   spread are signals to inspect for coordination cost, but the tier is driven by contract impact,
-   public behavior, owned state, topology, integrations, and rollback risk.
-4. **When in doubt,** assign tier **uncertain** or **medium**, not small.
-
-### Persona chain
-
-| Step | Persona | When |
-| --- | --- | --- |
-| 1 | `architect` | **Planning only** — after main-session triage with `next: draft-spec` (medium / large / uncertain) |
-| 2 | `implementer` | After spec `status: approved`, or after trivial/small intent confirmed with user |
-| 3 | `reviewer` | **Medium / large / uncertain (after approved spec) only** — finished diff vs governing spec; **not** used for trivial / small |
-
-### Delegation prompt shape
-
-When spawning a named persona, do **not** fork or attach the full chat history. Start the persona
-with a self-contained prompt that includes only the guidance needed for the handoff: role, goal,
-scope root, governing spec path or inline intent, allowed files, relevant constraints, gates, and
-done criteria. If an IDE offers a history-preserving fork and a named-agent override separately,
-choose the named agent with the self-contained prompt; full-history forks can reject persona
-overrides or leak unrelated context into the delegated task.
-
-**Medium / large / uncertain:** main session runs `classify-change`; when `next: draft-spec`,
-**delegate `architect`** for planning. The architect writes the scope-local spec file(s) to disk and
-posts an **approval brief** in chat (see `.ai/templates/approval-brief.md`). Return the spec path(s)
-and brief summary to the user, then **stop** until they explicitly approve. After explicit approval,
-the main session updates each approved scoped spec frontmatter from `status: draft` to
-`status: approved`; this status-only approval write does **not** require `architect` delegation. Do
-not call `implementer` in the same turn that presents the draft for approval. Do not paste the full
-spec into chat — the brief is the human gate; the scoped spec file is the machine gate. After all
-implementer work (including `orchestrate-spec` waves), the main session **must** delegate
-`reviewer` before reporting implementation complete or opening a PR — see **Review** and Hard Rule
-6.
-
-**Trivial / small:** After triage (`next: inline-intent`). No spec file. Main agent states intent
-inline (short summary: what, which files, expected outcome) informed by the Triage record. User
-confirms. Delegate **`implementer`** — do not apply governed edits from the main session. **Do not**
-delegate `reviewer` unless the user explicitly asks for a review. Small work can span a few files
-when the change is mechanical, uses a bounded helper, or adjusts one localized flow without changing
-module contracts, owned state, integration boundaries, or topology.
-
-**Blueprint sanity (all tiers):** Every `implementer` run ends with a blueprint check. If the
-change touches anything blueprints document (contracts, owned state, read-only paths, integrations,
-topology, layer map, test gates), update `docs/blueprints/<module>.md` in the same branch. If not,
-leave blueprints unchanged — do not add noise. Medium/large work still lists deltas in the spec;
-trivial/small rely on this check instead of a spec file.
-
-### Workflow
-
-```text
-Governed (all tiers):
-  main session + skill classify-change → Triage record (chat)
-       ↓
-  next: ask-user → main asks → classify-change again
-  next: inline-intent → main inline intent → user confirms → implementer → done
-  next: draft-spec → delegate architect → scope-local spec file(s) + approval brief (chat)
-       ↓ user approves
-       main flips spec status draft → approved → implementer (per WP / orchestrate-spec) → reviewer → merge
-```
-
-**Human gate:** approval brief in chat for medium/large (~250–500 words); short inline intent for
-trivial/small. **Machine gate:** spec file on disk when tier requires it; the main session records
-approval by changing only the approved spec's `status` frontmatter.
-
-### Escalation
-
-- **Minor discovery** → spec `Implementation notes` with date; continue.
-- **Material change** → stop; architect amends spec.
-
-### Work packages and parallel execution
-
-For medium/large specs with `work_packages` in frontmatter:
-
-1. Read waves from the spec's **Parallel execution plan**.
-2. Execute **one wave at a time**. All work packages in wave *N* must finish before wave *N+1*.
-3. Spawn **one implementer per work package** in the current wave (cap concurrency at 3–6; queue
-   the rest in the same wave).
-4. Each implementer receives: spec path, WP id, allowed `files`, `gates`, `done_when`, and
-   `domain`.
-5. **One writer per path** per active wave — refuse overlapping file ownership.
-6. **Wave 0** freezes shared contracts: models/DTOs, integration interfaces, shared pure utils
-   (2+ consumers), shared test fixtures. Not feature-complete services.
-7. **WP-INT** (final wave): wire-up, integration tests, blueprint sync, cross-cutting barrels —
-   `depends_on: [*]`.
-8. Apply skill `orchestrate-spec` for the step-by-step playbook.
-
-### Human vs machine artifacts
-
-| Audience | Artifact | Location |
-| --- | --- | --- |
-| Human (approval) | Approval brief | Chat only — architect synthesis |
-| Agents (execution) | Spec | `<scope-root>/docs/spec/<epoch>-<slug>.md` on disk |
-
-The main agent may restate the brief for clarity but must not regenerate a full plan or duplicate
-the spec body in chat.
-
-### Review
-
-| Tier | Reviewer |
-| --- | --- |
-| **Trivial / small** | **Skip** — implementer + blueprint sanity is sufficient. Invoke `reviewer` only when the user explicitly asks (e.g. “review this diff”). |
-| **Medium / large / uncertain** (approved spec) | **Required** — delegate `reviewer` on the branch diff vs the governing spec after implementer finishes. |
-
-For medium and large work, the main session must not tell the user implementation is complete,
-open a PR, or end the governed workflow until `reviewer` has run (same session or next turn is
-fine; skipping is not). Input to `reviewer`: diff + spec path + `status: approved` frontmatter.
-
-Trivial/small: verify blueprint sanity during implementer; no mandatory `reviewer` pass.
+For specs with work packages, use skill `orchestrate-spec`: execute waves in order, keep one writer
+per path per active wave, freeze shared contracts in wave 0, reserve the final integration wave for
+wire-up and blueprint sync, and review the full diff before completion.
 
 ## Hard Rules
 
-1. Layer purity follows `docs/architecture/` for the spec's `domain` once initialized.
-2. Execute through `Makefile` targets only.
-3. Cross-cutting decisions require an ADR in `docs/adr/` before implementation.
-4. Medium and large changes require an approved spec before code is written.
-5. The main agent must enforce the spec gate before any state-changing action.
-6. For **medium and large** governed changes (approved spec on disk), the main agent must delegate
-   `reviewer` after implementer completes and before reporting implementation complete or merge.
-   **Trivial and small** changes must **not** use `reviewer` unless the user explicitly requests it.
-7. For **governed** implementation requests, the main session must apply skill **`classify-change`**
-   (triage playbook + Triage record in chat) before inline intent, spec drafting, or `implementer`.
-   Triage stays in the main session — **do not** delegate it to `architect`. When triage yields
-   **medium, large, or uncertain** (`next: draft-spec`), the main session **must** delegate
-   **`architect`** for the spec and approval brief before `implementer`.
-
-## IDE hints (optional)
-
-These are invocation hints only. Governance truth is this file and `.ai/personas/`.
-
-| IDE | Delegate persona |
-| --- | --- |
-| Cursor | Task tool with `subagent_type` matching persona name |
-| Codex | Spawn named custom agent from `.codex/agents/` |
-| Claude Code | Invoke subagent from `.claude/agents/` |
+1. Execute repository gates through `Makefile` targets only.
+2. Follow the active domain profile in `docs/architecture/<domain>.md`.
+3. Cross-cutting architectural decisions require an ADR before implementation.
+4. Medium, large, high-risk, or still-uncertain governed work requires an approved spec before code.
+5. Approved-spec work is not complete until independent reviewer checks the diff against the spec.
+6. Preserve consumer-owned installed skill trees and local task records; never add broad payload
+   copies for `.ai/skills/installed/**` or `docs/tasks/**`.

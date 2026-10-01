@@ -61,13 +61,26 @@ func renderUnified(ide contract.IDE, data sourceData) []byte {
 	var b strings.Builder
 	b.WriteString(renderIntro(ide, data))
 	b.WriteString(data.SharedBody)
+	b.WriteString("\n## Native Agent Support\n\n")
+	switch ide {
+	case contract.IDECopilot:
+		b.WriteString("Copilot uses this root instruction file plus the portable `.ai/` source tree. Full persona and skill bodies remain in `.ai/personas/` and `.ai/skills/`.\n")
+	case contract.IDEWindsurf:
+		b.WriteString("Windsurf uses this root rules file plus the portable `.ai/` source tree. Full persona and skill bodies remain in `.ai/personas/` and `.ai/skills/`.\n")
+	default:
+		b.WriteString("Full persona and skill bodies remain in `.ai/` and IDE-native folders when supported.\n")
+	}
 	b.WriteString("\n## Personas\n\n")
 	for _, persona := range data.Personas {
-		fmt.Fprintf(&b, "### Persona — %s\n\n%s\n\n", persona.Name, persona.Body)
+		fmt.Fprintf(&b, "- `%s` — `.ai/personas/%s.md` — %s\n", persona.Name, persona.Name, persona.Description)
 	}
-	b.WriteString("## Skills\n\n")
+	b.WriteString("\n## Skills\n\n")
 	for _, skill := range data.Skills {
-		fmt.Fprintf(&b, "### Skill — %s\n\n%s\n\n", skill.Name, skill.Body)
+		fmt.Fprintf(&b, "- `%s` — `.ai/skills/%s.md` — %s\n", skill.Name, skill.Name, skill.Description)
+	}
+	if len(data.Installed) > 0 {
+		b.WriteString("\n## Installed Skills\n\n")
+		renderInstalledSkillCatalog(&b, data.Installed, "portable")
 	}
 	return []byte(b.String())
 }
@@ -123,11 +136,76 @@ func renderCodexAgent(persona document, defaults map[string]map[string]modelDefa
 	if def.Reasoning != "" {
 		fmt.Fprintf(&b, "model_reasoning_effort = %s\n", tomlBasicString(def.Reasoning))
 	}
-	if persona.Name == "architect" || persona.Name == "reviewer" {
+	if persona.Name == "architect" {
+		b.WriteString("sandbox_mode = \"workspace-write\"\n")
+	} else if persona.Name == "reviewer" {
 		b.WriteString("sandbox_mode = \"read-only\"\n")
 	}
 	fmt.Fprintf(&b, "developer_instructions = %s\n", tomlMultilineString(persona.Body))
 	return []byte(b.String())
+}
+
+func renderSharedAgentsRoot(data sourceData) []byte {
+	var b strings.Builder
+	b.WriteString(renderIntro(contract.IDEAll, data))
+	b.WriteString(data.SharedBody)
+	b.WriteString("\n## Native Agents\n\n")
+	b.WriteString("Codex custom agents live under `.codex/agents/`; Cursor agents live under `.cursor/agents/` and Cursor rules under `.cursor/rules/`.\n\n")
+	for _, persona := range data.Personas {
+		fmt.Fprintf(&b, "- `%s` — %s\n", persona.Name, persona.Description)
+	}
+	b.WriteString("\n## Native Skills\n\n")
+	b.WriteString("Bundled skill bodies are projected into `.codex/skills/` and `.cursor/skills/`. Full portable sources remain in `.ai/skills/`.\n\n")
+	for _, skill := range data.Skills {
+		fmt.Fprintf(&b, "- `%s` — %s\n", skill.Name, skill.Description)
+	}
+	if len(data.Installed) > 0 {
+		b.WriteString("\n## Installed Skills\n\n")
+		renderInstalledSkillCatalog(&b, data.Installed, "codex-cursor")
+	}
+	b.WriteString("\nRegenerate after changing `.ai/`: `make init codex`, `make init cursor`, or `make init all`.\n")
+	return []byte(b.String())
+}
+
+func renderClaudeRoot(data sourceData) []byte {
+	var b strings.Builder
+	b.WriteString(renderIntro(contract.IDEClaude, data))
+	b.WriteString(data.SharedBody)
+	b.WriteString("\n## Personas\n\nInvokable as Claude subagents under `.claude/agents/`.\n\n")
+	for _, persona := range data.Personas {
+		fmt.Fprintf(&b, "- `%s` — %s\n", persona.Name, persona.Description)
+	}
+	b.WriteString("\n## Skills\n\nInvokable as Claude skills under `.claude/skills/`.\n\n")
+	for _, skill := range data.Skills {
+		fmt.Fprintf(&b, "- `%s` — %s\n", skill.Name, skill.Description)
+	}
+	if len(data.Installed) > 0 {
+		b.WriteString("\n## Installed Skills\n\n")
+		renderInstalledSkillCatalog(&b, data.Installed, "claude")
+	}
+	return []byte(b.String())
+}
+
+func renderInstalledSkillCatalog(b *strings.Builder, installed []installedSkill, surface string) {
+	const maxListedInstalledSkills = 25
+	limit := len(installed)
+	if limit > maxListedInstalledSkills {
+		limit = maxListedInstalledSkills
+	}
+	for i := 0; i < limit; i++ {
+		skill := installed[i]
+		switch surface {
+		case "claude":
+			fmt.Fprintf(b, "- `%s` — `.claude/skills/%s/SKILL.md` — %s\n", skill.Name, skill.Name, skill.Description)
+		case "codex-cursor":
+			fmt.Fprintf(b, "- `%s` — `.codex/skills/%s/SKILL.md`, `.cursor/skills/%s/SKILL.md` — %s\n", skill.Name, skill.Name, skill.Name, skill.Description)
+		default:
+			fmt.Fprintf(b, "- `%s` — `%s/SKILL.md` — %s\n", skill.Name, skill.Source, skill.Description)
+		}
+	}
+	if len(installed) > limit {
+		fmt.Fprintf(b, "- %d more installed skill(s): see `.ai/skills/installed/` and supported native skill folders.\n", len(installed)-limit)
+	}
 }
 
 func renderCursorMDC(description string, alwaysApply bool, globs string, body string) []byte {

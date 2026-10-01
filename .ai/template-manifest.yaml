@@ -27,6 +27,7 @@ payload:
     - .ai/skills/orchestrate-spec.md
     - .ai/templates/approval-brief.md
     - .ai/templates/spec.md
+    - .ai/templates/task-record.md
     - docs/adr/README.md
     - docs/blueprints/README.md
     - docs/map/.gitignore
@@ -41,6 +42,8 @@ payload:
     - docs/map/*.jsonl
     - docs/map/index.json
     - docs/map/repo-map.sqlite
+    - docs/tasks/**
+    - .ai/skills/installed/**
     - docs/ARCHITECTURE.md
     - docs/architecture/**
     - aidlc/**

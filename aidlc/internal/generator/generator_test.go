@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/skills"
+	templatesync "github.com/shubhangtiwari/aidlc/aidlc/internal/sync"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/testutil"
 )
 
@@ -34,7 +36,7 @@ func TestGenerateMinimalAllIDEs(t *testing.T) {
 	}
 
 	agents := testutil.ReadFile(t, root, "AGENTS.md")
-	if !strings.Contains(agents, "<!-- generated from .ai/ -- do not edit by hand. Run `make init cursor` to regenerate. -->") {
+	if !strings.Contains(agents, "<!-- generated from .ai/ -- do not edit by hand. Run `make init all` to regenerate. -->") {
 		t.Fatalf("AGENTS.md missing generated marker:\n%s", agents)
 	}
 	if !strings.Contains(agents, "- Manifest: not detected (optional — re-run `make init <ide>` after adding one)") {
@@ -43,8 +45,11 @@ func TestGenerateMinimalAllIDEs(t *testing.T) {
 	if strings.Contains(agents, "ai_init.sh") || strings.Contains(agents, "ai_update.sh") {
 		t.Fatalf("AGENTS.md references retired shell compatibility:\n%s", agents)
 	}
-	if !strings.Contains(agents, "- `architect` — `.cursor/agents/architect.md` — Plans changes.") {
-		t.Fatalf("AGENTS.md missing cursor agent summary:\n%s", agents)
+	if !strings.Contains(agents, "- `architect` — Plans changes.") {
+		t.Fatalf("AGENTS.md missing compact agent summary:\n%s", agents)
+	}
+	if strings.Contains(agents, "# Persona: Architect") || strings.Contains(agents, "Triage instructions.") {
+		t.Fatalf("AGENTS.md embedded full persona or skill bodies:\n%s", agents)
 	}
 
 	claudeAgent := testutil.ReadFile(t, root, ".claude/agents/architect.md")
@@ -55,8 +60,12 @@ func TestGenerateMinimalAllIDEs(t *testing.T) {
 		t.Fatalf("claude agent missing effort default:\n%s", claudeAgent)
 	}
 	codexAgent := testutil.ReadFile(t, root, ".codex/agents/architect.toml")
-	if !strings.Contains(codexAgent, "sandbox_mode = \"read-only\"") {
-		t.Fatalf("codex agent missing read-only sandbox:\n%s", codexAgent)
+	if !strings.Contains(codexAgent, "sandbox_mode = \"workspace-write\"") {
+		t.Fatalf("codex architect missing workspace-write sandbox:\n%s", codexAgent)
+	}
+	reviewerAgent := testutil.ReadFile(t, root, ".codex/agents/reviewer.toml")
+	if !strings.Contains(reviewerAgent, "sandbox_mode = \"read-only\"") {
+		t.Fatalf("codex reviewer missing read-only sandbox:\n%s", reviewerAgent)
 	}
 	cursorRule := testutil.ReadFile(t, root, ".cursor/rules/governance-spec-gate.mdc")
 	if !strings.Contains(cursorRule, "globs: {**/*,tests/**,docs/spec/**,docs/blueprints/**,docs/adr/**,docs/ARCHITECTURE.md,docs/architecture/**}") {
@@ -85,7 +94,7 @@ func TestGeneratePersonaModelDefaultsExactMappings(t *testing.T) {
 	}
 
 	mappings := []struct {
-		persona       string
+		persona        string
 		claudeModel    string
 		claudeEffort   string
 		codexModel     string
@@ -93,7 +102,7 @@ func TestGeneratePersonaModelDefaultsExactMappings(t *testing.T) {
 		cursorModel    string
 	}{
 		{
-			persona:       "architect",
+			persona:        "architect",
 			claudeModel:    "claude-fable-5",
 			claudeEffort:   "xhigh",
 			codexModel:     "gpt-5.6-sol",
@@ -101,7 +110,7 @@ func TestGeneratePersonaModelDefaultsExactMappings(t *testing.T) {
 			cursorModel:    "composer-2.5",
 		},
 		{
-			persona:       "implementer",
+			persona:        "implementer",
 			claudeModel:    "claude-sonnet-5",
 			claudeEffort:   "high",
 			codexModel:     "gpt-5.6-luna",
@@ -109,7 +118,7 @@ func TestGeneratePersonaModelDefaultsExactMappings(t *testing.T) {
 			cursorModel:    "composer-2.5",
 		},
 		{
-			persona:       "reviewer",
+			persona:        "reviewer",
 			claudeModel:    "claude-opus-4-8",
 			claudeEffort:   "xhigh",
 			codexModel:     "gpt-5.6-sol",
@@ -239,7 +248,7 @@ func TestGenerateManifestEnrichedCodex(t *testing.T) {
 
 	agents := testutil.ReadFile(t, root, "AGENTS.md")
 	for _, want := range []string{
-		"<!-- generated from .ai/ + package.json -- do not edit by hand. Run `make init codex` to regenerate. -->",
+		"<!-- generated from .ai/ + package.json -- do not edit by hand. Run `make init all` to regenerate. -->",
 		"# AI Governance — manifest-app",
 		"- Language: JavaScript / Node",
 		"- Manifest: `package.json`",
@@ -250,6 +259,196 @@ func TestGenerateManifestEnrichedCodex(t *testing.T) {
 		if !strings.Contains(agents, want) {
 			t.Fatalf("AGENTS.md missing %q:\n%s", want, agents)
 		}
+	}
+}
+
+func TestGenerateSharedAgentsRootIsCompactAndDeterministic(t *testing.T) {
+	root := newTemplateRepo(t)
+	longBody := strings.Repeat("Follow the governed workflow with specific evidence. ", 160)
+	testutil.WriteFile(t, root, ".ai/skills/large-local.md", `---
+name: large-local
+description: Large local skill.
+---
+
+# large-local
+
+`+longBody+"\n")
+
+	if _, err := Generate(Options{TargetDir: root, IDE: contract.IDECodex}); err != nil {
+		t.Fatalf("generate codex: %v", err)
+	}
+	codexAgents := testutil.ReadFile(t, root, "AGENTS.md")
+	if _, err := Generate(Options{TargetDir: root, IDE: contract.IDECursor}); err != nil {
+		t.Fatalf("generate cursor: %v", err)
+	}
+	cursorAgents := testutil.ReadFile(t, root, "AGENTS.md")
+
+	if codexAgents != cursorAgents {
+		t.Fatalf("shared AGENTS.md differs between codex and cursor")
+	}
+	if words := wordCount(codexAgents); words > 1200 {
+		t.Fatalf("AGENTS.md words = %d, want <= 1200", words)
+	}
+	if bytes := len([]byte(codexAgents)); bytes > 9000 {
+		t.Fatalf("AGENTS.md bytes = %d, want <= 9000", bytes)
+	}
+	oldStyle := codexAgents + "\n## Persona Reference\n\n" +
+		testutil.ReadFile(t, root, ".ai/personas/architect.md") +
+		testutil.ReadFile(t, root, ".ai/personas/implementer.md") +
+		testutil.ReadFile(t, root, ".ai/personas/reviewer.md") +
+		"\n## Skill Reference\n\n" +
+		testutil.ReadFile(t, root, ".ai/skills/classify-change.md") +
+		testutil.ReadFile(t, root, ".ai/skills/large-local.md")
+	if reductionPercent(len([]byte(oldStyle)), len([]byte(codexAgents))) < 40 {
+		t.Fatalf("byte reduction below 40%%: old=%d new=%d", len([]byte(oldStyle)), len([]byte(codexAgents)))
+	}
+	if reductionPercent(wordCount(oldStyle), wordCount(codexAgents)) < 40 {
+		t.Fatalf("word reduction below 40%%: old=%d new=%d", wordCount(oldStyle), wordCount(codexAgents))
+	}
+}
+
+func TestGenerateInstalledSkillsPreservesFullNativeTreeAndReportsProjections(t *testing.T) {
+	root := newTemplateRepo(t)
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/SKILL.md", `---
+name: local-tool
+description: Local tool skill.
+---
+
+# local-tool
+
+Use local details.
+`)
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/assets/prompt.txt", "prompt bytes\n")
+	if err := os.MkdirAll(filepath.Join(root, ".ai", "skills", "installed", "local-tool", "empty"), 0o755); err != nil {
+		t.Fatalf("mkdir empty installed dir: %v", err)
+	}
+
+	result, err := Generate(Options{TargetDir: root, IDE: contract.IDEAll})
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if got := testutil.ReadFile(t, root, ".codex/skills/local-tool/SKILL.md"); !strings.Contains(got, "Use local details.") {
+		t.Fatalf("codex installed skill not preserved:\n%s", got)
+	}
+	if got := testutil.ReadFile(t, root, ".cursor/skills/local-tool/assets/prompt.txt"); got != "prompt bytes\n" {
+		t.Fatalf("cursor asset = %q", got)
+	}
+	if got := testutil.ReadFile(t, root, ".claude/skills/local-tool/assets/prompt.txt"); got != "prompt bytes\n" {
+		t.Fatalf("claude asset = %q", got)
+	}
+	if info, err := os.Stat(filepath.Join(root, ".codex", "skills", "local-tool", "empty")); err != nil || !info.IsDir() {
+		t.Fatalf("codex empty dir not preserved: info=%v err=%v", info, err)
+	}
+	assertMissing(t, root, ".github/skills/local-tool/SKILL.md")
+
+	paths := map[string]contract.GeneratedProjection{}
+	for _, projection := range result.Projections {
+		paths[projection.Path] = projection
+		if projection.Source != ".ai/skills/installed/local-tool" {
+			t.Fatalf("projection source = %q", projection.Source)
+		}
+		if projection.Mode != "0644" {
+			t.Fatalf("projection mode = %q", projection.Mode)
+		}
+		if err := projection.Validate(); err != nil {
+			t.Fatalf("invalid projection %#v: %v", projection, err)
+		}
+	}
+	for _, want := range []string{
+		".codex/skills/local-tool/SKILL.md",
+		".codex/skills/local-tool/assets/prompt.txt",
+		".cursor/skills/local-tool/SKILL.md",
+		".cursor/skills/local-tool/assets/prompt.txt",
+		".claude/skills/local-tool/SKILL.md",
+		".claude/skills/local-tool/assets/prompt.txt",
+	} {
+		if _, ok := paths[want]; !ok {
+			t.Fatalf("missing projection %s in %#v", want, result.Projections)
+		}
+	}
+}
+
+func TestGenerateInstalledSkillProjectionRejectsUntrackedDivergence(t *testing.T) {
+	root := newTemplateRepo(t)
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/SKILL.md", `---
+name: local-tool
+description: Local tool skill.
+---
+
+# local-tool
+
+Use local details.
+`)
+	testutil.WriteFile(t, root, ".codex/skills/local-tool/SKILL.md", "local native edits\n")
+
+	_, err := Generate(Options{TargetDir: root, IDE: contract.IDECodex})
+	if err == nil {
+		t.Fatal("generate succeeded, want conflict")
+	}
+	if !strings.Contains(err.Error(), "already exists and differs from source") {
+		t.Fatalf("error = %q", err)
+	}
+	assertMissing(t, root, ".codex/agents/architect.toml")
+}
+
+func TestGenerateInstalledSkillProjectionReconcilesDeletedAssetsBeforeSkillRemove(t *testing.T) {
+	root := newTemplateRepo(t)
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/SKILL.md", `---
+name: local-tool
+description: Local tool skill.
+---
+
+# local-tool
+
+Use local details.
+`)
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/assets/remove.txt", "remove me\n")
+	testutil.WriteFile(t, root, ".ai/skills/installed/local-tool/assets/diverge.txt", "owned before\n")
+
+	first, err := Generate(Options{TargetDir: root, IDE: contract.IDECodex})
+	if err != nil {
+		t.Fatalf("first generate: %v", err)
+	}
+	writeProjectionManifest(t, root, first.Projections)
+
+	if err := os.Remove(filepath.Join(root, ".ai", "skills", "installed", "local-tool", "assets", "remove.txt")); err != nil {
+		t.Fatalf("remove source asset: %v", err)
+	}
+	if err := os.Remove(filepath.Join(root, ".ai", "skills", "installed", "local-tool", "assets", "diverge.txt")); err != nil {
+		t.Fatalf("remove source diverged asset: %v", err)
+	}
+	testutil.WriteFile(t, root, ".codex/skills/local-tool/assets/diverge.txt", "local native edits\n")
+
+	second, err := Generate(Options{TargetDir: root, IDE: contract.IDECodex})
+	if err != nil {
+		t.Fatalf("second generate: %v", err)
+	}
+	assertMissing(t, root, ".codex/skills/local-tool/assets/remove.txt")
+	if got := testutil.ReadFile(t, root, ".codex/skills/local-tool/assets/diverge.txt"); got != "local native edits\n" {
+		t.Fatalf("diverged native asset changed: %q", got)
+	}
+	if containsProjectionPath(second.Projections, ".codex/skills/local-tool/assets/remove.txt") {
+		t.Fatalf("removed asset projection was retained: %#v", second.Projections)
+	}
+	if !containsProjectionPath(second.Projections, ".codex/skills/local-tool/assets/diverge.txt") {
+		t.Fatalf("diverged stale projection was not retained: %#v", second.Projections)
+	}
+	writeProjectionManifest(t, root, second.Projections)
+
+	remove, err := skills.Remove(skills.RemoveOptions{TargetDir: root, Name: "local-tool"})
+	if err != nil {
+		t.Fatalf("skill remove: %v", err)
+	}
+	if !remove.RemovedSource {
+		t.Fatalf("installed source was not removed: %#v", remove)
+	}
+	assertMissing(t, root, ".ai/skills/installed/local-tool/SKILL.md")
+	assertMissing(t, root, ".codex/skills/local-tool/SKILL.md")
+	if got := testutil.ReadFile(t, root, ".codex/skills/local-tool/assets/diverge.txt"); got != "local native edits\n" {
+		t.Fatalf("diverged projection should be preserved after remove: %q", got)
+	}
+	if len(remove.PreservedProjections) != 1 || remove.PreservedProjections[0].Path != ".codex/skills/local-tool/assets/diverge.txt" {
+		t.Fatalf("preserved projections = %#v", remove.PreservedProjections)
 	}
 }
 
@@ -413,6 +612,46 @@ func containsString(values []string, want string) bool {
 func fileExists(root, rel string) bool {
 	_, err := os.Stat(filepath.Join(root, filepath.FromSlash(rel)))
 	return err == nil
+}
+
+func assertMissing(t testing.TB, root, rel string) {
+	t.Helper()
+	if fileExists(root, rel) {
+		t.Fatalf("expected %s to be missing", rel)
+	}
+}
+
+func wordCount(value string) int {
+	return len(strings.Fields(value))
+}
+
+func reductionPercent(oldValue, newValue int) int {
+	if oldValue == 0 {
+		return 0
+	}
+	return ((oldValue - newValue) * 100) / oldValue
+}
+
+func writeProjectionManifest(t testing.TB, root string, projections []contract.GeneratedProjection) {
+	t.Helper()
+	if err := templatesync.WriteManifest(root, contract.TargetManifest{
+		SchemaVersion: contract.TargetManifestVersion,
+		Generated: contract.GenerationRecord{
+			IDE:         contract.IDECodex,
+			Projections: projections,
+		},
+	}); err != nil {
+		t.Fatalf("write projection manifest: %v", err)
+	}
+}
+
+func containsProjectionPath(projections []contract.GeneratedProjection, want string) bool {
+	for _, projection := range projections {
+		if projection.Path == want {
+			return true
+		}
+	}
+	return false
 }
 
 func agentFrontmatterFields(t *testing.T, content string) map[string]string {
