@@ -1,0 +1,218 @@
+.ai/models.defaults.toml
+  s_dfcaf512beb521::t_20f88b20e12bd3 1-3
+aidlc/internal/search/exact_test.go
+  s_dfcaf512beb521::t_d342358cce9433 1-105,155-161,170,172
+  s_dfcaf512beb521::t_03d26c371e6cb3 106-154,162-169,171
+.ai/repo-map-protocol.md
+  s_dfcaf512beb521::t_20f88b20e12bd3 3-6,10-24
+aidlc/internal/contract/manifest_test.go
+  s_dfcaf512beb521::t_063e827d7bc338 41-65
+  s_dfcaf512beb521::t_1bfa8dc0d55bee 36
+  s_dfcaf512beb521::t_445fa2c72c0592 1-35,37-40
+aidlc/internal/generator/render.go
+  s_dfcaf512beb521::t_49e5fe5253378b 150
+  s_dfcaf512beb521::t_ec87168e9d8431 64-72,75,77,79-83,139-141,148-149,151-209
+  s_dfcaf512beb521::t_479fac7ae8dfbc 210
+aidlc/internal/commands/update_test.go
+  s_dfcaf512beb521::t_006c59da3e9844 403-448
+aidlc/internal/commands/validate.go
+  s_dfcaf512beb521::t_ecc688a0549ee2 213,215,372,381,397,410,534,541
+  s_dfcaf512beb521::t_b81cfe0d7c4b27 35-39,41-43,595
+  s_dfcaf512beb521::t_eab0d67b6e0c99 155-161,163,168-176,179-195
+  s_dfcaf512beb521::t_d0fdac8fc13dc8 1-34,40,44-154,162,164-167,177-178,196-212,214,216-371,373-380,382-396,398-409,411-533,535-540,542-594,596-659
+aidlc/internal/generator/generator.go
+  s_dfcaf512beb521::t_39f7f94ab8c59c 44-46,66-73,83,88,90,129,151-155,160,200-204,303-320,326-347,373,464-466
+  s_dfcaf512beb521::t_8365da38a54119 47-50,62-65,348-372,374-463
+  s_dfcaf512beb521::t_00821288bf8d3d 255,258-264,290-294,321-325
+  s_dfcaf512beb521::t_5426a292c67f84 4-6,8,10,13-14,77-78,96,101,105,107,112,114,117-118,120-123,125-126,130,134,136,141,143,146-147,149-150,157,161,166,168,172,174,176,178,183,185,190,192,195-196,198-199,206,209,211,213,217-220,225-228,236,238-242,249-254,256-257,265-281,285-289,295-302,490-548
+  s_dfcaf512beb521::t_06ce4ffac87bf2 17,36-43,53,55-61,86,100,116,145,194,237,243-248,282-284,467-489
+aidlc/internal/contract/installed_skill.go
+  s_dfcaf512beb521::t_3e6c7bf325b311 1-14,19-48,50-100,103,106-145
+  s_dfcaf512beb521::t_063e827d7bc338 15-18,49,101-102,104-105
+docs/repomap-query-plan.md
+  s_dfcaf512beb521::t_0c2d2e5d30a0b0 34-41,60-64,77-79,114-118
+aidlc/internal/commands/validate_test.go
+  s_dfcaf512beb521::t_601d336ae29e75 1-111,211-283,288-304,309-329
+  s_dfcaf512beb521::t_f12ceb07770625 112-210,284-287,305-308
+aidlc/internal/commands/benchmark_test.go
+  s_dfcaf512beb521::t_8fc10825a69213 1-6,8-128
+  s_dfcaf512beb521::t_37f931cf53274c 7
+docs/blueprints/template-payload.md
+  s_dfcaf512beb521::t_db8cf193c2460b 25-26,35-38,42-43,63-69,72-79,93-94,126-129,132-134,144-145,150-154
+aidlc/internal/payload/paths_test.go
+  s_dfcaf512beb521::t_ec1362ea431b40 1-27
+aidlc/internal/cli/retrieval_benchmark_test.go
+  s_dfcaf512beb521::t_0c07828378d73d 19,114
+  s_dfcaf512beb521::t_48b729d6d19b84 1-18,20-113,115-124
+aidlc/internal/repomap/model/queryplan.go
+  s_dfcaf512beb521::t_1c74a5df2cfafd 18-30,41-46,71-81
+aidlc/internal/integration/makefile_inc_test.go
+  s_dfcaf512beb521::t_ef5c8e6444ecfe 26-27
+aidlc/internal/repomap/fallback_test.go
+  s_dfcaf512beb521::t_d342358cce9433 134-157
+aidlc/internal/cli/root.go
+  s_dfcaf512beb521::t_08512336ae40a5 12,22-23,32-33,38-39,56,61,64,84
+aidlc/internal/repomap/model/exact_search.go
+  s_dfcaf512beb521::t_1bfa8dc0d55bee 168
+  s_dfcaf512beb521::t_1c74a5df2cfafd 1-167,169-187
+aidlc/internal/contract/installed_skill_test.go
+  s_dfcaf512beb521::t_3e6c7bf325b311 1-140
+aidlc/internal/commands/query.go
+  s_dfcaf512beb521::t_47e22accdacbfb 23,37-38,46-47,72,78,83-88,98,103-115,120-127,137,157,159-162,164,166,168,173-180,274-280,529-565,567-647,654,656
+  s_dfcaf512beb521::t_fd5c39897e1db1 68-71,73,93-97,99,133,139-155,158,169-172,566
+.ai/README.md
+  s_dfcaf512beb521::t_20f4055edd396e 1-19,24,26-28,30-33,35,37-39,41,43-44,46-55,62,64,66-71,73-75,79-85
+  s_dfcaf512beb521::t_08e8b12d2ced87 57-60
+aidlc/internal/contract/benchmark_record_test.go
+  s_dfcaf512beb521::t_3e6c7bf325b311 1-106
+.ai/template-manifest.yaml
+  s_dfcaf512beb521::t_20f88b20e12bd3 30,45-46
+aidlc/internal/commands/update.go
+  s_dfcaf512beb521::t_459bb99d38235b 111,118,125-126
+  s_dfcaf512beb521::t_23553d86a1980a 127
+docs/architecture/software.md
+  s_dfcaf512beb521::t_8ae2dd3fbca73e 13,15,40-42
+README.md
+  s_dfcaf512beb521::t_6cb7d3194eac1a 142-145,147,189,192-193,213,216-217,240-241,247-250
+  s_dfcaf512beb521::t_5965fb867a444f 164
+aidlc/internal/sync/manifest_store_test.go
+  s_dfcaf512beb521::t_170b524681fe29 121-151
+.ai/Makefile.inc
+  s_dfcaf512beb521::t_87a7e08f498d0e 6-7,47,75-82
+aidlc/internal/cli/root_test.go
+  s_dfcaf512beb521::t_7c243a99d9d989 25,29,31,48,52,68-71,84-141
+  s_dfcaf512beb521::t_f3df1429dc88e4 72-83,142-143,398,438-485
+  s_dfcaf512beb521::t_20e9d95da078eb 370-371,391,396-397
+  s_dfcaf512beb521::t_b0f03d76085053 53
+  s_dfcaf512beb521::t_0d1e52bc6be734 144
+  s_dfcaf512beb521::t_1869ee2a37025b 399
+aidlc/testdata/repomap/unknown_location_queries.go
+  s_dfcaf512beb521::t_ea5917605fe83b 5,32-33,41-42,50,58,66,74,82,90,94,98,106,114,122,130-136,139,153-155,158,161,163-164,167-173,177-178,180,182
+  s_dfcaf512beb521::t_b11275d723fca2 31,34,40,43,49,51,57,59,65,67,73,75,81,83,89,91,97,99,105,107,113,115,121,123,183-198
+  s_dfcaf512beb521::t_b7c6321a5ff9c8 1-2,9-15,17-30,35-39,44-48,52-56,60-64,68-72,76-80,84-88,92-93,95-96,100-104,108-112,116-120,124-126,128-129,137-138,140-152,156-157,199
+  s_dfcaf512beb521::t_4e02bca8e5a8f6 3-4,6-8,16,127,159-160,162,165-166,174-176,179,181
+.ai/personas/reviewer.md
+  s_dfcaf512beb521::t_24bfae4f7dce53 3,12-13,26-29,41,44-48,59,64
+docs/blueprints/aidlc.md
+  s_dfcaf512beb521::t_9d0bae70935523 37-38,48-49,54-55,71-73,75-82,85-89,95-100,110-125,142-144,178-182
+  s_dfcaf512beb521::t_1b36505f45b8d1 213-223,264-268,270-272,294-296,319-323,331-335
+aidlc/internal/commands/benchmark.go
+  s_dfcaf512beb521::t_5d416878348b52 1-10,12-26,29-37,39-153,159-422
+  s_dfcaf512beb521::t_8ebfffcb3e803a 11,38
+  s_dfcaf512beb521::t_863b26c8a00d37 27-28,154-158
+docs/blueprints/repomap.md
+  s_dfcaf512beb521::t_8a727b9970be3a 23-24,27-28,53-62,70-72,79-81,120-125,138-140,161-167,169-170
+.ai/skills/orchestrate-spec.md
+  s_dfcaf512beb521::t_3fae23e69db7b9 3,25-26,33,35-37,42,56
+.ai/personas/implementer.md
+  s_dfcaf512beb521::t_24bfae4f7dce53 12-14,20-21,24-26,32-35,38,44-45,64,70-71,88
+aidlc/internal/generator/generator_test.go
+  s_dfcaf512beb521::t_3cba5f8db209da 39,48-52,63-68,251,265-321,325-337,341-389
+  s_dfcaf512beb521::t_f2d325427dc9f9 392,617-632,655-656
+  s_dfcaf512beb521::t_f7b29d37d07775 10-11,390,394-454,633-654
+  s_dfcaf512beb521::t_c679a6512ee52c 322-324,338-340
+  s_dfcaf512beb521::t_ad976a299a6646 97,105,113,121,391
+  s_dfcaf512beb521::t_55d9222986169c 393
+.ai/templates/task-record.md
+  s_dfcaf512beb521::t_0c2d2e5d30a0b0 1-45
+aidlc/internal/contract/task_record.go
+  s_dfcaf512beb521::t_1bfa8dc0d55bee 35
+  s_dfcaf512beb521::t_445fa2c72c0592 1-34,36-71,73-77,81,85-87,98-162
+  s_dfcaf512beb521::t_063e827d7bc338 72,78-80,82-84,88-97
+docs/spec/README.md
+  s_dfcaf512beb521::t_0c2d2e5d30a0b0 16-21,136
+  s_dfcaf512beb521::t_0085437c445d77 42-62,73,80-82,97-98
+aidlc/internal/contract/task_record_test.go
+  s_dfcaf512beb521::t_063e827d7bc338 80-87
+  s_dfcaf512beb521::t_445fa2c72c0592 1-79,88-162
+aidlc/internal/generator/templates.go
+  s_dfcaf512beb521::t_fbcc014b459de4 9-10,26-29,42,48-78
+  s_dfcaf512beb521::t_a464b7dd68f27a 79-80
+.ai/templates/spec.md
+  s_dfcaf512beb521::t_0c2d2e5d30a0b0 24
+.ai/personas/architect.md
+  s_dfcaf512beb521::t_24bfae4f7dce53 3,12,15-16,18-20,43-46,53,64,66,87,89,98
+aidlc/internal/commands/skill_test.go
+  s_dfcaf512beb521::t_0d90543764489e 1-85
+aidlc/internal/search/exact.go
+  s_dfcaf512beb521::t_47e22accdacbfb 1-58,64-201
+  s_dfcaf512beb521::t_fd5c39897e1db1 59-63
+aidlc/internal/sync/planner_test.go
+  s_dfcaf512beb521::t_10d09058935a34 351-407
+aidlc/internal/payload/paths.go
+  s_dfcaf512beb521::t_685b714686dfad 28-29,59-61,70-77
+  s_dfcaf512beb521::t_0c95110e14ec75 78-79
+aidlc/internal/commands/init.go
+  s_dfcaf512beb521::t_56d4fcc593b4a9 145-147
+.github/workflows/aidlc-ci.yml
+  s_dfcaf512beb521::t_23a2dee4dd8ed3 6,8,16,18
+  s_dfcaf512beb521::t_3c6593d3d01335 35-40
+docs/spec/1790867975-token-efficient-harness.md
+  s_dfcaf512beb521::t_388e29b9b51eb5 51-52,55-56,65,154-155,231-232,234,309-310,325-326,345-346,365-366,368,419-548
+  s_dfcaf512beb521::t_a12f9b3c74aa3e 115
+  s_dfcaf512beb521::t_04e4185e7d4dd5 1-2,4-46,49-50,57-64,68-114,116-153,156-163,195-221,223-230,233,235-304,307-308,313-324,327-328,343-344,347-364,367,369-381,383,385-393,395-399,401-408,410-413,553,607-610,612,618-623,626,629-656,661-670,678-702,708-734
+  s_dfcaf512beb521::t_13a48a4096770d 53-54,66,164-179,182-193,222,311-312,329-336,339-342,382,384,394,400,409,414-418,549-552,554-588,611,613-617,624-625,627-628,657-660,671-677,703-707,735-738
+  s_dfcaf512beb521::t_a91979c118a6dd 47-48,67,180-181,194,305-306,337-338,589-606,739-743
+  s_dfcaf512beb521::t_78eef9cba2e9b9 3
+.ai/skills/classify-change.md
+  s_dfcaf512beb521::t_3fae23e69db7b9 3,9,14-15,27-28,51-52,69-75,92,102-104,115-116,122-124
+  s_dfcaf512beb521::t_08e8b12d2ced87 53,66
+aidlc/internal/skills/installed.go
+  s_dfcaf512beb521::t_8ee1a91733ca88 38-40
+  s_dfcaf512beb521::t_e7d7806edd4d32 72-77,301,325
+  s_dfcaf512beb521::t_d49c9e54f418cf 140,145,154-173,175-198,215,221,229,232,236,241-245,247-248
+  s_dfcaf512beb521::t_17e47bb61cdf48 1-37,41-71,78-139,141-144,146-153,174,199-214,216-220,222-228,230-231,233-235,237-240,246,249-300,302-324,326-550
+aidlc/internal/commands/query_test.go
+  s_dfcaf512beb521::t_d342358cce9433 6,60-87,164-227,577-597
+  s_dfcaf512beb521::t_e1553f01c75bb7 598
+aidlc/README.md
+  s_dfcaf512beb521::t_4369f4af425203 17,20-21,81-90,95-144,161-162,245-273,324
+docs/adr/1790867975-token-efficient-harness.md
+  s_dfcaf512beb521::t_04e4185e7d4dd5 1-2,4-34,44-50,59,68-79,82-99
+  s_dfcaf512beb521::t_445fa2c72c0592 3
+  s_dfcaf512beb521::t_13a48a4096770d 35-43,80-81
+  s_dfcaf512beb521::t_388e29b9b51eb5 51-58,60-67
+aidlc/internal/repomap/sourcechunks.go
+  s_dfcaf512beb521::t_47e22accdacbfb 33-34,58,68,95-120
+  s_dfcaf512beb521::t_23db61284d194e 121-122
+aidlc/internal/generator/models.go
+  s_dfcaf512beb521::t_5fb03c2aa5bdbd 14-15,35,40-52
+  s_dfcaf512beb521::t_21ba060a19014d 53
+aidlc/internal/repomap/model/exact_search_test.go
+  s_dfcaf512beb521::t_1c74a5df2cfafd 1-95
+aidlc/internal/contract/benchmark_record.go
+  s_dfcaf512beb521::t_3e6c7bf325b311 1-104
+aidlc/internal/commands/skill.go
+  s_dfcaf512beb521::t_bf01a45e2c76d0 1-150
+aidlc/internal/repomap/model/queryplan_test.go
+  s_dfcaf512beb521::t_1c74a5df2cfafd 18,30,44-49,68-75,103-116,160-164
+aidlc/internal/repomap/sourcechunks_test.go
+  s_dfcaf512beb521::t_d342358cce9433 65-68
+aidlc/internal/skills/installed_test.go
+  s_dfcaf512beb521::t_a106d5f7ace33f 161-180
+  s_dfcaf512beb521::t_aa8f3e85b0a1f5 1-160,181-201
+aidlc/internal/contract/manifest.go
+  s_dfcaf512beb521::t_063e827d7bc338 3-8,55-96
+  s_dfcaf512beb521::t_445fa2c72c0592 42-54
+aidlc/internal/repomap/fallback.go
+  s_dfcaf512beb521::t_eca6efa9622d1a 350
+  s_dfcaf512beb521::t_47e22accdacbfb 82,340,343,346-349,351-352
+Makefile
+  s_dfcaf512beb521::t_8986577b1b8cf5 14,35-36,110-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a263fbb0a79bb898d0d5ea9da2269952a1664be8",
+  "prompts": {},
+  "sessions": {
+    "s_dfcaf512beb521": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f7d8-57f6-7791-b4bf-b4b362a5ed26",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Shubhang Tiwari <Shubhang.Tiwari@telekom-digital.com>"
+    }
+  }
+}
