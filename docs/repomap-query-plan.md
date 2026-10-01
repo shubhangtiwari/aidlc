@@ -31,6 +31,14 @@ valid for raw text only; structured callers should set `shards` in the JSON plan
   "phrases": ["greeting normalization"],
   "symbols": ["Authorize", "NormalizePrincipal", "Greet"],
   "paths": ["internal/auth/auth.go"],
+  "exact_search": {
+    "enabled": true,
+    "literals": ["Authorize("],
+    "paths": ["internal/auth"],
+    "max_results": 20,
+    "max_bytes": 12000,
+    "timeout_ms": 750
+  },
   "globs": ["internal/auth/**/*.go"],
   "languages": ["go"],
   "shards": ["source_chunks.jsonl", "symbols.jsonl", "imports.jsonl"],
@@ -49,6 +57,11 @@ Fields:
 - `symbols`: declarations or identifiers such as `Authorize`, `NormalizePrincipal`, or
   `QueryEngine.Query`.
 - `paths`: slash-relative exact path hints.
+- `exact_search`: optional bounded fixed-string/path search hints. Defaults clamp to
+  `max_results: 20`, `max_bytes: 12000`, and `timeout_ms: 750`; hard limits are 50 results, 65536
+  bytes, 2000 ms, eight literals, and sixteen path hints. Literal matches are fixed strings. Paths
+  are slash-relative prefixes or file paths and reject absolute paths, parent traversal,
+  backslashes, colons, empty segments, and shell metacharacters.
 - `globs`: slash-relative file globs such as `aidlc/internal/repomap/**/*.go`.
 - `languages`: optional language labels from the map.
 - `shards`: optional shard filenames. Known shards are `files.jsonl`, `imports.jsonl`,
@@ -61,8 +74,9 @@ Fields:
 
 Paths and globs must be slash-relative. Absolute paths, parent traversal, Windows drive paths,
 backslashes, empty path segments, and unknown shards are rejected with deterministic usage errors.
-Malformed JSON and multiple JSON values are also rejected. In globs, `**` matches zero or more
-complete path segments: `aidlc/internal/repomap/**/*.go` matches both
+Exact-search paths additionally reject shell metacharacters because they are path prefixes or files,
+not globs. Malformed JSON and multiple JSON values are also rejected. In globs, `**` matches zero or
+more complete path segments: `aidlc/internal/repomap/**/*.go` matches both
 `aidlc/internal/repomap/fallback.go` and `aidlc/internal/repomap/cache/query.go`, but not
 `aidlc/internal/commands/query.go`.
 
@@ -97,9 +111,11 @@ JSONL shards and `docs/map/index.json` are the canonical committed map state; `r
 a derived ignored cache. When the cache is present, structured plans use hybrid execution: SQLite
 FTS handles text channels and deterministic JSONL channels handle paths, recursive globs, symbols,
 source chunks, imports, and test links before rank fusion. When the cache is absent or unusable,
-the JSONL fallback still provides a deterministic path superset. Retrieval does not use embeddings,
-vector tables, model runtimes, network services, parser dependencies, language servers, or search
-subprocesses.
+the JSONL fallback still provides a deterministic path superset. Optional exact search is an
+augmentation supplied through the shared query contract and may be backed by a bounded local adapter
+when available; if it is unavailable, structural map retrieval continues. Retrieval does not use
+embeddings, vector tables, model runtimes, network services, parser dependencies, or language
+servers.
 
 Query output is navigation evidence. Agents must read the real source, tests, specs, ADRs, and
 blueprints before making code or architecture claims.

@@ -118,6 +118,37 @@ func TestWriteManifestPreservesExistingMapIncludeWhenUnset(t *testing.T) {
 	assertStrings(t, read.Workspace.Map.Include, []string{"aidlc/internal", "docs/architecture"})
 }
 
+func TestManifestRoundTripPreservesGeneratedProjections(t *testing.T) {
+	target := t.TempDir()
+	manifest := contract.TargetManifest{
+		Generated: contract.GenerationRecord{
+			IDE: contract.IDEAll,
+			Projections: []contract.GeneratedProjection{
+				{
+					IDE:      contract.IDECodex,
+					Source:   ".ai/skills/installed/local-tool",
+					Path:     ".codex/skills/local-tool/SKILL.md",
+					Checksum: "sha256:abc",
+					Mode:     "0644",
+				},
+			},
+		},
+	}
+	if err := templatesync.WriteManifest(target, manifest); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	read, err := templatesync.ReadManifest(target)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	if len(read.Generated.Projections) != 1 {
+		t.Fatalf("projections = %#v", read.Generated.Projections)
+	}
+	if read.Generated.Projections[0].Path != ".codex/skills/local-tool/SKILL.md" {
+		t.Fatalf("projection path = %q", read.Generated.Projections[0].Path)
+	}
+}
+
 func TestReadManifestTreatsMissingAsNil(t *testing.T) {
 	read, err := templatesync.ReadManifest(t.TempDir())
 	if err != nil {

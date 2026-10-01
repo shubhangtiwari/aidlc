@@ -20,6 +20,7 @@ import (
 
 type QueryDependencies struct {
 	NewCacheQuerier func(mapDir string) model.Querier
+	ExactSearcher   model.ExactSearcher
 }
 
 func RunQueryCLI(ctx context.Context, args []string, stdout, stderr io.Writer, deps QueryDependencies) int {
@@ -33,6 +34,8 @@ func RunQueryCLI(ctx context.Context, args []string, stdout, stderr io.Writer, d
 	var limit int
 	var planJSON string
 	var planFile string
+	var diagnostics bool
+	var format string
 	fs := flag.NewFlagSet("aidlc query", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.StringVar(&dir, "dir", ".", "repository root to query")
@@ -40,6 +43,8 @@ func RunQueryCLI(ctx context.Context, args []string, stdout, stderr io.Writer, d
 	fs.StringVar(&shard, "shard", "", "restrict query to one JSONL shard")
 	fs.StringVar(&planJSON, "plan-json", "", "SearchPlanV1 JSON to execute")
 	fs.StringVar(&planFile, "plan-file", "", "path to a SearchPlanV1 JSON file to execute")
+	fs.BoolVar(&diagnostics, "diagnostics", false, "write retrieval diagnostics to stderr")
+	fs.StringVar(&format, "format", "tsv", "output format: tsv or json")
 	fs.Usage = func() { printQueryUsage(stderr) }
 	if err := fs.Parse(args); err != nil {
 		return contract.ExitUsage
@@ -60,62 +65,119 @@ func RunQueryCLI(ctx context.Context, args []string, stdout, stderr io.Writer, d
 	}
 
 	opts := QueryOptions{
-		TargetDir: dir,
-		Query:     query,
-		Limit:     limit,
-		Shard:     shard,
+		TargetDir:   dir,
+		Query:       query,
+		Limit:       limit,
+		Shard:       shard,
+		Diagnostics: diagnostics,
+		Format:      format,
 	}
 	if hasPlan {
 		opts.Plan = &plan
 	}
-	text, err := RunQuery(ctx, opts, deps)
+	output, err := RunQueryDetailed(ctx, opts, deps)
 	if err != nil {
 		fmt.Fprintf(stderr, "aidlc query: %v\n", err)
 		return contract.ExitUsage
 	}
-	fmt.Fprint(stdout, text)
+	if diagnostics {
+		for _, diagnostic := range output.Diagnostics {
+			fmt.Fprintf(stderr, "aidlc query: %s\n", diagnostic)
+		}
+	}
+	fmt.Fprint(stdout, output.Text)
 	return contract.ExitOK
 }
 
 type QueryOptions struct {
-	TargetDir string
-	Query     string
-	Limit     int
-	Shard     string
-	Plan      *model.SearchPlanV1
+	TargetDir   string
+	Query       string
+	Limit       int
+	Shard       string
+	Plan        *model.SearchPlanV1
+	Diagnostics bool
+	Format      string
 }
 
 func RunQuery(ctx context.Context, opts QueryOptions, deps QueryDependencies) (string, error) {
+	output, err := RunQueryDetailed(ctx, opts, deps)
+	if err != nil {
+		return "", err
+	}
+	return output.Text, nil
+}
+
+type QueryOutput struct {
+	Text        string
+	Diagnostics []string
+}
+
+func RunQueryDetailed(ctx context.Context, opts QueryOptions, deps QueryDependencies) (QueryOutput, error) {
 	if opts.TargetDir == "" {
 		opts.TargetDir = "."
 	}
 	if opts.Limit < 0 {
-		return "", fmt.Errorf("--limit must be non-negative")
+		return QueryOutput{}, fmt.Errorf("--limit must be non-negative")
+	}
+	format := strings.TrimSpace(strings.ToLower(opts.Format))
+	if format == "" {
+		format = "tsv"
+	}
+	if format != "tsv" && format != "json" {
+		return QueryOutput{}, fmt.Errorf("--format must be tsv or json")
 	}
 	mapDir := filepath.Join(opts.TargetDir, filepath.FromSlash(model.MapDir))
 	querier := queryQuerier(mapDir, opts.Shard, deps)
 	engine := repomap.NewQueryEngine(querier)
 	plan := opts.Plan
+	rawPlan := false
 	if plan == nil {
 		compiled, err := model.CompileRawSearchPlan(opts.Query, opts.Limit, opts.Shard)
 		if err != nil {
-			return "", err
+			return QueryOutput{}, err
 		}
-		shard := ""
-		if len(compiled.Shards) > 0 {
-			shard = compiled.Shards[0]
+		if compiled.ExactSearch == nil {
+			shard := ""
+			if len(compiled.Shards) > 0 {
+				shard = compiled.Shards[0]
+			}
+			results, err := engine.Query(ctx, compiled.Question, compiled.Limit, shard)
+			if err != nil {
+				return QueryOutput{}, err
+			}
+			if format == "json" {
+				text, err := formatQueryJSON(results, nil)
+				if err != nil {
+					return QueryOutput{}, err
+				}
+				return QueryOutput{Text: text}, nil
+			}
+			return QueryOutput{Text: repomap.FormatQueryResults(results)}, nil
 		}
-		results, err := engine.Query(ctx, compiled.Question, compiled.Limit, shard)
-		if err != nil {
-			return "", err
-		}
-		return repomap.FormatQueryResults(results), nil
+		plan = &compiled
+		rawPlan = true
 	}
-	results, err := engine.QueryPlan(ctx, *plan)
+	normalized, err := plan.Normalize()
 	if err != nil {
-		return "", err
+		return QueryOutput{}, err
 	}
-	return repomap.FormatQueryResults(results), nil
+	results, err := engine.QueryPlan(ctx, normalized)
+	if err != nil {
+		return QueryOutput{}, err
+	}
+	var diagnostics []string
+	results, diagnostics = augmentWithExactSearch(ctx, opts.TargetDir, normalized, results, deps, opts.Diagnostics || format == "json")
+	if rawPlan && len(results) > normalized.Limit {
+		results = results[:normalized.Limit]
+	}
+	if format == "json" {
+		text, err := formatQueryJSON(results, diagnostics)
+		if err != nil {
+			return QueryOutput{}, err
+		}
+		return QueryOutput{Text: text, Diagnostics: diagnostics}, nil
+	}
+	return QueryOutput{Text: repomap.FormatQueryResults(results), Diagnostics: diagnostics}, nil
 }
 
 type queryPlanInputOptions struct {
@@ -209,7 +271,13 @@ type cacheFallbackQuerier struct {
 
 func (q cacheFallbackQuerier) Query(ctx context.Context, query string, limit int) ([]model.QueryResult, error) {
 	results, err := q.primary.Query(ctx, query, limit)
-	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if err == nil && len(results) > 0 {
+		return results, err
+	}
+	if err == nil {
+		return q.fallback.Query(ctx, query, limit)
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return results, err
 	}
 	return q.fallback.Query(ctx, query, limit)
@@ -458,13 +526,134 @@ func addWeightedPlanResults(candidates map[string]weightedQueryResult, results [
 	}
 }
 
+func augmentWithExactSearch(ctx context.Context, root string, plan model.SearchPlanV1, mapResults []model.QueryResult, deps QueryDependencies, includeDiagnostics bool) ([]model.QueryResult, []string) {
+	if plan.ExactSearch == nil || !plan.ExactSearch.Enabled {
+		return mapResults, nil
+	}
+	var diagnostics []string
+	if deps.ExactSearcher == nil {
+		if includeDiagnostics {
+			diagnostics = append(diagnostics, "exact search unavailable; using repo-map results only")
+		}
+		return mapResults, diagnostics
+	}
+	response, err := deps.ExactSearcher.SearchExact(ctx, model.ExactSearchRequest{
+		Root:       root,
+		Literals:   plan.ExactSearch.Literals,
+		Paths:      exactSearchPaths(plan),
+		MaxResults: plan.ExactSearch.MaxResults,
+		MaxBytes:   plan.ExactSearch.MaxBytes,
+		TimeoutMS:  plan.ExactSearch.TimeoutMS,
+	})
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			diagnostics = append(diagnostics, "exact search timed out; using repo-map results only")
+		} else if includeDiagnostics {
+			diagnostics = append(diagnostics, fmt.Sprintf("exact search failed: %v", err))
+		}
+		return mapResults, diagnostics
+	}
+	if includeDiagnostics {
+		diagnostics = append(diagnostics, response.Diagnostics...)
+		if response.Truncated {
+			diagnostics = append(diagnostics, "exact search truncated by configured limits")
+		}
+	}
+	exactResults := exactSearchQueryResults(response.Results)
+	if len(exactResults) == 0 {
+		return mapResults, diagnostics
+	}
+	return fuseCacheFallbackPlanResults(plan.Limit, mapResults, exactResults), diagnostics
+}
+
+func exactSearchPaths(plan model.SearchPlanV1) []string {
+	if plan.ExactSearch == nil {
+		return nil
+	}
+	paths := append([]string{}, plan.ExactSearch.Paths...)
+	paths = append(paths, plan.Paths...)
+	return compactStrings(paths)
+}
+
+func exactSearchQueryResults(results []model.ExactSearchResult) []model.QueryResult {
+	byPath := map[string]model.QueryResult{}
+	for _, result := range results {
+		path := strings.TrimSpace(result.Path)
+		if path == "" {
+			continue
+		}
+		snippet := result.Snippet
+		if snippet == "" {
+			snippet = result.Match
+		}
+		if result.Line > 0 {
+			snippet = fmt.Sprintf("L%d %s", result.Line, snippet)
+		}
+		existing, ok := byPath[path]
+		if !ok {
+			byPath[path] = model.QueryResult{Path: path, Score: 1, Snippet: snippet}
+			continue
+		}
+		existing.Score++
+		if existing.Snippet == "" || (snippet != "" && len(snippet) < len(existing.Snippet)) {
+			existing.Snippet = snippet
+		}
+		byPath[path] = existing
+	}
+	resultsOut := make([]model.QueryResult, 0, len(byPath))
+	for _, result := range byPath {
+		resultsOut = append(resultsOut, result)
+	}
+	sort.Slice(resultsOut, func(i, j int) bool {
+		if resultsOut[i].Score == resultsOut[j].Score {
+			return resultsOut[i].Path < resultsOut[j].Path
+		}
+		return resultsOut[i].Score > resultsOut[j].Score
+	})
+	return resultsOut
+}
+
+func compactStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func formatQueryJSON(results []model.QueryResult, diagnostics []string) (string, error) {
+	payload := struct {
+		Results     []model.QueryResult `json:"results"`
+		Diagnostics []string            `json:"diagnostics,omitempty"`
+	}{
+		Results:     results,
+		Diagnostics: diagnostics,
+	}
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(data) + "\n", nil
+}
+
 func printQueryUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage: aidlc query [flags] <search terms>")
 	fmt.Fprintln(w, "       aidlc query [flags] --plan-json JSON")
 	fmt.Fprintln(w, "       aidlc query [flags] --plan-file PATH")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
+	fmt.Fprintln(w, "  --diagnostics   Write retrieval diagnostics to stderr")
 	fmt.Fprintln(w, "  --dir DIR        Repository root (default .)")
+	fmt.Fprintln(w, "  --format FORMAT  Output format: tsv or json (default tsv)")
 	fmt.Fprintln(w, "  --limit N        Maximum number of results (default 10)")
 	fmt.Fprintln(w, "  --plan-file PATH Execute SearchPlanV1 JSON from PATH")
 	fmt.Fprintln(w, "  --plan-json JSON Execute SearchPlanV1 JSON")

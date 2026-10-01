@@ -23,6 +23,8 @@ func TestMakefileIncUsesExplicitAIDLCBinForPublicTargets(t *testing.T) {
 		{name: "ai-map-check", want: "map --dir . --check"},
 		{name: "ai-query", env: map[string]string{"AI_QUERY": "resolver terms"}, want: "query --dir . --limit 10 resolver terms"},
 		{name: "ai-doctor", want: "doctor --dir ."},
+		{name: "ai-validate", want: "validate --dir ."},
+		{name: "ai-benchmark", env: map[string]string{"AI_BENCHMARK_ARGS": "retrieval --dir . --queries docs/tasks/queries.json"}, want: "benchmark retrieval --dir . --queries docs/tasks/queries.json"},
 	}
 	for _, target := range targets {
 		t.Run(target.name, func(t *testing.T) {

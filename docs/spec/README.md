@@ -13,6 +13,12 @@ At draft stage, the **architect** posts an **approval brief** in chat (see
 `.ai/templates/approval-brief.md`): medium detail covering why, what changes, and which files. After
 approval, implementer and reviewer use the **spec file only** as the source of truth.
 
+High-risk or approved-spec implementation may also produce a local task record, commonly under
+`docs/tasks/<task-id>.task.json`, when executable validation needs machine-readable evidence for
+scope, owned files, checks, review references, or dirty-tree content freshness. Task records are
+local evidence artifacts; they do not prove human approval, model identity, host write isolation, or
+actual token usage.
+
 ## Scope roots
 
 The **invocation root** is the AIDLC root where the current agent session or prompt started. An
@@ -33,24 +39,27 @@ approved spec file as a separate governing artifact.
 
 ## When to write a spec
 
-- **Trivial** changes: typo, rename, comment, or obvious one-line fix with no behavior, contract,
-  state, integration, or topology change. No spec.
-- **Small** changes: low-risk localized fix, single test, dependency bump, bounded helper use, or
-  mechanical multi-file edit. No spec file when the change does not alter public behavior, schemas,
-  module contracts, owned state, integration boundaries, workflow topology, or graph topology; the
-  main agent states intent inline, the user confirms, then **`implementer`** applies the change.
-- **Medium / Large** changes: public behavior changes, schemas or contracts, target state semantics,
-  workflow or graph topology, integration boundaries, durable state, or coordination across modules
-  that needs a plan. A full spec file is required and approved before code is written. A one-file
-  change can still be medium or large when it carries these risks.
+Run `classify-change` before governed implementation. It selects one of the routes below:
 
-File count, line count, and directory spread are triage signals to inspect for coordination cost,
-not automatic tier gates. Multi-file work can remain small when it is mechanical or tightly bounded
-and leaves contracts, state, integrations, and topology unchanged.
+- **`direct-execute`**: trivial, reversible work with no behavior, contract, owned-state,
+  integration, or topology impact. The primary agent states intent and edits directly.
+- **`direct-intent`**: small low-risk work where a short inline intent improves visibility. The
+  primary agent posts that intent and proceeds unless new evidence raises risk.
+- **`bounded-investigation`**: a short read-only pass can resolve tier or scope. Reclassify after
+  the investigation before editing.
+- **`draft-spec`**: medium, large, high-risk, or still-uncertain work. Architect writes the
+  scope-local spec and approval brief. Implementation waits for explicit approval and
+  `status: approved`.
+- **`ask-user`**: one or two focused questions would materially change route or scope.
 
-No spec does **not** skip governance: trivial and small work still delegate **`implementer`** for
-governed paths. The implementer runs a **blueprint sanity** check and updates `docs/blueprints/` when
-the change affects contracts, owned state, integrations, topology, or read-only paths.
+Tier by semantic risk, not raw file count. Public behavior is a signal to size by blast radius, not
+an automatic spec trigger. Schemas, module contracts, owned state, integration boundaries, workflow
+topology, graph topology, coordination cost, rollback risk, and user impact drive risk. Multi-file
+mechanical work may be small; a one-file contract or state change may need a spec.
+
+No spec does **not** skip governance. Direct routes still require stated intent, relevant Make
+gates, and blueprint sanity. Update `docs/blueprints/` when a direct-route change affects contracts,
+owned state, integrations, topology, test gates, or read-only path rules.
 
 ## Frontmatter fields
 
@@ -61,15 +70,16 @@ the change affects contracts, owned state, integrations, topology, or read-only 
 | `owner` | yes | Spec author: `git config user.name`, else OS login (`whoami`) |
 | `tier` | yes | trivial / small / medium / large |
 | `domain` | yes | `software`, `data-engineering`, `data-science`, or `mixed` |
-| `work_packages` | medium/large | Delegable units with waves and dependencies |
+| `work_packages` | medium/large | Optional delegable units with waves and dependencies |
 
 Optional sidecar: `<scope-root>/docs/spec/<epoch>-<slug>.work-packages.yaml` when YAML frontmatter
 is too large.
 
 ## Work packages
 
-Medium and large specs should define `work_packages` in frontmatter plus markdown sections for the
-dependency tree and parallel execution plan. See `.ai/templates/spec.md`.
+Medium and large specs may define `work_packages` in frontmatter plus markdown sections for the
+dependency tree and parallel execution plan when parallel or staged execution reduces risk. See
+`.ai/templates/spec.md`.
 
 - **Wave 0** freezes shared contracts and shared pure helpers.
 - **One writer per path** per active wave.
@@ -84,8 +94,8 @@ draft → approved → implemented → stale
 1. Draft from `.ai/templates/spec.md`.
 2. Fill all required sections. `Open questions` must end empty.
 3. Architect posts approval brief in chat; user approves and spec `status` becomes `approved`.
-4. Implementer applies the spec (per work package when defined), including blueprint deltas. For
-   trivial/small work without a spec, implementer still runs blueprint sanity in the same PR.
+4. Implementer applies the approved spec, per work package when defined, including blueprint deltas.
+   Direct-route work without a spec still runs blueprint sanity in the same change.
 5. Open a PR or MR; add an entry to the owning scope's `docs/spec/.in-flight.yaml` (manual or
    automation).
 6. After merge, run `make finalize-spec` or rely on CI — removes the in-flight entry and sets
@@ -123,6 +133,7 @@ Override in frontmatter before approval if needed.
 | ADR | Architecture decision | `docs/adr/<epoch>-*.md` |
 | Blueprint | Module-level living design | `docs/blueprints/<module>.md` |
 | Spec | Feature change | `<scope-root>/docs/spec/<epoch>-*.md` |
+| Task record | Local workflow evidence | `docs/tasks/<task-id>.task.json` |
 
 Specs may span modules. They update blueprints; they do not replace ADRs.
 

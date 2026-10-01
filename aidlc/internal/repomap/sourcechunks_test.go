@@ -62,6 +62,10 @@ func TestExtractSourceChunksIsDeterministicAndBounded(t *testing.T) {
 			t.Fatalf("chunk has %d runes, want <= %d: %#v", runes, maxSourceChunkRunes, chunk)
 		}
 	}
+	lastSymbol := fmt.Sprintf("Symbol%d", maxSourceChunksPerFile+3)
+	if !strings.Contains(first[len(first)-1].Text, lastSymbol) {
+		t.Fatalf("last representative chunk = %#v, want later file region containing %s", first[len(first)-1], lastSymbol)
+	}
 }
 
 func TestExtractSourceChunksDoesNotSkipLinesWhenSplittingDenseBlocks(t *testing.T) {

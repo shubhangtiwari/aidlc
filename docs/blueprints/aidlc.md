@@ -34,6 +34,8 @@ It does not own root template source files except by reading the public template
 | `aidlc/internal/repomap` | Application | Repo-map scanning, query orchestration, staleness checks, and JSONL fallback query. |
 | `aidlc/internal/repomap/model` | Contracts | Repo-map record schemas, index metadata, cache/query interfaces, JSONL helpers, and content hashing. |
 | `aidlc/internal/repomap/cache` | Infrastructure | SQLite FTS5 cache builder, querier, and FTS5 capability probe. |
+| `aidlc/internal/search` | Infrastructure | Optional bounded local `rg` exact-search adapter for query augmentation. |
+| `aidlc/internal/skills` | Application | Installed local skill install/list/remove lifecycle and projection cleanup. |
 | `aidlc/internal/sync` | Application | Manifest-aware planning and copy decisions. |
 | `aidlc/internal/source` | Infrastructure | GitHub archive and local-source access. |
 | `aidlc/internal/install` | Infrastructure | Installer, release download, checksum validation, archive extraction, and binary replacement. |
@@ -43,11 +45,14 @@ It does not own root template source files except by reading the public template
 
 ## Cross-package Contracts
 
-- Commands: `doctor`, `init`, `map`, `query`, `update`, `upgrade`, and `version`.
+- Commands: `benchmark`, `doctor`, `init`, `map`, `query`, `skill`, `update`, `upgrade`,
+  `validate`, and `version`.
 - Native persona rendering consumes `.ai/models.defaults.toml` by IDE and persona. Codex renders
   `model` directly and translates source `reasoning` to `model_reasoning_effort`; Claude Code
   renders `model` and source `effort` as agent-frontmatter `effort`; Cursor renders `model` only
   and has no effort field. Empty or absent source values omit their corresponding generated field.
+  The defaults are inherited or opt-in values, not fixed mandatory model selections for every
+  generated repository.
 - `aidlc map [--dir DIR] [--include DIR[,DIR...]] [--check]` builds the repository navigation
   index for `DIR` (default `.`). A normal run scans the target repository using the saved
   `workspace.map.include` whitelist from `aidlc.lock.json`, writes deterministic JSONL shards and
@@ -63,31 +68,36 @@ It does not own root template source files except by reading the public template
   `repo map: fresh` or a deterministic stale report, exits `0` when fresh, exits `1` when stale,
   and exits `2` for invalid usage or unreadable map state. A mismatch between the saved whitelist
   and the include list recorded in `docs/map/index.json` is stale output.
-- `aidlc query [--dir DIR] [--limit N] [--shard NAME] <search terms>` queries the repo map for
-  `DIR` (default `.`) and prints ranked tab-separated rows as `<path>\t<score>\t<snippet>`.
+- `aidlc query [--dir DIR] [--limit N] [--shard NAME] [--diagnostics] [--format tsv|json]
+  <search terms>` queries the repo map for `DIR` (default `.`) and prints ranked tab-separated rows
+  as `<path>\t<score>\t<snippet>` by default.
   `--limit` defaults to `10`; negative limits and empty search terms exit `2`. Raw text compiles to
-  the public `SearchPlanV1` contract internally while preserving simple CLI behavior. Without
-  `--shard`, query uses `docs/map/repo-map.sqlite` when present and falls back to JSONL linear scan
-  when the cache is absent. Query text is normalized for lexical matching so question-shaped
-  searches drop connector noise while preserving code-shaped terms; the public output format and
-  exit behavior do not change. `--shard` forces JSONL fallback for the selected shard. Successful
-  empty result sets exit `0` with no rows.
+  the public `SearchPlanV1` contract internally while preserving simple CLI behavior. High-signal
+  path, symbol, or literal clues may enable bounded exact search. Without `--shard`, query uses
+  `docs/map/repo-map.sqlite` when present and falls back to JSONL linear scan when the cache is
+  absent or returns no useful raw results. Query text is normalized for lexical matching so
+  question-shaped searches drop connector noise while preserving code-shaped terms; the public TSV
+  output format and exit behavior do not change. `--shard` forces JSONL fallback for the selected
+  shard. Successful empty result sets exit `0` with no rows. `--diagnostics` reports omissions and
+  fallback notes on stderr, and JSON output may include diagnostics.
 - `aidlc query --plan-json JSON` and `aidlc query --plan-file PATH` execute public
   `SearchPlanV1` input with version, question, terms, phrases, symbols, paths, globs, languages,
-  shards, include-tests hint, relationship depth, and limit. Plan parsing rejects malformed JSON,
-  multiple JSON values, unsupported versions, absolute paths, parent traversal, malformed globs,
-  unknown shards, invalid relationship depth, and invalid raw-text/plan flag combinations with
-  deterministic exit `2` errors. Recursive `**` globs match zero or more complete path segments.
+  shards, include-tests hint, relationship depth, optional `exact_search`, and limit. Plan parsing
+  rejects malformed JSON, multiple JSON values, unsupported versions, absolute paths, parent
+  traversal, malformed globs, unknown shards, invalid exact-search paths, invalid relationship
+  depth, and invalid raw-text/plan flag combinations with deterministic exit `2` errors. Recursive
+  `**` globs match zero or more complete path segments.
   Structured plan output uses the same tab-separated result rows as raw text. When the SQLite cache
   is present, plan execution is hybrid: SQLite FTS handles text channels while deterministic JSONL
   channels handle paths, recursive globs, symbols, source chunks, imports, and test links. It is not
   fallback-only unless the cache is absent or unusable.
 - Map/query dependency boundary: command orchestration accepts `repomap/model` interfaces for cache
-  building and querying. The CLI root wires the concrete SQLite implementation into those
-  interfaces as a narrow composition-root exception; application command code must not import
-  `aidlc/internal/repomap/cache` directly. CLI root wiring may construct and pass concrete cache
-  dependencies only. It must not contain repo-map business logic, persistence logic,
-  scanning/query behavior, or direct infrastructure operations beyond dependency assembly.
+  building, querying, and exact search. The CLI root wires the concrete SQLite implementation and
+  the optional local `rg` search adapter into those interfaces as a narrow composition-root
+  exception; application command code must not import `aidlc/internal/repomap/cache` or
+  `aidlc/internal/search` directly. CLI root wiring may construct and pass concrete dependencies
+  only. It must not contain repo-map business logic, persistence logic, scanning/query behavior, or
+  direct infrastructure operations beyond dependency assembly.
 - `aidlc init <claude|codex|cursor|copilot|windsurf|all> [--source github|local] [--url URL]
   [--ref REF] [--path PATH] [--dry-run] [--force]` copies the public template payload and then
   generates the requested IDE files, recording concrete workspace IDEs in `aidlc.lock.json`. Init
@@ -97,6 +107,22 @@ It does not own root template source files except by reading the public template
   [--force]` reads `aidlc.lock.json`, or legacy `.aidlc/manifest.json` when the root lock is absent,
   fetches the configured or overridden source, applies clean manifest-aware updates, and regenerates
   the persisted workspace IDE surfaces.
+- `aidlc skill install [--dir DIR] LOCAL_DIR`, `aidlc skill list [--dir DIR] [--format text|json]`,
+  and `aidlc skill remove [--dir DIR] NAME` manage local installed skills without executing skill
+  files. Install copies a validated local tree into `.ai/skills/installed/<name>/`, list reports
+  installed metadata, and remove deletes the installed source plus only owned unmodified native
+  projections. Diverged native projections are preserved and reported.
+- `aidlc validate [--dir DIR] [--spec PATH] [--task-record PATH] [--base REV]
+  [--changed-file PATH ...] [--high-risk] [--format text|json]` performs read-only executable
+  governance checks. It can check approved-spec status, changed-file scope, task-record schema,
+  dirty-tree content digest, check evidence revision/digest, and high-risk review evidence. It
+  exits `0` on pass, `1` on validation failures, and `2` for usage or unreadable state. It does not
+  prove human approval authenticity, model-review authenticity, host write isolation, or token
+  usage.
+- `aidlc benchmark retrieval --dir DIR --queries PATH [--output PATH]` runs opt-in local retrieval
+  benchmark fixtures and emits a v1 benchmark record with expected paths, recall/precision,
+  repeated reads, retries, output bytes/words, source-heavy baseline bytes, optional host-reported
+  usage fields, current revision when available, and a dirty-tree digest for the query set.
 - `aidlc upgrade [--repo owner/repo] [--version latest|TAG] [--install-dir DIR] [--dry-run]`
   upgrades the installed CLI binary from GitHub release assets. The default repository is
   `shubhangtiwari/aidlc`, the default version selector is `latest`, and the default destination is
@@ -113,8 +139,9 @@ It does not own root template source files except by reading the public template
 - Supported IDEs: `claude`, `codex`, `cursor`, `copilot`, `windsurf`, and aggregate `all`.
 - Target lock: root `aidlc.lock.json` records schema version, upstream source/ref/commit,
   authoritative `workspace.ides`, generated IDE metadata, tracked payload paths, file checksums,
-  file modes, repo-map whitelist state under `workspace.map.include`, and command metadata such as
-  source kind and local source path. `workspace.ides` stores concrete IDE identifiers only,
+  file modes, repo-map whitelist state under `workspace.map.include`, installed-skill native
+  projection ownership records under `generated.projections`, and command metadata such as source
+  kind and local source path. `workspace.ides` stores concrete IDE identifiers only,
   de-duplicated in canonical supported IDE order; `all` expands to every concrete IDE before
   persistence. `workspace.map.include` stores normalized slash-relative folder paths used by
   `aidlc map` and `aidlc map --check`; explicit include writes preserve existing upstream,
@@ -148,9 +175,11 @@ It does not own root template source files except by reading the public template
   `$LOCALAPPDATA/Programs/aidlc/bin/aidlc.exe`, `$HOME/.local/bin`, `$HOME/bin`,
   `/opt/homebrew/bin`, and `/usr/local/bin` on Unix-like systems, with Windows executable variants
   where supported by the shell. `make ai-map`, `make ai-map-check`, `make ai-query`, and
-  `make ai-doctor` share that resolver. Resolver failure exits `2` before invoking a helper command
-  and prints guidance for `AIDLC_BIN`, `make ai-doctor`, Unix `AIDLC_INSTALL_DIR`, and Windows user
-  PATH behavior. These targets do not define a separate Bash compatibility contract.
+  `make ai-doctor`, `make ai-validate`, and `make ai-benchmark` share that resolver. Resolver
+  failure exits `2` before invoking a helper command and prints guidance for `AIDLC_BIN`,
+  `make ai-doctor`, Unix `AIDLC_INSTALL_DIR`, and Windows user PATH behavior. `ai-validate` runs
+  `aidlc validate --dir .` plus `AI_VALIDATE_ARGS`; `ai-benchmark` runs `aidlc benchmark` plus
+  `AI_BENCHMARK_ARGS`. These targets do not define a separate Bash compatibility contract.
 - Exit behavior: successful no-op exits `0`, conflicts exit `1`, and invalid usage exits `2`.
   Successful forced init/update overwrites exit `0`; `--force` does not downgrade usage, source,
   fetch, manifest, generation, lock, write, or upgrade errors.
@@ -181,6 +210,17 @@ file entries. Forced init and forced update may replace divergent public payload
 and then record those overwritten paths as clean tracked files in `aidlc.lock.json`.
 Removed-upstream files, private paths, unknown local files, and local-only files remain outside
 forced deletion or overwrite behavior.
+Local task records under `docs/tasks/*.task.json` and retrieval benchmark records under
+`docs/tasks/*.benchmark.json` are optional consumer evidence artifacts. They are not copied as broad
+public payload and are used only when a workflow chooses to provide them to `aidlc validate` or
+`aidlc benchmark`.
+Installed skill sources under `.ai/skills/installed/<name>/` are consumer-owned local state.
+Normal update and forced update must preserve them even when an upstream manifest attempts to
+target that subtree. Init/update may project installed skills into native IDE folders for Codex,
+Cursor, and Claude Code and records generated projection checksums in `aidlc.lock.json`; Copilot
+and Windsurf receive root guidance only unless a future native skill-folder contract is added.
+`aidlc skill remove` may delete only the installed source and owned unmodified generated
+projections. Manual edits to native projections are preserved and reported.
 `aidlc upgrade` owns only the installed `aidlc` executable at the resolved install destination and
 temporary staging files in that destination directory during replacement. It does not modify target
 repository payload state, `aidlc.lock.json`, generated IDE files, or legacy `.aidlc/manifest.json`.
@@ -221,11 +261,15 @@ machine PATH or target repository payload state.
 - `modernc.org/sqlite` is embedded only through `aidlc/internal/repomap/cache` to provide the local
   FTS5 query cache. The dependency must remain pure Go and compatible with CGO-disabled release
   builds. Repo-map query execution must not introduce embeddings, vector tables, model runtimes,
-  network services, parser dependencies, language servers, search subprocesses, or external search
-  engine runtimes.
+  network services, parser dependencies, language servers, or external search engine runtimes.
+- Optional exact/path discovery may invoke local `rg` only through `aidlc/internal/search`, with
+  `exec.CommandContext`, fixed-string arguments, validated slash-relative path hints, bounded
+  result and byte limits, short timeouts, and unavailable-safe diagnostics. No shell, hosted search,
+  vector, model, or network dependency is part of this adapter.
 - The interface-layer `aidlc/internal/cli` package may bind `aidlc/internal/repomap/cache`
-  implementations into `repomap/model` interfaces as the CLI composition root. This exception does
-  not allow application packages to import cache or SQLite packages directly.
+  implementations and `aidlc/internal/search` exact-search implementations into `repomap/model`
+  interfaces as the CLI composition root. This exception does not allow application packages to
+  import cache, SQLite, or search adapter packages directly.
 - Local-source mode is allowed for tests and development fixtures.
 - Normal init/update flows must not call Bash, Make, rsync, or git.
 - Root Makefile init/update targets may invoke the native CLI for repository developer workflows,
@@ -247,9 +291,9 @@ machine PATH or target repository payload state.
 - `make test`
 - `make validate-governance`
 
-Persona rendering coverage must assert the exact architect, implementer, and reviewer model and
-effort mappings for Codex and Claude Code, model-only `composer-2.5` output for all Cursor roles,
-and omission of generated fields for empty or absent optional source values.
+Persona rendering coverage must assert inherited or opt-in model/effort behavior for Codex, Claude
+Code, and Cursor, including omission of generated fields for empty or absent optional source
+values.
 
 Coverage must include partial init conflicts that still write safe payload files, generated IDE
 files, and an honest root lock; root `aidlc.lock.json` workspace IDE persistence; legacy manifest
@@ -272,8 +316,11 @@ generation for scope-aware spec ownership invariants. Forced init/update coverag
 overwrite output rows, exit `0` on successful forced overwrites, lock tracking of overwritten public
 payload paths, regenerated requested or persisted IDE files, private path exclusion, dry-run force
 read-only behavior, unchanged non-forced conflict behavior, map/query root CLI help and routing,
-query plan CLI coverage for `--plan-json`, `--plan-file`, malformed plan validation, invalid flag
-combinations, and unchanged tab-separated output rows, repo-map build output with `docs/map/` JSONL
+skill/validate/benchmark root CLI help and routing, installed local skill install/list/remove,
+consumer-owned installed source preservation during normal and forced update, generated native
+projection ownership and diverged-projection preservation on removal, query plan CLI coverage for
+`--plan-json`, `--plan-file`, malformed plan validation, invalid flag combinations, exact-search
+diagnostics, JSON diagnostics, and unchanged tab-separated output rows, repo-map build output with `docs/map/` JSONL
 shards including `source_chunks.jsonl` and `symbols.jsonl`, `index.json`, and derived SQLite cache,
 saved map whitelist persistence and reuse, first-run map include confirmation, non-interactive
 first-run guidance, read-only `aidlc map --check` behavior, include mismatch stale output,
@@ -281,6 +328,8 @@ staleness exit codes, structured plan recall@10 of at least 0.85 across at least
 queries, raw text recall@10 of at least 0.70 across the same representative natural-language and
 question-shaped code queries, compact `--limit 10` output at least 30 percent smaller than the
 source-heavy baseline while preserving expected paths, JSONL fallback superset behavior for the
-same queries, map artifact regeneration coverage, and `make aidlc-release-check` coverage proving
-the SQLite dependency does not break CGO-disabled cross-compilation and no model, vector, parser,
-network-service, or search-engine runtime dependency is introduced.
+same queries, unknown-location retrieval benchmark metrics, validation command coverage for
+approved specs, changed scopes, stale check/review evidence, and dirty-tree content digests, map
+artifact regeneration coverage, and `make aidlc-release-check` coverage proving the SQLite
+dependency and optional `rg` adapter do not break CGO-disabled cross-compilation and no hosted,
+model, vector, parser, or network-service dependency is introduced.

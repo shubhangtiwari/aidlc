@@ -10,9 +10,9 @@ governed by `docs/blueprints/template-payload.md`.
 | Layer | Paths | Responsibility |
 | --- | --- | --- |
 | Interface | `aidlc/cmd/aidlc`, `aidlc/internal/cli` | Parse user input, present help and errors, map command exits. |
-| Application | `aidlc/internal/commands`, `aidlc/internal/generator`, `aidlc/internal/sync` | Coordinate init/update flows, generation, planning, and filesystem decisions. |
+| Application | `aidlc/internal/commands`, `aidlc/internal/generator`, `aidlc/internal/skills`, `aidlc/internal/sync` | Coordinate init/update flows, installed-skill lifecycle, generation, planning, and filesystem decisions. |
 | Contracts | `aidlc/internal/contract`, `aidlc/internal/payload` | Shared command DTOs, manifests, IDE enums, payload allowlist schema, and path policy. |
-| Infrastructure | `aidlc/internal/source`, `aidlc/internal/install`, `aidlc/scripts`, release config | Fetch upstream sources, validate release artifacts, and integrate with distribution systems. |
+| Infrastructure | `aidlc/internal/source`, `aidlc/internal/install`, `aidlc/internal/search`, `aidlc/scripts`, release config | Fetch upstream sources, run bounded local exact search adapters, validate release artifacts, and integrate with distribution systems. |
 | Test Support | `aidlc/internal/testutil`, `aidlc/testdata` | Fixtures and helpers for Go tests only. |
 
 ## Dependency Direction
@@ -37,6 +37,9 @@ governed by `docs/blueprints/template-payload.md`.
   broad directory membership such as `docs/**`.
 - The root repository must not gain root-level Go manifests.
 - Cross-cutting CLI contract changes require blueprint updates and, when architectural, an ADR.
+- Bounded local exact search may shell out to `rg` only through `aidlc/internal/search` and only
+  when wired by the CLI composition root into `repomap/model` interfaces. Application packages must
+  not import or invoke that adapter directly.
 
 ## Test Gates
 

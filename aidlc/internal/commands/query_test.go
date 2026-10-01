@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,6 +54,34 @@ func TestRunQueryCLIFallsBackWhenCacheExistsButIsUnusable(t *testing.T) {
 	want := "docs/spec/auth.md\t1.000000\tAuth spec\n"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
+	}
+}
+
+func TestRunQueryCLIFallsBackWhenCacheReturnsNoRows(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mapDir := filepath.Join(root, filepath.FromSlash(model.MapDir))
+	repomapTestWriteJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/auth.md", Kind: "spec", Title: "Auth spec", Text: "cache miss fallback needle"},
+	})
+	repomapTestWriteJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/unrelated.md", Kind: "spec", Title: "Unrelated", Text: "cache only before rebuild"},
+	})
+	if err := cache.NewBuilder().Build(context.Background(), mapDir); err != nil {
+		t.Fatalf("build cache: %v", err)
+	}
+	repomapTestWriteJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/auth.md", Kind: "spec", Title: "Auth spec", Text: "cache miss fallback needle"},
+	})
+
+	var stdout, stderr bytes.Buffer
+	code := RunQueryCLI(context.Background(), []string{"--dir", root, "--limit", "5", "fallback needle"}, &stdout, &stderr, queryTestDependencies())
+	if code != contract.ExitOK {
+		t.Fatalf("RunQueryCLI() code = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.HasPrefix(stdout.String(), "docs/spec/auth.md\t") {
+		t.Fatalf("stdout = %q, want JSONL fallback match", stdout.String())
 	}
 }
 
@@ -129,6 +158,70 @@ func TestRunQueryCLIAcceptsPlanFile(t *testing.T) {
 	}
 	if !strings.HasPrefix(stdout.String(), "internal/auth/auth.go\t") {
 		t.Fatalf("stdout = %q, want auth path first", stdout.String())
+	}
+}
+
+func TestRunQueryCLIFusesInjectedExactSearchResults(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mapDir := filepath.Join(root, filepath.FromSlash(model.MapDir))
+	repomapTestWriteJSONL(t, mapDir, model.DocsShard, []model.DocRecord{
+		{Path: "docs/spec/auth.md", Kind: "spec", Title: "Auth spec", Text: "where Generate is discussed"},
+	})
+
+	deps := queryTestDependencies()
+	deps.ExactSearcher = fakeExactSearcher{
+		response: model.ExactSearchResponse{
+			Results: []model.ExactSearchResult{
+				{Path: "internal/generator/generator.go", Line: 12, Column: 3, Snippet: "func Generate() {}"},
+			},
+			Diagnostics: []string{"exact search fixture"},
+		},
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := RunQueryCLI(context.Background(), []string{"--dir", root, "--limit", "5", "--diagnostics", "where is Generate used"}, &stdout, &stderr, deps)
+	if code != contract.ExitOK {
+		t.Fatalf("RunQueryCLI() code = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.HasPrefix(stdout.String(), "internal/generator/generator.go\t") {
+		t.Fatalf("stdout = %q, want exact result first", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "exact search fixture") {
+		t.Fatalf("stderr = %q, want exact diagnostic", stderr.String())
+	}
+}
+
+func TestRunQueryCLIJSONIncludesDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	deps := queryTestDependencies()
+	deps.ExactSearcher = fakeExactSearcher{
+		response: model.ExactSearchResponse{
+			Diagnostics: []string{"exact search truncated by fixture"},
+			Truncated:   true,
+		},
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := RunQueryCLI(context.Background(), []string{"--dir", root, "--format", "json", "Generate("}, &stdout, &stderr, deps)
+	if code != contract.ExitOK {
+		t.Fatalf("RunQueryCLI() code = %d, stderr = %q", code, stderr.String())
+	}
+	var payload struct {
+		Results     []model.QueryResult `json:"results"`
+		Diagnostics []string            `json:"diagnostics"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
+		t.Fatalf("stdout JSON error = %v; stdout=%q", err, stdout.String())
+	}
+	if !containsString(payload.Diagnostics, "exact search truncated by fixture") {
+		t.Fatalf("diagnostics = %#v, want fixture diagnostic", payload.Diagnostics)
+	}
+	if !containsString(payload.Diagnostics, "exact search truncated by configured limits") {
+		t.Fatalf("diagnostics = %#v, want truncation diagnostic", payload.Diagnostics)
 	}
 }
 
@@ -479,6 +572,28 @@ func queryTestDependencies() QueryDependencies {
 			return cache.NewQuerier(mapDir)
 		},
 	}
+}
+
+type fakeExactSearcher struct {
+	response model.ExactSearchResponse
+	err      error
+	request  *model.ExactSearchRequest
+}
+
+func (s fakeExactSearcher) SearchExact(_ context.Context, request model.ExactSearchRequest) (model.ExactSearchResponse, error) {
+	if s.request != nil {
+		*s.request = request
+	}
+	return s.response, s.err
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func repomapTestWriteJSONL[T model.SortableRecord](t testing.TB, root, name string, records []T) {

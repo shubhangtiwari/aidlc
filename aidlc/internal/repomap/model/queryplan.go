@@ -15,18 +15,19 @@ const (
 )
 
 type SearchPlanV1 struct {
-	Version           int      `json:"version"`
-	Question          string   `json:"question,omitempty"`
-	Terms             []string `json:"terms,omitempty"`
-	Phrases           []string `json:"phrases,omitempty"`
-	Symbols           []string `json:"symbols,omitempty"`
-	Paths             []string `json:"paths,omitempty"`
-	Globs             []string `json:"globs,omitempty"`
-	Languages         []string `json:"languages,omitempty"`
-	Shards            []string `json:"shards,omitempty"`
-	IncludeTests      *bool    `json:"include_tests,omitempty"`
-	RelationshipDepth int      `json:"relationship_depth,omitempty"`
-	Limit             int      `json:"limit,omitempty"`
+	Version           int              `json:"version"`
+	Question          string           `json:"question,omitempty"`
+	Terms             []string         `json:"terms,omitempty"`
+	Phrases           []string         `json:"phrases,omitempty"`
+	Symbols           []string         `json:"symbols,omitempty"`
+	Paths             []string         `json:"paths,omitempty"`
+	ExactSearch       *ExactSearchPlan `json:"exact_search,omitempty"`
+	Globs             []string         `json:"globs,omitempty"`
+	Languages         []string         `json:"languages,omitempty"`
+	Shards            []string         `json:"shards,omitempty"`
+	IncludeTests      *bool            `json:"include_tests,omitempty"`
+	RelationshipDepth int              `json:"relationship_depth,omitempty"`
+	Limit             int              `json:"limit,omitempty"`
 }
 
 func CompileRawSearchPlan(query string, limit int, shards ...string) (SearchPlanV1, error) {
@@ -36,6 +37,12 @@ func CompileRawSearchPlan(query string, limit int, shards ...string) (SearchPlan
 		Terms:    QueryTerms(query),
 		Shards:   shards,
 		Limit:    limit,
+	}
+	if ShouldEnableExactSearchForRawQuery(query) {
+		plan.ExactSearch = &ExactSearchPlan{
+			Enabled:  true,
+			Literals: highSignalExactLiterals(query),
+		}
 	}
 	return plan.Normalize()
 }
@@ -60,6 +67,17 @@ func (p SearchPlanV1) Normalize() (SearchPlanV1, error) {
 	}
 	if p.Shards, err = cleanShardList(p.Shards); err != nil {
 		return SearchPlanV1{}, err
+	}
+	if p.ExactSearch != nil {
+		exact, err := p.ExactSearch.Normalize()
+		if err != nil {
+			return SearchPlanV1{}, err
+		}
+		if exact.Enabled {
+			p.ExactSearch = &exact
+		} else {
+			p.ExactSearch = nil
+		}
 	}
 
 	if p.RelationshipDepth == 0 {

@@ -1,5 +1,11 @@
 package contract
 
+import (
+	"fmt"
+	"path"
+	"strings"
+)
+
 const (
 	TargetManifestPath       = "aidlc.lock.json"
 	LegacyTargetManifestPath = ".aidlc/manifest.json"
@@ -33,10 +39,61 @@ type UpstreamRef struct {
 }
 
 type GenerationRecord struct {
-	IDE       IDE               `json:"ide"`
-	Version   string            `json:"version,omitempty"`
-	Timestamp string            `json:"timestamp,omitempty"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
+	IDE         IDE                   `json:"ide"`
+	Version     string                `json:"version,omitempty"`
+	Timestamp   string                `json:"timestamp,omitempty"`
+	Projections []GeneratedProjection `json:"projections,omitempty"`
+	Metadata    map[string]string     `json:"metadata,omitempty"`
+}
+
+type GeneratedProjection struct {
+	IDE      IDE    `json:"ide"`
+	Source   string `json:"source"`
+	Path     string `json:"path"`
+	Checksum string `json:"checksum"`
+	Mode     string `json:"mode,omitempty"`
+}
+
+func (p GeneratedProjection) Validate() error {
+	if p.IDE == "" {
+		return fmt.Errorf("ide is required")
+	}
+	if _, err := ParseIDE(p.IDE.String()); err != nil || p.IDE == IDEAll {
+		return fmt.Errorf("ide %q is invalid", p.IDE)
+	}
+	if err := validateContractSlashRelative("source", p.Source); err != nil {
+		return err
+	}
+	if err := validateContractSlashRelative("path", p.Path); err != nil {
+		return err
+	}
+	if strings.TrimSpace(p.Checksum) == "" {
+		return fmt.Errorf("checksum is required")
+	}
+	if !strings.HasPrefix(p.Checksum, "sha256:") {
+		return fmt.Errorf("checksum must use sha256:")
+	}
+	return nil
+}
+
+func validateContractSlashRelative(kind, value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fmt.Errorf("%s is required", kind)
+	}
+	if strings.HasPrefix(value, "/") || strings.Contains(value, "\\") || strings.Contains(value, ":") {
+		return fmt.Errorf("%s %q must be slash-relative", kind, value)
+	}
+	for _, segment := range strings.Split(value, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return fmt.Errorf("%s %q must not contain empty, current, or parent path segments", kind, value)
+		}
+	}
+	cleaned := path.Clean(value)
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return fmt.Errorf("%s %q must not traverse parents", kind, value)
+	}
+	return nil
 }
 
 type ManifestFile struct {

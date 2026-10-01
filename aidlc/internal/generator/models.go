@@ -11,7 +11,8 @@ type Options struct {
 }
 
 type Result struct {
-	Written []string
+	Written     []string
+	Projections []contract.GeneratedProjection
 }
 
 type document struct {
@@ -31,8 +32,23 @@ type sourceData struct {
 	Facts         ProjectFacts
 	Personas      []document
 	Skills        []document
+	Installed     []installedSkill
 	ModelDefaults map[string]map[string]modelDefault
 	SharedBody    string
+}
+
+type installedSkill struct {
+	Name        string
+	Description string
+	Source      string
+	Dirs        []string
+	Files       []installedFile
+}
+
+type installedFile struct {
+	Path    string
+	Content []byte
+	Mode    string
 }
 
 type ProjectFacts struct {

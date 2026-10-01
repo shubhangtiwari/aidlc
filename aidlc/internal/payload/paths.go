@@ -25,6 +25,8 @@ var privatePathPatterns = []string{
 	"aidlc/scripts/**",
 }
 
+const installedSkillSourceRoot = ".ai/skills/installed"
+
 func PrivatePathPatterns() []string {
 	out := make([]string, len(privatePathPatterns))
 	copy(out, privatePathPatterns)
@@ -54,12 +56,25 @@ func IsPrivatePath(value string) bool {
 	if err != nil {
 		return true
 	}
+	if IsInstalledSkillSourcePath(normalized) {
+		return true
+	}
 	for _, pattern := range privatePathPatterns {
 		if matchPattern(pattern, normalized) {
 			return true
 		}
 	}
 	return false
+}
+
+func IsInstalledSkillSourcePath(value string) bool {
+	normalized, err := NormalizeRelativePath(value)
+	if err != nil {
+		return true
+	}
+	lower := strings.ToLower(normalized)
+	root := strings.ToLower(installedSkillSourceRoot)
+	return lower == root || strings.HasPrefix(lower, root+"/")
 }
 
 func matchPattern(pattern, value string) bool {

@@ -79,9 +79,7 @@ func (q *FallbackQuerier) QueryShard(ctx context.Context, query string, limit in
 	for _, result := range matches {
 		results = append(results, result)
 	}
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Path < results[j].Path
-	})
+	sortFallbackRank(results)
 	if len(results) > limit {
 		results = results[:limit]
 	}
@@ -339,11 +337,18 @@ func queryTerms(query string) []string {
 
 func matchScore(text string, terms []string) float64 {
 	text = strings.ToLower(text)
-	var score float64
+	var matched int
 	for _, term := range terms {
 		if strings.Contains(text, term) {
-			score++
+			matched++
 		}
+	}
+	if matched == 0 {
+		return 0
+	}
+	score := float64(matched)
+	if len(terms) > 1 && matched == len(terms) {
+		score += float64(len(terms))
 	}
 	return score
 }

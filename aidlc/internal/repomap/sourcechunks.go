@@ -30,8 +30,8 @@ func ExtractSourceChunks(path, language, content string) []model.SourceChunkReco
 	}
 
 	lines := splitSourceLines(content)
-	chunks := make([]model.SourceChunkRecord, 0, minInt(maxSourceChunksPerFile, len(lines)))
-	for start := 0; start < len(lines) && len(chunks) < maxSourceChunksPerFile; {
+	allChunks := make([]model.SourceChunkRecord, 0, minInt(maxSourceChunksPerFile, len(lines)))
+	for start := 0; start < len(lines); {
 		for start < len(lines) && strings.TrimSpace(lines[start]) == "" {
 			start++
 		}
@@ -55,7 +55,7 @@ func ExtractSourceChunks(path, language, content string) []model.SourceChunkReco
 
 		text := trimSourceChunkText(strings.Join(lines[start:end], "\n"))
 		if text != "" {
-			chunks = append(chunks, model.SourceChunkRecord{
+			allChunks = append(allChunks, model.SourceChunkRecord{
 				Path:      path,
 				Language:  language,
 				StartLine: start + 1,
@@ -65,7 +65,7 @@ func ExtractSourceChunks(path, language, content string) []model.SourceChunkReco
 		}
 		start = end
 	}
-	return chunks
+	return representativeSourceChunks(allChunks)
 }
 
 func isSourceChunkLanguage(language string) bool {
@@ -90,6 +90,34 @@ func trimSourceChunkText(text string) string {
 	}
 	runes := []rune(text)
 	return strings.TrimSpace(string(runes[:maxSourceChunkRunes]))
+}
+
+func representativeSourceChunks(chunks []model.SourceChunkRecord) []model.SourceChunkRecord {
+	if len(chunks) <= maxSourceChunksPerFile {
+		return chunks
+	}
+	selected := make([]model.SourceChunkRecord, 0, maxSourceChunksPerFile)
+	seen := map[int]struct{}{}
+	for i := 0; i < maxSourceChunksPerFile; i++ {
+		index := 0
+		if maxSourceChunksPerFile > 1 {
+			index = i * (len(chunks) - 1) / (maxSourceChunksPerFile - 1)
+		}
+		if _, ok := seen[index]; ok {
+			for index < len(chunks) {
+				if _, exists := seen[index]; !exists {
+					break
+				}
+				index++
+			}
+			if index >= len(chunks) {
+				continue
+			}
+		}
+		seen[index] = struct{}{}
+		selected = append(selected, chunks[index])
+	}
+	return selected
 }
 
 func minInt(a, b int) int {

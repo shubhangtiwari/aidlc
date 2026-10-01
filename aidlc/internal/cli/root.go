@@ -9,6 +9,7 @@ import (
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/contract"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/cache"
 	"github.com/shubhangtiwari/aidlc/aidlc/internal/repomap/model"
+	"github.com/shubhangtiwari/aidlc/aidlc/internal/search"
 )
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -18,6 +19,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	switch args[0] {
+	case "benchmark":
+		return commands.RunBenchmarkCLI(ctx, args[1:], stdout, stderr, commands.BenchmarkDependencies{Query: queryDependencies()})
 	case "doctor":
 		return commands.RunDoctorCLI(args[1:], stdout, stderr)
 	case "init":
@@ -26,10 +29,14 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return commands.RunMapCLI(ctx, args[1:], stdout, stderr, mapDependencies())
 	case "query":
 		return commands.RunQueryCLI(ctx, args[1:], stdout, stderr, queryDependencies())
+	case "skill":
+		return commands.RunSkillCLI(ctx, args[1:], stdout, stderr)
 	case "update":
 		return commands.RunUpdateCLI(ctx, args[1:], stdout, stderr)
 	case "upgrade":
 		return commands.RunUpgradeCLI(ctx, args[1:], stdout, stderr)
+	case "validate":
+		return commands.RunValidateCLI(ctx, args[1:], stdout, stderr, commands.ValidateDependencies{})
 	case "version":
 		return commands.RunVersionCLI(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -46,12 +53,15 @@ func printRootHelp(w io.Writer) {
 	fmt.Fprintln(w, "aidlc initializes and updates AIDLC governance files.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  aidlc benchmark <retrieval> [flags]")
 	fmt.Fprintln(w, "  aidlc doctor [flags]")
 	fmt.Fprintln(w, "  aidlc init <claude|codex|cursor|copilot|windsurf|all> [flags]")
 	fmt.Fprintln(w, "  aidlc map [flags]")
 	fmt.Fprintln(w, "  aidlc query [flags] <search terms>")
+	fmt.Fprintln(w, "  aidlc skill <install|list|remove> [flags]")
 	fmt.Fprintln(w, "  aidlc update [flags]")
 	fmt.Fprintln(w, "  aidlc upgrade [flags]")
+	fmt.Fprintln(w, "  aidlc validate [flags]")
 	fmt.Fprintln(w, "  aidlc version")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Common flags:")
@@ -71,5 +81,6 @@ func queryDependencies() commands.QueryDependencies {
 		NewCacheQuerier: func(mapDir string) model.Querier {
 			return cache.NewQuerier(mapDir)
 		},
+		ExactSearcher: search.NewExactSearcher(),
 	}
 }

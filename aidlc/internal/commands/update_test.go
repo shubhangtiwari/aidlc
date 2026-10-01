@@ -400,6 +400,52 @@ func TestUpdatePreservesEmptyRootWorkspaceIDEs(t *testing.T) {
 	}
 }
 
+func TestUpdateWithoutGenerationPreservesProjectionMetadata(t *testing.T) {
+	sourceV1 := createTemplateSource(t)
+	target := t.TempDir()
+	if _, err := RunInit(context.Background(), contract.InitOptions{
+		IDE:       contract.IDECodex,
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV1, Ref: "v1"},
+	}); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	manifest := readTargetManifest(t, target)
+	manifest.Workspace.IDEs = nil
+	manifest.Generated.Projections = []contract.GeneratedProjection{
+		{
+			IDE:      contract.IDECodex,
+			Source:   ".ai/skills/installed/local-tool",
+			Path:     ".codex/skills/local-tool/SKILL.md",
+			Checksum: "sha256:abc",
+			Mode:     "0644",
+		},
+	}
+	if err := templatesync.WriteManifest(target, *manifest); err != nil {
+		t.Fatalf("write root lock: %v", err)
+	}
+
+	sourceV2 := createTemplateSource(t)
+	testutil.WriteFile(t, sourceV2, ".ai/README.md", "<!-- INIT:BEGIN -->\n\nprojection metadata preserved\n")
+	result, err := RunUpdate(context.Background(), contract.UpdateOptions{
+		TargetDir: target,
+		Source:    contract.SourceOptions{Kind: "local", Path: sourceV2, Ref: "v2"},
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if len(result.Generated) != 0 {
+		t.Fatalf("generated files from empty workspace IDEs: %#v", result.Generated)
+	}
+	read := readTargetManifest(t, target)
+	if len(read.Generated.Projections) != 1 {
+		t.Fatalf("projections = %#v", read.Generated.Projections)
+	}
+	if read.Generated.Projections[0].Path != ".codex/skills/local-tool/SKILL.md" {
+		t.Fatalf("projection path = %q", read.Generated.Projections[0].Path)
+	}
+}
+
 func TestUpdateFallsBackToLegacyIDESelectionAndWritesRootLock(t *testing.T) {
 	sourceV1 := createTemplateSource(t)
 	target := t.TempDir()

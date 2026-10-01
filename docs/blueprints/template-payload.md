@@ -22,13 +22,8 @@ The public payload is a strict allowlist:
   `[<ide>.<architect|implementer|reviewer>]`. A record may supply `model`; Codex records may also
   supply `reasoning`, Claude Code records may also supply `effort`, and Cursor records are
   model-only. Empty or absent `model`, `reasoning`, and `effort` values omit the corresponding IDE
-  field rather than creating a fallback value. The published role mapping is:
-
-  | IDE | Architect | Implementer | Reviewer |
-  | --- | --- | --- | --- |
-  | Codex | `gpt-5.6-sol`, `xhigh` reasoning | `gpt-5.6-luna`, `xhigh` reasoning | `gpt-5.6-sol`, `xhigh` reasoning |
-  | Claude Code | `claude-fable-5`, `xhigh` effort | `claude-sonnet-5`, `high` effort | `claude-opus-4-8`, `xhigh` effort |
-  | Cursor | `composer-2.5` | `composer-2.5` | `composer-2.5` |
+  field rather than creating a fallback value. Defaults are optional generation hints; generated
+  files may inherit the host's configured model and effort when a value is empty.
 - Static repo-map helper files intentionally listed in `.ai/template-manifest.yaml`:
   `.ai/repo-map-protocol.md`, root `.ai/Makefile.inc`, and `docs/map/.gitignore`.
   `.ai/Makefile.inc` is the shared static Make helper include for repo-map targets and future
@@ -37,13 +32,15 @@ The public payload is a strict allowlist:
   public Make helper `aidlc` resolver: explicit `AIDLC_BIN` wins, then the current shell `PATH`,
   then supported common install locations such as `$LOCALAPPDATA/Programs/aidlc/bin/aidlc.exe`,
   `$HOME/.local/bin`, `$HOME/bin`, `/opt/homebrew/bin`, and `/usr/local/bin` with Windows
-  executable variants where relevant. The repo-map helpers and `make ai-doctor` share this
-  resolver, and missing-binary failures print deterministic installer, PATH, `AIDLC_BIN`, and
-  doctor guidance before exiting. Repo-specific generated map state does not live under `.ai/`.
+  executable variants where relevant. The repo-map helpers, `make ai-doctor`, `make ai-validate`,
+  and `make ai-benchmark` share this resolver, and missing-binary failures print deterministic
+  installer, PATH, `AIDLC_BIN`, and doctor guidance before exiting. Repo-specific generated map
+  state does not live under `.ai/`.
 - Reference architecture profiles under `.ai/references/architectures/**`, intentionally listed
   file-by-file in `.ai/template-manifest.yaml`, because `init-architecture` depends on them in
   initialized repositories.
-- Starter docs or templates intentionally listed in `.ai/template-manifest.yaml`.
+- Starter docs or templates intentionally listed in `.ai/template-manifest.yaml`, including the
+  versioned task-record template when it is public.
 - License files intentionally listed in `.ai/template-manifest.yaml`.
 
 Manifest includes may be same-path entries, where the source repository path and target repository
@@ -63,21 +60,23 @@ duplicate target paths, and broad globs are rejected by the CLI payload policy.
 
 Public governance guidance in `.ai/**` and the starter `docs/spec/README.md` defines scope-aware
 spec ownership and tier classification by semantic risk, contract impact, target state, topology,
-integration changes, and coordination cost. File count and line count are evidence to inspect, not
-automatic tier gates: multi-file low-risk mechanical edits may remain small, while one-file changes
-that alter public behavior, schemas, owned state, contracts, integrations, or workflow topology can
-be medium or large. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are
-implementation artifacts for this repository and must remain excluded from payload copying.
+integration changes, and coordination cost. Low-risk reversible work may route through
+`direct-execute` or `direct-intent`; bounded read-only investigation may resolve uncertain work
+before a spec is required. File count and line count are evidence to inspect, not automatic tier
+gates: multi-file low-risk mechanical edits may remain small, while one-file changes that alter
+public behavior, schemas, owned state, contracts, integrations, or workflow topology can be medium
+or large. Repository-local in-flight specs such as `docs/spec/[0-9]*-*.md` are implementation
+artifacts for this repository and must remain excluded from payload copying.
 
 Repo-map protocol guidance is public payload and applies to all agent roles. Agents must use the
-repo map as the first discovery mechanism, query it before conventional file discovery, and read
-real files before making claims or edits. When writes are allowed, the main session is responsible
-for creating missing maps and refreshing stale maps before role delegation. The first interactive
-map run confirms detected include folders and saves them to `aidlc.lock.json`; later runs reuse that
-saved whitelist. CI and other non-interactive first-run environments should pass
-`AI_MAP_INCLUDE=".ai,aidlc,docs"` or another explicit comma-separated folder list. Conventional
-discovery fallback is allowed only when the map is unavailable, insufficient, or cannot answer the
-question.
+repo map as the first discovery mechanism for structural discovery, may use bounded local
+exact/path search for concrete clues, and must read real files before making claims or edits. When
+writes are allowed, the main session is responsible for creating missing maps and refreshing stale
+maps before role delegation. The first interactive map run confirms detected include folders and
+saves them to `aidlc.lock.json`; later runs reuse that saved whitelist. CI and other
+non-interactive first-run environments should pass `AI_MAP_INCLUDE=".ai,aidlc,docs"` or another
+explicit comma-separated folder list. Conventional discovery fallback is allowed only when the map
+is unavailable, insufficient, or cannot answer the question.
 
 ## Read-only Paths
 
@@ -91,6 +90,8 @@ explicitly narrows a starter exception:
 - `docs/architecture/**`
 - generated repo-map state: `docs/map/*.jsonl`, `docs/map/index.json`, and
   `docs/map/repo-map.sqlite`
+- local workflow evidence such as `docs/tasks/*.task.json` and `docs/tasks/*.benchmark.json`
+- installed local skill sources under `.ai/skills/installed/**`
 - `aidlc/**`
 - `.github/**`
 - `release/**`, `dist/**`, `build/**`
@@ -122,11 +123,15 @@ explicitly narrows a starter exception:
 - Payload updates may refresh repo-map-first exploration guidance in initialized roots, including
   `.ai/README.md`, `.ai/repo-map-protocol.md`, and persona guidance under `.ai/personas/**`.
 - Payload updates may refresh `.ai/Makefile.inc` to add helper variables such as `AI_MAP_INCLUDE`,
-  update `aidlc` discovery behavior, and expose helper targets such as `ai-doctor`, but they must
-  not overwrite or reset consumer-chosen repo-map lock state in
-  `aidlc.lock.json.workspace.map.include` or modify a consumer root Makefile include line.
+  update `aidlc` discovery behavior, and expose helper targets such as `ai-doctor`, `ai-validate`,
+  and `ai-benchmark`, but they must not overwrite or reset consumer-chosen repo-map lock state in
+  `aidlc.lock.json.workspace.map.include`, installed-skill projection ownership records, or modify
+  a consumer root Makefile include line.
 - Payload updates must not move, delete, import, or overwrite local scoped specs. Numbered
   `docs/spec/[0-9]*-*.md` files remain local planning artifacts outside the public payload.
+- Payload updates must preserve consumer task records, benchmark records, and
+  `.ai/skills/installed/**` sources. These local artifacts must not become accidental public payload
+  through broad includes or malicious source-to-target manifest mappings.
 
 ## Test Gates
 
@@ -136,13 +141,14 @@ explicitly narrows a starter exception:
 
 Validation must preserve the explicit `docs/spec/README.md` manifest include, the numbered
 `docs/spec/[0-9]*-*.md` exclusions, and the prohibition on broad `docs/**` payload copying.
-Persona-default coverage must assert the exact published architect, implementer, and reviewer
-mapping for Codex, Claude Code, and Cursor, plus omission when any optional `model`, `reasoning`, or
-`effort` value is empty or absent.
+Persona-default coverage must assert inherited or opt-in behavior for Codex, Claude Code, and
+Cursor, plus omission when any optional `model`, `reasoning`, or `effort` value is empty or absent.
 Coverage must include mapped manifest entries, path normalization for both source and target paths,
 private path rejection for target paths, duplicate target rejection, destination-path lock tracking,
 repo-map helper payload membership, robust Make helper discovery and `ai-doctor` payload behavior,
 including the Windows installer default LocalAppData fallback under sanitized PATH,
-preservation of consumer lock whitelist choices during payload updates, no mutation of consumer
-root Makefile includes during payload updates, and the prohibition on broad license directory
-copying.
+`ai-validate` and `ai-benchmark` helper routing, preservation of consumer lock whitelist choices and
+generated projection ownership during payload updates, preservation of installed local skills and
+task evidence during normal and forced updates, no mutation of consumer root Makefile includes
+during payload updates, compact root guidance budgets, native lazy catalog generation, installed
+skill exclusion from public payload copying, and the prohibition on broad license directory copying.

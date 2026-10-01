@@ -1,6 +1,6 @@
 ---
 name: orchestrate-spec
-description: Executes an approved spec by work-package waves, delegating one implementer per work package per wave. Use when a spec has work_packages and parallel execution is desired after status is approved.
+description: Executes an approved spec by work-package waves, with one writer per path and reviewer after the final wave.
 ---
 
 # Skill: Orchestrate Spec Execution
@@ -22,20 +22,24 @@ the governing spec.
 3. **For each wave:**
    - Confirm all `depends_on` WPs from prior waves are done.
    - Delegate **one implementer per WP** in this wave with a self-contained prompt only; do not
-     fork or attach full chat history. The prompt must contain:
+     fork or attach full chat history. Parallel delegation is optional; serial execution is valid
+     when host capacity, conflicts, or user preference make it simpler. The prompt must contain:
      - Spec path and WP id
      - Allowed file paths only
      - Domain profile: `<scope-root>/docs/architecture/<domain>.md`
      - Gates to run (`make` targets)
      - `done_when` criteria
      - Owning scope root; paths are relative to that scope unless the spec says otherwise
-   - Cap concurrent implementers at 3–6; queue excess WPs in the same wave.
+   - Cap concurrent implementers to available host slots and queue excess WPs in the same wave.
    - Wait for all WPs in the wave to report done or escalated before the next wave.
+   - If a WP fails, is interrupted, or reports conflicting file ownership, stop later waves that
+     depend on it. Resume from current files only after the conflict is resolved or the spec is
+     amended.
 4. **After final wave (mandatory):** main session delegates `reviewer` on the full branch diff vs
    spec. Do not report implementation complete, open a PR, or close the governed workflow until
    `reviewer` returns. Skipping this step violates Hard Rule 6 in `.ai/README.md`.
 5. **Escalation:** material discovery → stop WP, note in spec `Implementation notes`, architect
-   amends spec before continuing.
+   amends spec before continuing. Minor in-scope findings may be noted and continued.
 
 ## Wave 0 reminder
 
@@ -49,7 +53,7 @@ complete. It owns cross-cutting edits: integration tests, blueprint sync, shared
 
 ## Outcome
 
-- All WPs marked done with gates passed.
+- All WPs done with assigned Make gates passed or explicitly escalated.
 - Spec `Implementation notes` updated for any in-scope discoveries.
 - `reviewer` has run on the full diff vs spec (required before merge or “done” for medium/large).
 - Then post-merge finalize via `make finalize-spec`.

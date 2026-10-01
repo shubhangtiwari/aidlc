@@ -3,7 +3,9 @@ name: aidlc CI
 on:
   pull_request:
     paths:
+      - ".ai/**"
       - "aidlc/**"
+      - "docs/**"
       - ".github/workflows/aidlc-ci.yml"
       - ".github/workflows/aidlc-release.yml"
       - "Makefile"
@@ -11,7 +13,9 @@ on:
     branches:
       - main
     paths:
+      - ".ai/**"
       - "aidlc/**"
+      - "docs/**"
       - ".github/workflows/aidlc-ci.yml"
       - ".github/workflows/aidlc-release.yml"
       - "Makefile"
@@ -28,6 +32,12 @@ jobs:
         with:
           go-version-file: aidlc/go.mod
           cache-dependency-path: aidlc/go.sum
+      - name: Build local aidlc binary
+        run: |
+          cd aidlc
+          go build -o ../.tmp-aidlc ./cmd/aidlc
+      - name: Run executable governance validation
+        run: make ai-validate AIDLC_BIN="$PWD/.tmp-aidlc"
       - name: Run aidlc tests
         run: make aidlc-test
       - name: Run aidlc release checks
